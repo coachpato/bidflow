@@ -1,0 +1,53 @@
+import bcrypt from 'bcryptjs'
+import prisma from '@/lib/prisma'
+import { getSession } from '@/lib/session'
+
+export async function POST(request) {
+  try {
+    const { name, email, password, role } = await request.json()
+
+    // Basic validation
+    if (!name || !email || !password) {
+      return Response.json({ error: 'Name, email and password are required' }, { status: 400 })
+    }
+
+    if (password.length < 6) {
+      return Response.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+    }
+
+    // Check if email is already registered
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) {
+      return Response.json({ error: 'An account with this email already exists' }, { status: 400 })
+    }
+
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Create the user (first user becomes admin automatically)
+    const userCount = await prisma.user.count()
+    const assignedRole = userCount === 0 ? 'admin' : (role || 'member')
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: assignedRole,
+      },
+    })
+
+    // Log them in immediately after registering
+    const session = await getSession()
+    session.userId = user.id
+    session.name = user.name
+    session.email = user.email
+    session.role = user.role
+    await session.save()
+
+    return Response.json({ success: true, user: { id: user.id, name: user.name, role: user.role } })
+  } catch (err) {
+    console.error('Register error:', err)
+    return Response.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+  }
+}

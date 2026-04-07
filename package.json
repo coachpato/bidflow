@@ -1,0 +1,31 @@
+{
+  "name": "bidflow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && prisma db push && next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "@supabase/supabase-js": "^2.102.1",
+    "bcryptjs": "^3.0.3",
+    "iron-session": "^8.0.4",
+    "next": "16.2.2",
+    "pdf-parse": "^2.4.5",
+    "prisma": "5.22.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4"
+  }
+}

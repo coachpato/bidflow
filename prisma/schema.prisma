@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Switched to PostgreSQL for production deployment (Supabase free tier)
+  // In development: point DATABASE_URL at your Supabase project URL
+  // In production (Vercel): set DATABASE_URL in Vercel environment variables
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("member")
+  createdAt     DateTime       @default(now())
+  tenders       Tender[]
+  activities    ActivityLog[]
+  notifications Notification[]
+}
+
+model Tender {
+  id             Int                   @id @default(autoincrement())
+  title          String
+  reference      String?
+  entity         String
+  description    String?
+  deadline       DateTime?
+  briefingDate   DateTime?
+  contactPerson  String?
+  contactEmail   String?
+  status         String                @default("New")
+  assignedTo     String?
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  createdBy      User?                 @relation(fields: [userId], references: [id])
+  userId         Int?
+  documents      TenderDocument[]
+  checklistItems TenderChecklistItem[]
+  appeals        Appeal[]
+  activities     ActivityLog[]
+  contract       Contract?
+}
+
+model TenderDocument {
+  id         Int      @id @default(autoincrement())
+  filename   String
+  filepath   String   // Stores full Supabase Storage URL in production
+  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId   Int
+  uploadedAt DateTime @default(now())
+}
+
+model TenderChecklistItem {
+  id          Int       @id @default(autoincrement())
+  label       String
+  done        Boolean   @default(false)
+  responsible String?
+  dueDate     DateTime?
+  notes       String?
+  tender      Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId    Int
+}
+
+model Contract {
+  id          Int           @id @default(autoincrement())
+  title       String
+  client      String?
+  startDate   DateTime?
+  endDate     DateTime?
+  renewalDate DateTime?
+  cancelDate  DateTime?
+  value       Float?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  tender      Tender?       @relation(fields: [tenderId], references: [id])
+  tenderId    Int?          @unique
+  activities  ActivityLog[]
+}
+
+model Appeal {
+  id         Int           @id @default(autoincrement())
+  reason     String
+  deadline   DateTime?
+  status     String        @default("Pending")
+  notes      String?
+  template   String?
+  createdAt  DateTime      @default(now())
+  tender     Tender?       @relation(fields: [tenderId], references: [id])
+  tenderId   Int?
+  activities ActivityLog[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+}
+
+model ActivityLog {
+  id         Int       @id @default(autoincrement())
+  action     String
+  createdAt  DateTime  @default(now())
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     Int?
+  tender     Tender?   @relation(fields: [tenderId], references: [id])
+  tenderId   Int?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+  contractId Int?
+  appeal     Appeal?   @relation(fields: [appealId], references: [id])
+  appealId   Int?
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(timeout 15 npx next build)",
+      "Bash(npx next:*)"
+    ]
+  }
+}
