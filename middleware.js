@@ -26,6 +26,11 @@ export function middleware(request) {
     return NextResponse.next()
   }
 
+  // Allow API test endpoints for debugging
+  if (pathname.startsWith('/api/test-')) {
+    return NextResponse.next()
+  }
+
   // Check if session cookie exists (basic guard)
   // Full session validation happens inside each page/API route
   const sessionCookie = request.cookies.get('bidflow_session')
