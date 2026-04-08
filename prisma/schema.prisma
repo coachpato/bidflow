@@ -20,6 +20,8 @@ model User {
   tenders       Tender[]
   activities    ActivityLog[]
   notifications Notification[]
+
+  @@map("user")
 }
 
 model Tender {
@@ -44,6 +46,8 @@ model Tender {
   appeals        Appeal[]
   activities     ActivityLog[]
   contract       Contract?
+
+  @@map("tender")
 }
 
 model TenderDocument {
@@ -53,6 +57,8 @@ model TenderDocument {
   tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   tenderId   Int
   uploadedAt DateTime @default(now())
+
+  @@map("tenderDocument")
 }
 
 model TenderChecklistItem {
@@ -64,6 +70,8 @@ model TenderChecklistItem {
   notes       String?
   tender      Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   tenderId    Int
+
+  @@map("tenderChecklistItem")
 }
 
 model Contract {
@@ -80,6 +88,8 @@ model Contract {
   tender      Tender?       @relation(fields: [tenderId], references: [id])
   tenderId    Int?          @unique
   activities  ActivityLog[]
+
+  @@map("contract")
 }
 
 model Appeal {
@@ -93,6 +103,8 @@ model Appeal {
   tender     Tender?       @relation(fields: [tenderId], references: [id])
   tenderId   Int?
   activities ActivityLog[]
+
+  @@map("appeal")
 }
 
 model Notification {
@@ -103,6 +115,8 @@ model Notification {
   createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
   userId    Int?
+
+  @@map("notification")
 }
 
 model ActivityLog {
@@ -117,4 +131,6 @@ model ActivityLog {
   contractId Int?
   appeal     Appeal?   @relation(fields: [appealId], references: [id])
   appealId   Int?
+
+  @@map("activityLog")
 }
