@@ -6,6 +6,8 @@ const PUBLIC_PATHS = [
   '/register',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/test-db',
+  '/api/test-dashboard',
 ]
 
 export function middleware(request) {
