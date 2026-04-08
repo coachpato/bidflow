@@ -4,7 +4,8 @@
       "Bash(npm install:*)",
       "Bash(npx prisma:*)",
       "Bash(timeout 15 npx next build)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(node -e ':*)"
     ]
   }
 }
