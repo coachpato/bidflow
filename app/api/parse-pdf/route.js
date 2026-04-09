@@ -1,6 +1,9 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { PDFParse } from 'pdf-parse'
+
+export const runtime = 'nodejs'
 
 export async function POST(request) {
   const session = await getSession()
@@ -40,8 +43,9 @@ export async function POST(request) {
     const buffer = Buffer.from(await data.arrayBuffer())
 
     // Parse the PDF text
-    const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default
-    const result = await pdfParse(buffer)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
     const text = result.text
 
     const fields = extractTenderFields(text)

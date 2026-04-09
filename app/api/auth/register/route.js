@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { isPublicRegistrationEnabled } from '@/lib/env'
 
 export async function POST(request) {
   try {
@@ -21,11 +22,15 @@ export async function POST(request) {
       return Response.json({ error: 'An account with this email already exists' }, { status: 400 })
     }
 
+    const userCount = await prisma.user.count()
+    if (userCount > 0 && !isPublicRegistrationEnabled()) {
+      return Response.json({ error: 'Registration is disabled. Please ask an admin to create your account.' }, { status: 403 })
+    }
+
     // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10)
 
     // Create the user (first user becomes admin automatically)
-    const userCount = await prisma.user.count()
     const assignedRole = userCount === 0 ? 'admin' : (role || 'member')
 
     const user = await prisma.user.create({

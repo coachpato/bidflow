@@ -3,11 +3,11 @@ generator client {
 }
 
 datasource db {
-  // Switched to PostgreSQL for production deployment (Supabase free tier)
-  // In development: point DATABASE_URL at your Supabase project URL
-  // In production (Vercel): set DATABASE_URL in Vercel environment variables
+  // Use the pooled connection string for serverless runtime access.
+  // Use DIRECT_URL for Prisma migrations and other direct database access.
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

@@ -7,6 +7,10 @@ function addDays(date, days) {
 }
 
 export async function GET(request) {
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json({ error: 'Not found' }, { status: 404 })
+  }
+
   try {
     const now = new Date()
     const results = {}
