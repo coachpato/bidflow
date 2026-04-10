@@ -6,6 +6,7 @@ export async function POST(request) {
   try {
     const { email, password } = await request.json()
     const normalizedEmail = email?.trim().toLowerCase()
+    const trimmedPassword = password?.trim()
 
     if (!normalizedEmail || !password) {
       return Response.json({ error: 'Email and password are required' }, { status: 400 })
@@ -21,9 +22,19 @@ export async function POST(request) {
       },
     })
 
-    // Check password (use same error message for both cases for security)
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return Response.json({ error: 'Invalid email or password' }, { status: 401 })
+    if (!user) {
+      return Response.json({ error: 'No account exists for this email address.' }, { status: 404 })
+    }
+
+    // Allow a trimmed retry so pasted passwords with stray spaces still work.
+    const passwordMatches = await bcrypt.compare(password, user.password) || (
+      trimmedPassword &&
+      trimmedPassword !== password &&
+      await bcrypt.compare(trimmedPassword, user.password)
+    )
+
+    if (!passwordMatches) {
+      return Response.json({ error: 'The password for this account is incorrect.' }, { status: 401 })
     }
 
     // Save session
