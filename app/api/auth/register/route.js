@@ -6,9 +6,11 @@ import { isPublicRegistrationEnabled } from '@/lib/env'
 export async function POST(request) {
   try {
     const { name, email, password, role } = await request.json()
+    const normalizedName = name?.trim()
+    const normalizedEmail = email?.trim().toLowerCase()
 
     // Basic validation
-    if (!name || !email || !password) {
+    if (!normalizedName || !normalizedEmail || !password) {
       return Response.json({ error: 'Name, email and password are required' }, { status: 400 })
     }
 
@@ -17,7 +19,14 @@ export async function POST(request) {
     }
 
     // Check if email is already registered
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive',
+        },
+      },
+    })
     if (existing) {
       return Response.json({ error: 'An account with this email already exists' }, { status: 400 })
     }
@@ -35,8 +44,8 @@ export async function POST(request) {
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: normalizedName,
+        email: normalizedEmail,
         password: hashedPassword,
         role: assignedRole,
       },

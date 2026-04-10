@@ -5,13 +5,21 @@ import { getSession } from '@/lib/session'
 export async function POST(request) {
   try {
     const { email, password } = await request.json()
+    const normalizedEmail = email?.trim().toLowerCase()
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return Response.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({ where: { email } })
+    // Normalize email input so login is not blocked by case or accidental spaces.
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive',
+        },
+      },
+    })
 
     // Check password (use same error message for both cases for security)
     if (!user || !(await bcrypt.compare(password, user.password))) {
