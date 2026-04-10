@@ -20,6 +20,7 @@ export default function TenderDetailPage() {
 
   // Document upload state
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [parsedFields, setParsedFields] = useState(null)
   const [parsingPdf, setParsingPdf] = useState(false)
 
@@ -75,16 +76,23 @@ export default function TenderDetailPage() {
   async function handleFileUpload(e) {
     const file = e.target.files[0]
     if (!file) return
+    setUploadError('')
     setUploading(true)
 
     const formData = new FormData()
     formData.append('file', file)
     formData.append('tenderId', id)
 
-    const res = await fetch('/api/upload', { method: 'POST', body: formData })
-    setUploading(false)
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      setUploading(false)
 
-    if (res.ok) {
+      if (!res.ok) {
+        setUploadError(data.error || 'Document upload failed.')
+        return
+      }
+
       fetchTender()
       // Auto-parse if PDF
       if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -100,6 +108,11 @@ export default function TenderDetailPage() {
         }
         setParsingPdf(false)
       }
+    } catch {
+      setUploading(false)
+      setUploadError('Document upload failed. Please try again.')
+    } finally {
+      e.target.value = ''
     }
   }
 
@@ -257,6 +270,12 @@ export default function TenderDetailPage() {
             {/* Documents */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-3">Documents</h3>
+
+              {uploadError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                  {uploadError}
+                </div>
+              )}
 
               <label className="flex items-center gap-2 cursor-pointer mb-4">
                 <div

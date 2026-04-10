@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { notifyTenderAssignees } from '@/lib/tender-assignment'
 
 // GET /api/tenders — list all tenders (with optional search/filter)
 export async function GET(request) {
@@ -92,6 +93,12 @@ export async function POST(request) {
   await logActivity(`Created tender: ${tender.title}`, {
     userId: session.userId,
     tenderId: tender.id,
+  })
+
+  await notifyTenderAssignees({
+    tender,
+    assignedTo: tender.assignedTo,
+    actorName: session.name,
   })
 
   return Response.json(tender, { status: 201 })

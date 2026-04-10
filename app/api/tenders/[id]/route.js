@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { notifyTenderAssignees } from '@/lib/tender-assignment'
 
 // GET /api/tenders/:id — get a single tender with all related data
 export async function GET(request, { params }) {
@@ -64,6 +65,13 @@ export async function PATCH(request, { params }) {
       tenderId: updated.id,
     })
   }
+
+  await notifyTenderAssignees({
+    tender: updated,
+    assignedTo: updated.assignedTo,
+    previousAssignedTo: existing.assignedTo,
+    actorName: session.name,
+  })
 
   return Response.json(updated)
 }

@@ -121,6 +121,7 @@ export default function EditTenderPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Assigned To</label>
                 <input name="assignedTo" value={form.assignedTo} onChange={handleChange}
+                  placeholder="Team member names or emails (comma separated)"
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
               </div>
               <div className="sm:col-span-2">
