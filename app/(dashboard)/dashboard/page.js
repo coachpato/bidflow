@@ -9,9 +9,6 @@ import { ensureOrganizationContext } from '@/lib/organization'
 import prisma from '@/lib/prisma'
 import { requireAuth } from '@/lib/session'
 
-// Cache dashboard for 60 seconds to reduce database load
-export const revalidate = 60
-
 const DEADLINE_WARNING_DAYS = 14
 const CONTRACT_EXPIRY_WARNING_DAYS = 30
 const OPPORTUNITY_WARNING_DAYS = 10

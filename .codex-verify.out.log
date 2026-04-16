@@ -1,8 +1,0 @@
-
-> bidflow@0.1.0 start
-> next start --port 3011
-
-▲ Next.js 16.2.2
-- Local:         http://localhost:3011
-- Network:       http://192.168.101.146:3011
-✓ Ready in 186ms

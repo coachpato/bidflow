@@ -1,11 +1,13 @@
-/**
- * Jest configuration for Next.js project
- * Handles testing of utilities, API routes, and components
- */
+const nextJest = require('next/jest')
 
-module.exports = {
+const createJestConfig = nextJest({
+  dir: './',
+})
+
+const customJestConfig = {
   testEnvironment: 'node',
-  testPathIgnorePatterns: ['/node_modules/', '/.next/'],
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/_deploy/'],
+  modulePathIgnorePatterns: ['<rootDir>/_deploy/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
@@ -17,6 +19,7 @@ module.exports = {
     '!**/__tests__/**',
     '!**/node_modules/**',
     '!**/.next/**',
+    '!**/_deploy/**',
   ],
   coverageThreshold: {
     global: {
@@ -27,3 +30,5 @@ module.exports = {
     },
   },
 }
+
+module.exports = createJestConfig(customJestConfig)
