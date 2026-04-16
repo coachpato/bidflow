@@ -64,7 +64,7 @@ This commit introduces foundational architectural improvements to bring the code
 
 ---
 
-### 📊 **Phase 2: Observability & Middleware** ✅
+### 📊 **Phase 2: Observability** ✅
 
 #### `/lib/logger.js` (New)
 - **Problem**: Only `console.error()` calls scattered throughout code
@@ -85,18 +85,7 @@ This commit introduces foundational architectural improvements to bring the code
   - Structured logs for alerting/monitoring
   - Consistent log format
 
-#### `/middleware.js` (New)
-- **Problem**: No global middleware for request handling
-- **Solution**: Next.js middleware for request tracing
-- **Features**:
-  - Generates unique request ID for tracing
-  - Adds `x-request-id` header to all requests
-  - Tracks user context (authenticated/anonymous)
-  - Foundation for future logging/metrics
-- **Benefits**:
-  - Trace requests across logs
-  - Identify slow/problematic requests
-  - Better observability
+**Note on Middleware**: The project uses `proxy.js` for request handling, so global middleware should be integrated there rather than creating a separate `middleware.js` file. Future observability enhancements (request ID generation, distributed tracing) can be added to `proxy.js`.
 
 ---
 
@@ -191,13 +180,14 @@ lib/errors.js                   — Custom error classes
 lib/api-handler.js              — Middleware wrappers
 lib/logger.js                   — Structured logging
 lib/notification-service.js     — Unified notifications
-middleware.js                   — Global request middleware
 jest.config.js                  — Test configuration
 jest.setup.js                   — Test setup
 lib/__tests__/validation.test.js — Validator tests (25+ cases)
 lib/__tests__/errors.test.js    — Error tests (15+ cases)
 IMPROVEMENTS.md                 — This file
 ```
+
+**Note**: Global middleware is integrated via existing `proxy.js` rather than creating a separate `middleware.js` file (Next.js doesn't allow both).
 
 ---
 

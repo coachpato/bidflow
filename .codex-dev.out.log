@@ -1,0 +1,17 @@
+
+> bidflow@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.101.146:3000
+- Environments: .env.local
+✓ Ready in 1363ms
+
+○ Compiling /login ...
+ GET /login 200 in 8.1s (next.js: 7.2s, proxy.ts: 312ms, application-code: 583ms)
+✓ Compiled in 325ms
+○ Compiling /api/crawler ...
+Fetching eTenders portal...
+Successfully crawled 1712 tenders from eTenders
+ GET /api/crawler 200 in 2.8min (next.js: 4.7s, proxy.ts: 72ms, application-code: 2.7min)

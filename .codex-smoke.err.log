@@ -1,0 +1,4 @@
+PDF parse error: Error: Supabase environment variables are not set. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+    at rP (C:\Users\Buntu - Local\OneDrive - Theophilus Seanego\Desktop\bidflow\.next\server\chunks\lib_supabase_0z~6xpz.js:37:48212)
+    at x (C:\Users\Buntu - Local\OneDrive - Theophilus Seanego\Desktop\bidflow\.next\server\chunks\[root-of-the-server]__13q9jh0._.js:1:10376)
+    at D (C:\Users\Buntu - Local\OneDrive - Theophilus Seanego\Desktop\bidflow\.next\server\chunks\[root-of-the-server]__13q9jh0._.js:1:11128)
