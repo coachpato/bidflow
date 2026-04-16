@@ -95,7 +95,11 @@ export async function GET(request) {
     include: getOpportunityInclude(organizationContext.organization.id),
   })
 
-  return Response.json(opportunities.map(serializeOpportunity))
+  return Response.json(opportunities.map(serializeOpportunity), {
+    headers: {
+      'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600',
+    },
+  })
 }
 
 export async function POST(request) {

@@ -29,7 +29,11 @@ export async function GET(request) {
     },
   })
 
-  return Response.json(appeals)
+  return Response.json(appeals, {
+    headers: {
+      'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600',
+    },
+  })
 }
 
 // POST /api/appeals
