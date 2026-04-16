@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { applyOrganizationToSession, ensureOrganizationContext } from '@/lib/organization'
 
 export async function POST(request) {
   try {
@@ -37,15 +38,30 @@ export async function POST(request) {
       return Response.json({ error: 'The password for this account is incorrect.' }, { status: 401 })
     }
 
+    const organizationContext = await ensureOrganizationContext(user.id)
+
     // Save session
     const session = await getSession()
     session.userId = user.id
     session.name = user.name
     session.email = user.email
     session.role = user.role
+    applyOrganizationToSession(session, organizationContext)
     await session.save()
 
-    return Response.json({ success: true, user: { id: user.id, name: user.name, role: user.role } })
+    return Response.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        organization: {
+          id: organizationContext.organization.id,
+          name: organizationContext.organization.name,
+          role: organizationContext.membership.role,
+        },
+      },
+    })
   } catch (err) {
     console.error('Login error:', err)
     return Response.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })

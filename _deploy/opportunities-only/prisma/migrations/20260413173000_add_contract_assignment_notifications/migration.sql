@@ -1,0 +1,4 @@
+ALTER TABLE "contract"
+  ADD COLUMN IF NOT EXISTS "assignedTo" TEXT,
+  ADD COLUMN IF NOT EXISTS "endDateReminderSentAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "renewalDateReminderSentAt" TIMESTAMP(3);

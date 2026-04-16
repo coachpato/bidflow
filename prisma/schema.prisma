@@ -5,23 +5,269 @@ generator client {
 datasource db {
   // Use the pooled connection string for serverless runtime access.
   // Use DIRECT_URL for Prisma migrations and other direct database access.
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  name          String
-  email         String         @unique
-  password      String
-  role          String         @default("member")
-  createdAt     DateTime       @default(now())
-  tenders       Tender[]
-  activities    ActivityLog[]
-  notifications Notification[]
+  id                Int                  @id @default(autoincrement())
+  name              String
+  email             String               @unique
+  password          String
+  role              String               @default("member")
+  createdAt         DateTime             @default(now())
+  memberships       Membership[]
+  tenders           Tender[]
+  assignedTenders   Tender[]             @relation("TenderAssignee")
+  assignedContracts Contract[]           @relation("ContractAssignee")
+  opportunities     Opportunity[]
+  activities        ActivityLog[]
+  notifications     Notification[]
+  complianceUploads ComplianceDocument[] @relation("ComplianceDocumentUploader")
 
   @@map("user")
+}
+
+model Organization {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  slug                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         Membership[]
+  firmProfile         FirmProfile?
+  firmPeople          FirmPerson[]
+  firmExperiences     FirmExperience[]
+  complianceDocuments ComplianceDocument[]
+  opportunities       Opportunity[]
+  contracts           Contract[]
+  appeals             Appeal[]
+  opportunityMatches  OpportunityMatch[]
+  qualificationAssessments QualificationAssessment[]
+  notifications       Notification[]
+
+  @@map("organization")
+}
+
+model Membership {
+  id             Int          @id @default(autoincrement())
+  role           String       @default("member")
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+
+  @@unique([organizationId, userId])
+  @@map("membership")
+}
+
+model FirmProfile {
+  id                   Int          @id @default(autoincrement())
+  displayName          String
+  legalName            String?
+  registrationNumber   String?
+  primaryContactName   String?
+  primaryContactEmail  String?
+  primaryContactPhone  String?
+  website              String?
+  overview             String?
+  practiceAreas        String[]     @default([])
+  preferredEntities    String[]     @default([])
+  targetWorkTypes      String[]     @default([])
+  targetProvinces      String[]     @default([])
+  minimumContractValue Float?
+  maximumContractValue Float?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId       Int          @unique
+
+  @@map("firmProfile")
+}
+
+model FirmPerson {
+  id              Int          @id @default(autoincrement())
+  fullName        String
+  title           String?
+  email           String?
+  phone           String?
+  yearsExperience Int?
+  qualifications  String[]     @default([])
+  practiceAreas   String[]     @default([])
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  Int
+
+  @@map("firmPerson")
+}
+
+model FirmExperience {
+  id             Int          @id @default(autoincrement())
+  matterName     String
+  clientName     String?
+  entityName     String?
+  practiceArea   String?
+  workType       String?
+  summary        String?
+  projectValue   Float?
+  startedYear    Int?
+  completedYear  Int?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
+
+  @@map("firmExperience")
+}
+
+model ComplianceDocument {
+  id               Int          @id @default(autoincrement())
+  filename         String
+  filepath         String
+  storagePath      String?
+  documentType     String
+  description      String?
+  issueDate        DateTime?
+  expiryDate       DateTime?
+  notes            String?
+  isDefault        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId   Int
+  uploadedBy       User?        @relation("ComplianceDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  uploadedByUserId Int?
+
+  @@map("complianceDocument")
+}
+
+model PilotLead {
+  id                Int      @id @default(autoincrement())
+  name              String
+  email             String   @unique
+  company           String?
+  role              String?
+  teamSize          String?
+  whoWouldUseIt     String
+  pricingPreference String?
+  monthlyBudget     String?
+  lifetimeBudget    String?
+  painPoint         String?
+  status            String   @default("new")
+  createdAt         DateTime @default(now())
+
+  @@map("pilotLead")
+}
+
+model Opportunity {
+  id                 Int                   @id @default(autoincrement())
+  title              String
+  reference          String?
+  entity             String
+  externalId         String?
+  dedupeKey          String?
+  sourceName         String                @default("eTenders.gov.za")
+  sourceUrl          String?
+  category           String?
+  practiceArea       String?
+  summary            String?
+  estimatedValue     Float?
+  publishedAt        DateTime?
+  deadline           DateTime?
+  briefingDate       DateTime?
+  siteVisitDate      DateTime?
+  contactPerson      String?
+  contactEmail       String?
+  fitScore           Int?
+  status             String                @default("New")
+  notes              String?
+  parsedRequirements Json?
+  parsedAppointments Json?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId     Int
+  createdBy          User?                 @relation(fields: [userId], references: [id])
+  userId             Int?
+  source             Source?               @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceId           Int?
+  sourceRun          SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRunId        Int?
+  documents          OpportunityDocument[]
+  matches            OpportunityMatch[]
+  tender             Tender?
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, status, deadline])
+  @@index([sourceId, publishedAt])
+  @@map("opportunity")
+}
+
+model Source {
+  id           Int           @id @default(autoincrement())
+  key          String        @unique
+  name         String
+  type         String        @default("portal")
+  baseUrl      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  opportunities Opportunity[]
+  runs         SourceRun[]
+
+  @@map("source")
+}
+
+model SourceRun {
+  id           Int           @id @default(autoincrement())
+  status       String        @default("running")
+  startedAt    DateTime      @default(now())
+  completedAt  DateTime?
+  totalFound   Int           @default(0)
+  matchedCount Int           @default(0)
+  newCount     Int           @default(0)
+  errorCount   Int           @default(0)
+  summary      Json?
+  source       Source        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId     Int
+  opportunities Opportunity[]
+
+  @@index([sourceId, startedAt])
+  @@map("sourceRun")
+}
+
+model OpportunityMatch {
+  id             Int          @id @default(autoincrement())
+  verdict        String       @default("Matched")
+  fitScore       Int?
+  matchedKeywords String[]    @default([])
+  matchReasons   Json?
+  digestSentAt   DateTime?
+  reviewedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  opportunity    Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId  Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
+
+  @@unique([opportunityId, organizationId])
+  @@index([organizationId, fitScore, verdict])
+  @@map("opportunityMatch")
+}
+
+model OpportunityDocument {
+  id            Int         @id @default(autoincrement())
+  filename      String
+  filepath      String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId Int
+  uploadedAt    DateTime    @default(now())
+
+  @@map("opportunityDocument")
 }
 
 model Tender {
@@ -41,8 +287,16 @@ model Tender {
   updatedAt      DateTime              @updatedAt
   createdBy      User?                 @relation(fields: [userId], references: [id])
   userId         Int?
+  opportunity    Opportunity?          @relation(fields: [opportunityId], references: [id])
+  opportunityId  Int?                  @unique
+  assignedUser   User?                 @relation("TenderAssignee", fields: [assignedUserId], references: [id])
+  assignedUserId Int?
   documents      TenderDocument[]
   checklistItems TenderChecklistItem[]
+  requirements   TenderRequirement[]
+  qualification  QualificationAssessment?
+  generatedDocuments GeneratedDocument[]
+  submissionPack SubmissionPack?
   appeals        Appeal[]
   activities     ActivityLog[]
   contract       Contract?
@@ -53,7 +307,7 @@ model Tender {
 model TenderDocument {
   id         Int      @id @default(autoincrement())
   filename   String
-  filepath   String   // Stores full Supabase Storage URL in production
+  filepath   String // Stores full Supabase Storage URL in production
   tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   tenderId   Int
   uploadedAt DateTime @default(now())
@@ -74,47 +328,214 @@ model TenderChecklistItem {
   @@map("tenderChecklistItem")
 }
 
-model Contract {
-  id          Int           @id @default(autoincrement())
-  title       String
-  client      String?
-  startDate   DateTime?
-  endDate     DateTime?
-  renewalDate DateTime?
-  cancelDate  DateTime?
-  value       Float?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  tender      Tender?       @relation(fields: [tenderId], references: [id])
-  tenderId    Int?          @unique
-  activities  ActivityLog[]
+model TenderRequirement {
+  id         Int      @id @default(autoincrement())
+  label      String
+  source     String   @default("parser")
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId   Int
 
+  @@unique([tenderId, label])
+  @@map("tenderRequirement")
+}
+
+model QualificationAssessment {
+  id                        Int                 @id @default(autoincrement())
+  verdict                   String
+  summary                   String?
+  readinessPercent          Int                 @default(0)
+  checklistCompletionPercent Int                @default(0)
+  blockerCount              Int                 @default(0)
+  warningCount              Int                 @default(0)
+  evaluatedAt               DateTime            @default(now())
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+  organization              Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId            Int
+  tender                    Tender              @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId                  Int                 @unique
+  checks                    QualificationCheck[]
+
+  @@index([organizationId, verdict])
+  @@map("qualificationAssessment")
+}
+
+model QualificationCheck {
+  id             Int                     @id @default(autoincrement())
+  checkKey       String
+  label          String
+  status         String
+  severity       String
+  detail         String?
+  recommendation String?
+  sortOrder      Int                     @default(0)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  assessment     QualificationAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessmentId   Int
+
+  @@unique([assessmentId, checkKey])
+  @@map("qualificationCheck")
+}
+
+model GeneratedDocument {
+  id                 Int      @id @default(autoincrement())
+  documentType       String
+  title              String
+  content            String
+  status             String   @default("Draft")
+  requiresManualInput Boolean @default(false)
+  manualInputSummary String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tender             Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId           Int
+
+  @@unique([tenderId, documentType])
+  @@map("generatedDocument")
+}
+
+model SubmissionPack {
+  id                        Int      @id @default(autoincrement())
+  status                    String   @default("Draft")
+  readinessPercent          Int      @default(0)
+  checklistCompletionPercent Int     @default(0)
+  generatedDocumentCount    Int      @default(0)
+  reviewedDocumentCount     Int      @default(0)
+  manualInputCount          Int      @default(0)
+  requiredDocumentCount     Int      @default(0)
+  summary                   String?
+  missingItems              Json?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  tender                    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId                  Int      @unique
+
+  @@map("submissionPack")
+}
+
+model Contract {
+  id                        Int                @id @default(autoincrement())
+  title                     String
+  client                    String?
+  assignedTo                String?
+  appointmentStatus         String             @default("Appointed")
+  instructionStatus         String             @default("No Instruction")
+  appointmentDate           DateTime?
+  startDate                 DateTime?
+  endDate                   DateTime?
+  endDateReminderSentAt     DateTime?
+  renewalDate               DateTime?
+  renewalDateReminderSentAt DateTime?
+  cancelDate                DateTime?
+  firstInstructionDate      DateTime?
+  lastFollowUpAt            DateTime?
+  nextFollowUpAt            DateTime?
+  nextFollowUpReminderSentAt DateTime?
+  dormantReminderSentAt     DateTime?
+  value                     Float?
+  milestoneSummary          String?
+  notes                     String?
+  createdAt                 DateTime           @default(now())
+  organization              Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId            Int
+  tender                    Tender?            @relation(fields: [tenderId], references: [id])
+  tenderId                  Int?               @unique
+  assignedUser              User?              @relation("ContractAssignee", fields: [assignedUserId], references: [id])
+  assignedUserId            Int?
+  documents                 ContractDocument[]
+  milestones                ContractMilestone[]
+  activities                ActivityLog[]
+
+  @@index([organizationId, appointmentStatus, instructionStatus])
   @@map("contract")
+}
+
+model ContractDocument {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  filepath     String
+  documentType String   @default("Other")
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractId   Int
+  uploadedAt   DateTime @default(now())
+
+  @@map("contractDocument")
+}
+
+model ContractMilestone {
+  id              Int      @id @default(autoincrement())
+  title           String
+  dueDate         DateTime?
+  completedAt     DateTime?
+  reminderSentAt  DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractId      Int
+
+  @@index([contractId, dueDate])
+  @@map("contractMilestone")
 }
 
 model Appeal {
   id         Int           @id @default(autoincrement())
   reason     String
+  challengeType String     @default("Administrative Appeal")
+  exclusionReason String?
+  exclusionDate DateTime?
   deadline   DateTime?
   status     String        @default("Pending")
+  submittedAt DateTime?
+  resolvedAt DateTime?
+  deadlineReminderSentAt DateTime?
+  requestedRelief String?
+  nextStep   String?
+  evidenceChecklist Json?
   notes      String?
   template   String?
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
   createdAt  DateTime      @default(now())
   tender     Tender?       @relation(fields: [tenderId], references: [id])
   tenderId   Int?
+  documents  AppealDocument[]
   activities ActivityLog[]
 
+  @@index([organizationId, status, deadline])
   @@map("appeal")
 }
 
+model AppealDocument {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  filepath     String
+  documentType String   @default("Evidence")
+  uploadedAt   DateTime @default(now())
+  appeal       Appeal   @relation(fields: [appealId], references: [id], onDelete: Cascade)
+  appealId     Int
+
+  @@map("appealDocument")
+}
+
 model Notification {
-  id        Int      @id @default(autoincrement())
-  message   String
-  type      String   @default("info")
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    Int?
+  id             Int           @id @default(autoincrement())
+  title          String?
+  message        String
+  type           String        @default("info")
+  read           Boolean       @default(false)
+  sourceKey      String?       @unique
+  linkUrl        String?
+  linkLabel      String?
+  createdAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int?
+  user           User?         @relation(fields: [userId], references: [id])
+  userId         Int?
 
   @@map("notification")
 }

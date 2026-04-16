@@ -1,10 +1,13 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 
-// Default appeal templates (SA tender appeal context)
+const CHALLENGE_TYPES = ['Administrative Appeal', 'Bid Protest', 'Review']
+const STATUSES = ['Pending', 'Submitted', 'Won', 'Lost']
+
 const INTENTION_TEMPLATE = `[Date]
 
 [Entity Name]
@@ -12,13 +15,15 @@ const INTENTION_TEMPLATE = `[Date]
 
 Dear Sir/Madam,
 
-RE: INTENTION TO APPEAL — [TENDER NUMBER]
+RE: NOTICE OF CHALLENGE - [TENDER NUMBER]
 
-We, [COMPANY NAME], hereby give formal notice of our intention to appeal the award/decision made in respect of [TENDER TITLE] (Reference: [TENDER NUMBER]).
+We, [COMPANY NAME], hereby give formal notice of our intention to challenge the decision made in respect of [TENDER TITLE] (Reference: [TENDER NUMBER]).
 
-We believe the decision was not made in accordance with the applicable supply chain management policy and/or the Preferential Procurement Policy Framework Act.
+Grounds currently identified:
+- [Insert the first issue]
+- [Insert the second issue]
 
-We respectfully request that implementation of the award be placed on hold pending the outcome of this appeal process.
+We request that implementation be placed on hold while this challenge is considered.
 
 Yours faithfully,
 
@@ -27,191 +32,182 @@ Yours faithfully,
 [COMPANY NAME]
 [CONTACT]`
 
-const FORMAL_TEMPLATE = `[Date]
-
-[Entity Name]
-[Entity Address]
-
-Dear Sir/Madam,
-
-RE: FORMAL APPEAL — [TENDER NUMBER]: [TENDER TITLE]
-
-1. INTRODUCTION
-We, [COMPANY NAME], hereby formally appeal against the decision/award made in respect of [TENDER TITLE] (Reference: [TENDER NUMBER]).
-
-2. GROUNDS FOR APPEAL
-[State your specific grounds here. For example:]
-- The scoring methodology was not applied consistently
-- Preference points were incorrectly allocated
-- The evaluation criteria were changed post-submission
-- A conflict of interest existed in the evaluation committee
-
-3. SUPPORTING DOCUMENTS
-[List any supporting evidence attached]
-
-4. RELIEF SOUGHT
-We respectfully request that the Adjudicating Authority:
-- Review and set aside the award decision
-- Re-evaluate all bids objectively and transparently
-- [Any other specific relief requested]
-
-5. CONCLUSION
-We trust that this appeal will be given the urgent consideration it deserves within the prescribed timeframes.
-
-Yours faithfully,
-
-[NAME]
-[DESIGNATION]
-[COMPANY NAME]
-[DATE]`
-
 function NewAppealForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [form, setForm] = useState({
     reason: '',
+    challengeType: 'Administrative Appeal',
+    exclusionReason: '',
+    exclusionDate: '',
     deadline: '',
     status: 'Pending',
+    requestedRelief: '',
+    nextStep: '',
     notes: '',
     template: '',
     tenderId: searchParams.get('tenderId') || '',
   })
-  const [templateType, setTemplateType] = useState('none')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  function applyTemplate(type) {
-    const text = type === 'intention' ? INTENTION_TEMPLATE : FORMAL_TEMPLATE
-    setForm({ ...form, template: text })
-    setTemplateType(type)
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
+  async function handleSubmit(event) {
+    event.preventDefault()
     setError('')
     setLoading(true)
 
-    const res = await fetch('/api/appeals', {
+    const response = await fetch('/api/appeals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
 
-    const data = await res.json()
+    const data = await response.json()
     setLoading(false)
 
-    if (!res.ok) { setError(data.error); return }
-    router.push(`/appeals/${data.id}`)
+    if (!response.ok) {
+      setError(data.error || 'Could not create challenge.')
+      return
+    }
+
+    router.push(`/challenges/${data.id}`)
   }
 
   return (
-    <div>
-      <Header title="New Appeal" />
-      <div className="p-6 max-w-3xl">
-        <Link href="/appeals" className="text-slate-400 hover:text-slate-600 text-sm mb-6 inline-block">
-          ← Back to Appeals
+    <div className="space-y-6">
+      <Header
+        title="Create challenge"
+        eyebrow="Challenge setup"
+        description="Capture the exclusion facts, deadline, and first draft while the procurement trail is still fresh."
+        meta={[
+          { label: 'Linked pursuit', value: form.tenderId ? 'Attached' : 'Optional' },
+          { label: 'Type', value: form.challengeType },
+          { label: 'Status', value: form.status },
+        ]}
+      />
+
+      <div className="app-page space-y-6">
+        <Link href="/challenges" className="app-button-secondary">
+          Back to challenges
         </Link>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
-        )}
+        {error ? (
+          <div className="rounded-[28px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-base font-semibold text-slate-800 mb-4">Appeal Details</h2>
-            <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
+          <section className="app-surface rounded-[30px] p-5 sm:p-6">
+            <div className="border-b border-slate-100 pb-5">
+              <p className="app-kicker">Challenge record</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Matter details</h2>
+            </div>
+
+            <div className="mt-5 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Reason / Summary <span className="text-red-500">*</span>
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge summary</label>
                 <input
                   required
                   value={form.reason}
-                  onChange={e => setForm({ ...form, reason: e.target.value })}
-                  placeholder="e.g. Incorrectly scored on B-BBEE criteria"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                  onChange={event => setForm({ ...form, reason: event.target.value })}
+                  placeholder="Excluded for allegedly missing mandatory returnable"
+                  className="app-input"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Appeal Deadline</label>
-                  <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge type</label>
+                  <select value={form.challengeType} onChange={event => setForm({ ...form, challengeType: event.target.value })} className="app-select">
+                    {CHALLENGE_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]">
-                    <option>Pending</option>
-                    <option>Submitted</option>
-                    <option>Won</option>
-                    <option>Lost</option>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Status</label>
+                  <select value={form.status} onChange={event => setForm({ ...form, status: event.target.value })} className="app-select">
+                    {STATUSES.map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
                   </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Exclusion date</label>
+                  <input type="date" value={form.exclusionDate} onChange={event => setForm({ ...form, exclusionDate: event.target.value })} className="app-input" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge deadline</label>
+                  <input type="date" value={form.deadline} onChange={event => setForm({ ...form, deadline: event.target.value })} className="app-input" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Internal notes about this appeal…"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Exclusion reason given by the entity</label>
+                <textarea rows={3} value={form.exclusionReason} onChange={event => setForm({ ...form, exclusionReason: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Requested relief</label>
+                <textarea rows={3} value={form.requestedRelief} onChange={event => setForm({ ...form, requestedRelief: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Immediate next step</label>
+                <textarea rows={2} value={form.nextStep} onChange={event => setForm({ ...form, nextStep: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Internal notes</label>
+                <textarea rows={4} value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div className="rounded-[24px] bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">Starter draft</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Use the template as a starting point, then replace placeholders with the actual tender reference, facts, and requested relief.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setForm(current => ({ ...current, template: current.template || INTENTION_TEMPLATE }))}
+                  className="app-button-secondary mt-4"
+                >
+                  Insert starter draft
+                </button>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-base font-semibold text-slate-800 mb-2">Appeal Letter Template</h2>
-            <p className="text-slate-500 text-sm mb-4">
-              Start with one of our SA tender appeal templates and edit it to match your case.
-            </p>
-
-            <div className="flex gap-2 mb-4">
-              <button type="button"
-                onClick={() => applyTemplate('intention')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                  templateType === 'intention' ? 'border-[#185FA5] text-[#185FA5] bg-blue-50' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}>
-                Intention to Appeal
-              </button>
-              <button type="button"
-                onClick={() => applyTemplate('formal')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                  templateType === 'formal' ? 'border-[#185FA5] text-[#185FA5] bg-blue-50' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}>
-                Formal Appeal Letter
-              </button>
-              {templateType !== 'none' && (
-                <button type="button" onClick={() => { setForm({ ...form, template: '' }); setTemplateType('none') }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-600">
-                  Clear
-                </button>
-              )}
+          <section className="app-surface rounded-[30px] p-5 sm:p-6">
+            <div className="border-b border-slate-100 pb-5">
+              <p className="app-kicker">Draft correspondence</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Working challenge text</h2>
             </div>
 
-            <textarea
-              rows={16}
-              value={form.template}
-              onChange={e => setForm({ ...form, template: e.target.value })}
-              placeholder="Select a template above, or write your appeal letter here. Replace all [PLACEHOLDERS] with actual information."
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
-            />
-            <p className="text-xs text-slate-400 mt-1">Replace all text in [BRACKETS] with the actual information.</p>
-          </div>
+            <div className="mt-5 space-y-4">
+              <textarea
+                rows={22}
+                value={form.template}
+                onChange={event => setForm({ ...form, template: event.target.value })}
+                placeholder="Write or paste your challenge draft here..."
+                className="app-textarea app-data"
+              />
+              <p className="text-xs text-slate-500">
+                Replace placeholders with the correct names, dates, references, and relief sought before sending anything externally.
+              </p>
+            </div>
 
-          <div className="flex gap-3">
-            <button type="submit" disabled={loading}
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60"
-              style={{ backgroundColor: '#185FA5' }}>
-              {loading ? 'Saving…' : 'Create Appeal'}
-            </button>
-            <Link href="/appeals">
-              <button type="button" className="px-6 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">
-                Cancel
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button type="submit" disabled={loading} className="app-button-primary disabled:translate-y-0 disabled:opacity-60">
+                {loading ? 'Saving...' : 'Create challenge'}
               </button>
-            </Link>
-          </div>
+              <Link href="/challenges" className="app-button-secondary">
+                Cancel
+              </Link>
+            </div>
+          </section>
         </form>
       </div>
     </div>
@@ -220,7 +216,7 @@ function NewAppealForm() {
 
 export default function NewAppealPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-slate-400">Loading…</div>}>
+    <Suspense fallback={<div className="app-page py-12 text-slate-500">Loading...</div>}>
       <NewAppealForm />
     </Suspense>
   )

@@ -1,11 +1,15 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { ensureOrganizationContext } from '@/lib/organization'
+import { refreshTenderQualification } from '@/lib/tender-qualification'
+import { refreshSubmissionPack } from '@/lib/submission-pack'
 
 // PATCH /api/tenders/:id/checklist/:itemId — update item (toggle done, etc.)
 export async function PATCH(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const organizationContext = await ensureOrganizationContext(session.userId)
 
   const { id, itemId } = await params
   const body = await request.json()
@@ -28,6 +32,15 @@ export async function PATCH(request, { params }) {
     )
   }
 
+  await refreshTenderQualification({
+    tenderId: parseInt(id),
+    organizationId: organizationContext.organization.id,
+  })
+  await refreshSubmissionPack({
+    tenderId: parseInt(id),
+    organizationId: organizationContext.organization.id,
+  })
+
   return Response.json(item)
 }
 
@@ -35,10 +48,20 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const organizationContext = await ensureOrganizationContext(session.userId)
 
-  const { itemId } = await params
+  const { id, itemId } = await params
 
   await prisma.tenderChecklistItem.delete({ where: { id: parseInt(itemId) } })
+
+  await refreshTenderQualification({
+    tenderId: parseInt(id),
+    organizationId: organizationContext.organization.id,
+  })
+  await refreshSubmissionPack({
+    tenderId: parseInt(id),
+    organizationId: organizationContext.organization.id,
+  })
 
   return Response.json({ success: true })
 }

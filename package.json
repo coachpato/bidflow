@@ -6,6 +6,9 @@
     "dev": "next dev",
     "build": "node scripts/run-with-db-env.js \"prisma generate && next build\"",
     "db:migrate:deploy": "node scripts/run-with-db-env.js \"prisma migrate deploy\"",
+    "db:migrate:status": "node scripts/run-with-db-env.js \"prisma migrate status\"",
+    "db:validate": "node scripts/run-with-db-env.js \"npx prisma validate\"",
+    "db:pull": "node scripts/run-with-db-env.js \"prisma db pull\"",
     "start": "next start",
     "lint": "eslint"
   },
@@ -15,7 +18,9 @@
   "dependencies": {
     "@prisma/client": "5.22.0",
     "@supabase/supabase-js": "^2.102.1",
+    "axios": "^1.15.0",
     "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
     "iron-session": "^8.0.4",
     "next": "16.2.2",
     "pdf-parse": "^2.4.5",

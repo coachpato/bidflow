@@ -40,12 +40,13 @@ If you use the Supabase Vercel integration, you can skip manually creating the D
 3. Install the Supabase Vercel integration from Supabase, or manually set the env vars in Vercel.
 4. If you are setting them manually, set `DATABASE_URL` to the Supabase pooled connection string.
 5. If you are setting them manually, set `DIRECT_URL` to the Supabase direct connection string.
+6. If local Prisma migration commands fail with a generic schema engine error and your machine cannot resolve the direct `db.<project-ref>.supabase.co` host, use this repo's helper scripts. They automatically fall back to Supabase's session pooler on port `5432` for Prisma migrate/db commands.
 6. Deploy this repo to Vercel.
 7. Add the environment variables in Vercel Project Settings.
 8. Run the production migrations:
 
 ```bash
-npx prisma migrate deploy
+npm run db:migrate:deploy
 ```
 
 ## First launch

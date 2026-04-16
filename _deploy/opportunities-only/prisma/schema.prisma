@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Use the pooled connection string for serverless runtime access.
+  // Use DIRECT_URL for Prisma migrations and other direct database access.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("member")
+  createdAt     DateTime       @default(now())
+  tenders       Tender[]
+  assignedTenders Tender[]     @relation("TenderAssignee")
+  assignedContracts Contract[] @relation("ContractAssignee")
+  opportunities Opportunity[]
+  activities    ActivityLog[]
+  notifications Notification[]
+
+  @@map("user")
+}
+
+model PilotLead {
+  id                Int      @id @default(autoincrement())
+  name              String
+  email             String   @unique
+  company           String?
+  role              String?
+  teamSize          String?
+  whoWouldUseIt     String
+  pricingPreference String?
+  monthlyBudget     String?
+  lifetimeBudget    String?
+  painPoint         String?
+  status            String   @default("new")
+  createdAt         DateTime @default(now())
+
+  @@map("pilotLead")
+}
+
+model Opportunity {
+  id                 Int                   @id @default(autoincrement())
+  title              String
+  reference          String?
+  entity             String
+  sourceName         String                @default("eTenders.gov.za")
+  sourceUrl          String?
+  practiceArea       String?
+  summary            String?
+  estimatedValue     Float?
+  deadline           DateTime?
+  briefingDate       DateTime?
+  siteVisitDate      DateTime?
+  contactPerson      String?
+  contactEmail       String?
+  fitScore           Int?
+  status             String                @default("New")
+  notes              String?
+  parsedRequirements Json?
+  parsedAppointments Json?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  createdBy          User?                 @relation(fields: [userId], references: [id])
+  userId             Int?
+  documents          OpportunityDocument[]
+  tender             Tender?
+
+  @@map("opportunity")
+}
+
+model OpportunityDocument {
+  id            Int         @id @default(autoincrement())
+  filename      String
+  filepath      String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId Int
+  uploadedAt    DateTime    @default(now())
+
+  @@map("opportunityDocument")
+}
+
+model Tender {
+  id             Int                   @id @default(autoincrement())
+  title          String
+  reference      String?
+  entity         String
+  description    String?
+  deadline       DateTime?
+  briefingDate   DateTime?
+  contactPerson  String?
+  contactEmail   String?
+  status         String                @default("New")
+  assignedTo     String?
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  createdBy      User?                 @relation(fields: [userId], references: [id])
+  userId         Int?
+  opportunity    Opportunity?          @relation(fields: [opportunityId], references: [id])
+  opportunityId  Int?                  @unique
+  assignedUser   User?                 @relation("TenderAssignee", fields: [assignedUserId], references: [id])
+  assignedUserId Int?
+  documents      TenderDocument[]
+  checklistItems TenderChecklistItem[]
+  appeals        Appeal[]
+  activities     ActivityLog[]
+  contract       Contract?
+
+  @@map("tender")
+}
+
+model TenderDocument {
+  id         Int      @id @default(autoincrement())
+  filename   String
+  filepath   String   // Stores full Supabase Storage URL in production
+  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId   Int
+  uploadedAt DateTime @default(now())
+
+  @@map("tenderDocument")
+}
+
+model TenderChecklistItem {
+  id          Int       @id @default(autoincrement())
+  label       String
+  done        Boolean   @default(false)
+  responsible String?
+  dueDate     DateTime?
+  notes       String?
+  tender      Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId    Int
+
+  @@map("tenderChecklistItem")
+}
+
+model Contract {
+  id          Int           @id @default(autoincrement())
+  title       String
+  client      String?
+  assignedTo  String?
+  startDate   DateTime?
+  endDate     DateTime?
+  endDateReminderSentAt DateTime?
+  renewalDate DateTime?
+  renewalDateReminderSentAt DateTime?
+  cancelDate  DateTime?
+  value       Float?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  tender      Tender?       @relation(fields: [tenderId], references: [id])
+  tenderId    Int?          @unique
+  assignedUser   User?      @relation("ContractAssignee", fields: [assignedUserId], references: [id])
+  assignedUserId Int?
+  documents   ContractDocument[]
+  activities  ActivityLog[]
+
+  @@map("contract")
+}
+
+model ContractDocument {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  filepath     String
+  documentType String   @default("Other")
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractId   Int
+  uploadedAt   DateTime @default(now())
+
+  @@map("contractDocument")
+}
+
+model Appeal {
+  id         Int           @id @default(autoincrement())
+  reason     String
+  deadline   DateTime?
+  status     String        @default("Pending")
+  notes      String?
+  template   String?
+  createdAt  DateTime      @default(now())
+  tender     Tender?       @relation(fields: [tenderId], references: [id])
+  tenderId   Int?
+  activities ActivityLog[]
+
+  @@map("appeal")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+
+  @@map("notification")
+}
+
+model ActivityLog {
+  id         Int       @id @default(autoincrement())
+  action     String
+  createdAt  DateTime  @default(now())
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     Int?
+  tender     Tender?   @relation(fields: [tenderId], references: [id])
+  tenderId   Int?
+  contract   Contract? @relation(fields: [contractId], references: [id])
+  contractId Int?
+  appeal     Appeal?   @relation(fields: [appealId], references: [id])
+  appealId   Int?
+
+  @@map("activityLog")
+}

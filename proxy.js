@@ -5,6 +5,7 @@ const PUBLIC_PATHS = [
   '/register',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/crawler',
 ]
 
 export function proxy(request) {

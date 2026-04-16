@@ -1,182 +1,454 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
 
+const CHALLENGE_TYPES = ['Administrative Appeal', 'Bid Protest', 'Review']
 const STATUSES = ['Pending', 'Submitted', 'Won', 'Lost']
+const DOCUMENT_TYPES = ['Evidence', 'Letter', 'Notice', 'Outcome', 'Other']
+
+function formatDate(value) {
+  if (!value) return 'Not set'
+  return new Date(value).toLocaleDateString('en-ZA')
+}
+
+function parseChecklist(value) {
+  if (!Array.isArray(value)) return []
+  return value
+}
+
+function seedForm(data) {
+  return {
+    reason: data.reason || '',
+    challengeType: data.challengeType || 'Administrative Appeal',
+    exclusionReason: data.exclusionReason || '',
+    exclusionDate: data.exclusionDate ? data.exclusionDate.substring(0, 10) : '',
+    deadline: data.deadline ? data.deadline.substring(0, 10) : '',
+    status: data.status || 'Pending',
+    submittedAt: data.submittedAt ? data.submittedAt.substring(0, 10) : '',
+    resolvedAt: data.resolvedAt ? data.resolvedAt.substring(0, 10) : '',
+    requestedRelief: data.requestedRelief || '',
+    nextStep: data.nextStep || '',
+    notes: data.notes || '',
+    template: data.template || '',
+    evidenceChecklistText: parseChecklist(data.evidenceChecklist).join('\n'),
+  }
+}
 
 export default function AppealDetailPage() {
   const { id } = useParams()
   const router = useRouter()
-  const [appeal, setAppeal] = useState(null)
+  const [challenge, setChallenge] = useState(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [documentType, setDocumentType] = useState('Evidence')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [deletingDocumentId, setDeletingDocumentId] = useState(null)
 
-  const fetchAppeal = useCallback(async () => {
+  async function fetchChallenge() {
     const res = await fetch(`/api/appeals/${id}`)
-    if (!res.ok) { router.push('/appeals'); return }
+    if (!res.ok) {
+      router.push('/challenges')
+      return
+    }
+
     const data = await res.json()
-    setAppeal(data)
-    setForm({
-      reason: data.reason || '',
-      deadline: data.deadline ? data.deadline.substring(0, 10) : '',
-      status: data.status || 'Pending',
-      notes: data.notes || '',
-      template: data.template || '',
-    })
-  }, [id, router])
+    setChallenge(data)
+    setForm(seedForm(data))
+  }
 
-  useEffect(() => { fetchAppeal() }, [fetchAppeal])
+  useEffect(() => {
+    fetchChallenge()
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleSave(e) {
-    e.preventDefault()
+  async function handleSave(event) {
+    event.preventDefault()
     setSaving(true)
     await fetch(`/api/appeals/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        evidenceChecklist: form.evidenceChecklistText
+          .split('\n')
+          .map(item => item.trim())
+          .filter(Boolean),
+      }),
     })
     setSaving(false)
     setEditing(false)
-    fetchAppeal()
+    fetchChallenge()
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this appeal? This cannot be undone.')) return
+    if (!confirm('Delete this challenge? This cannot be undone.')) return
     await fetch(`/api/appeals/${id}`, { method: 'DELETE' })
-    router.push('/appeals')
+    router.push('/challenges')
   }
 
-  if (!appeal) return <div className="p-6 text-slate-400">Loading…</div>
+  async function handleFileUpload(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
 
-  const daysLeft = appeal.deadline
-    ? Math.ceil((new Date(appeal.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+    setUploadError('')
+    setUploading(true)
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('documentType', documentType)
+
+    try {
+      const response = await fetch(`/api/appeals/${id}/documents`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        setUploadError(data.error || 'Document upload failed.')
+        setUploading(false)
+        return
+      }
+
+      await fetchChallenge()
+    } catch {
+      setUploadError('Document upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+      event.target.value = ''
+    }
+  }
+
+  async function deleteDocument(docId) {
+    if (!confirm('Remove this challenge document?')) return
+    setDeletingDocumentId(docId)
+
+    try {
+      await fetch(`/api/appeals/${id}/documents/${docId}`, { method: 'DELETE' })
+      await fetchChallenge()
+    } finally {
+      setDeletingDocumentId(null)
+    }
+  }
+
+  const daysLeft = challenge?.deadline
+    ? Math.ceil((new Date(challenge.deadline) - new Date()) / (1000 * 60 * 60 * 24))
     : null
+  const evidenceChecklist = parseChecklist(challenge?.evidenceChecklist)
 
   return (
-    <div>
-      <Header title="Appeal" />
-      <div className="p-6 max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
-          <Link href="/appeals" className="text-slate-400 hover:text-slate-600 text-sm">← Appeals</Link>
-          <div className="flex gap-2">
-            <button onClick={() => setEditing(!editing)}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">
-              {editing ? 'Cancel' : 'Edit'}
+    <div className="space-y-6">
+      <Header
+        title={challenge?.reason || 'Challenge workspace'}
+        eyebrow="Challenge detail"
+        description="Keep the exclusion facts, deadline, evidence, and draft correspondence together while the challenge is active."
+        meta={challenge ? [
+          { label: 'Type', value: challenge.challengeType || 'Administrative Appeal' },
+          { label: 'Status', value: challenge.status || 'Pending' },
+          { label: 'Deadline', value: formatDate(challenge.deadline) },
+          { label: 'Linked pursuit', value: challenge.tender?.title || 'Not linked' },
+        ] : []}
+      />
+
+      <div className="app-page space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/challenges" className="app-button-secondary">
+            Back to challenges
+          </Link>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => setEditing(!editing)} className="app-button-secondary">
+              {editing ? 'Cancel edit' : 'Edit challenge'}
             </button>
-            <button onClick={handleDelete}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-red-50 border border-red-200 text-red-600 hover:bg-red-100">
+            <button onClick={handleDelete} className="app-button-danger">
               Delete
             </button>
           </div>
         </div>
 
-        {daysLeft !== null && daysLeft <= 7 && (
-          <div className={`p-4 rounded-xl border ${daysLeft <= 0 ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
-            <p className={`text-sm font-medium ${daysLeft <= 0 ? 'text-red-700' : 'text-orange-700'}`}>
+        {daysLeft !== null && daysLeft <= 7 ? (
+          <div className={`app-surface rounded-[28px] p-5 ${daysLeft <= 0 ? 'border-red-200 bg-red-50/90' : 'border-amber-200 bg-amber-50/90'}`}>
+            <p className="app-kicker">{daysLeft <= 0 ? 'Deadline passed' : 'Urgent timeline'}</p>
+            <p className={`mt-2 text-lg font-semibold ${daysLeft <= 0 ? 'text-red-800' : 'text-amber-800'}`}>
               {daysLeft <= 0
-                ? '⚠ Appeal deadline has passed.'
-                : `⚠ Appeal deadline is in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`}
+                ? 'This challenge is now past deadline.'
+                : `This challenge deadline is in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`}
             </p>
           </div>
-        )}
+        ) : null}
 
-        {editing ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Reason</label>
-                <input value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Deadline</label>
-                  <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]">
-                    {STATUSES.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Appeal Letter</label>
-                <textarea rows={14} value={form.template} onChange={e => setForm({ ...form, template: e.target.value })}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#185FA5]" />
-              </div>
-              <button type="submit" disabled={saving}
-                className="px-6 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60"
-                style={{ backgroundColor: '#185FA5' }}>
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
-            </form>
+        {!challenge ? (
+          <div className="app-surface rounded-[30px] px-6 py-16 text-center text-slate-500">
+            Loading challenge...
           </div>
-        ) : (
-          <>
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-start justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-800">{appeal.reason}</h2>
-                <StatusBadge status={appeal.status} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {appeal.deadline && (
-                  <div>
-                    <p className="text-slate-400 text-xs uppercase tracking-wider mb-0.5">Deadline</p>
-                    <p className="text-slate-800">{new Date(appeal.deadline).toLocaleDateString('en-ZA')}</p>
-                  </div>
-                )}
-                {appeal.tender && (
-                  <div>
-                    <p className="text-slate-400 text-xs uppercase tracking-wider mb-0.5">Linked Tender</p>
-                    <Link href={`/tenders/${appeal.tender.id}`} className="text-[#185FA5] hover:underline">
-                      {appeal.tender.title}
-                    </Link>
-                  </div>
-                )}
-                {appeal.notes && (
-                  <div className="col-span-2">
-                    <p className="text-slate-400 text-xs uppercase tracking-wider mb-0.5">Notes</p>
-                    <p className="text-slate-700">{appeal.notes}</p>
-                  </div>
-                )}
-              </div>
+        ) : editing ? (
+          <section className="app-surface rounded-[30px] p-5 sm:p-6">
+            <div className="border-b border-slate-100 pb-5">
+              <p className="app-kicker">Edit challenge</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Challenge details</h2>
             </div>
 
-            {appeal.template && (
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-slate-800">Appeal Letter</h3>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(appeal.template)
-                      alert('Copied to clipboard!')
-                    }}
-                    className="text-sm text-[#185FA5] hover:underline"
-                  >
-                    Copy
+            <form onSubmit={handleSave} className="mt-5 space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge summary</label>
+                <input value={form.reason} onChange={event => setForm({ ...form, reason: event.target.value })} className="app-input" />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge type</label>
+                  <select value={form.challengeType} onChange={event => setForm({ ...form, challengeType: event.target.value })} className="app-select">
+                    {CHALLENGE_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Status</label>
+                  <select value={form.status} onChange={event => setForm({ ...form, status: event.target.value })} className="app-select">
+                    {STATUSES.map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Exclusion date</label>
+                  <input type="date" value={form.exclusionDate} onChange={event => setForm({ ...form, exclusionDate: event.target.value })} className="app-input" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Deadline</label>
+                  <input type="date" value={form.deadline} onChange={event => setForm({ ...form, deadline: event.target.value })} className="app-input" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Submitted at</label>
+                  <input type="date" value={form.submittedAt} onChange={event => setForm({ ...form, submittedAt: event.target.value })} className="app-input" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Resolved at</label>
+                  <input type="date" value={form.resolvedAt} onChange={event => setForm({ ...form, resolvedAt: event.target.value })} className="app-input" />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Exclusion reason given</label>
+                <textarea rows={3} value={form.exclusionReason} onChange={event => setForm({ ...form, exclusionReason: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Requested relief</label>
+                <textarea rows={3} value={form.requestedRelief} onChange={event => setForm({ ...form, requestedRelief: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Next step</label>
+                <textarea rows={2} value={form.nextStep} onChange={event => setForm({ ...form, nextStep: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Evidence checklist</label>
+                <textarea rows={4} value={form.evidenceChecklistText} onChange={event => setForm({ ...form, evidenceChecklistText: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Notes</label>
+                <textarea rows={4} value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} className="app-textarea" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Draft correspondence</label>
+                <textarea rows={14} value={form.template} onChange={event => setForm({ ...form, template: event.target.value })} className="app-textarea app-data" />
+              </div>
+
+              <button type="submit" disabled={saving} className="app-button-primary disabled:translate-y-0 disabled:opacity-60">
+                {saving ? 'Saving...' : 'Save changes'}
+              </button>
+            </form>
+          </section>
+        ) : (
+          <>
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+              <section className="app-surface rounded-[30px] p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <p className="app-kicker">Challenge summary</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Case context</h2>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <StatusBadge status={challenge.challengeType || 'Administrative Appeal'} />
+                    <StatusBadge status={challenge.status || 'Pending'} />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <InfoCard label="Deadline" value={formatDate(challenge.deadline)} />
+                  <InfoCard label="Exclusion date" value={formatDate(challenge.exclusionDate)} />
+                  <InfoCard label="Submitted at" value={formatDate(challenge.submittedAt)} />
+                  <InfoCard label="Resolved at" value={formatDate(challenge.resolvedAt)} />
+                </div>
+
+                {challenge.exclusionReason ? (
+                  <NoteCard label="Exclusion reason given" value={challenge.exclusionReason} />
+                ) : null}
+                {challenge.requestedRelief ? (
+                  <NoteCard label="Requested relief" value={challenge.requestedRelief} />
+                ) : null}
+                {challenge.nextStep ? (
+                  <NoteCard label="Next step" value={challenge.nextStep} />
+                ) : null}
+                {challenge.notes ? (
+                  <NoteCard label="Internal notes" value={challenge.notes} />
+                ) : null}
+              </section>
+
+              <section className="space-y-6">
+                <div className="app-surface rounded-[30px] p-5 sm:p-6">
+                  <p className="app-kicker">Linked pursuit</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Origin matter</h2>
+                  {challenge.tender ? (
+                    <div className="mt-5 rounded-[24px] bg-slate-50 p-5">
+                      <p className="text-sm font-semibold text-slate-900">{challenge.tender.title}</p>
+                      <p className="mt-2 text-sm text-slate-500">{challenge.tender.entity}</p>
+                      <Link href={`/pursuits/${challenge.tender.id}`} className="app-button-secondary mt-5">
+                        Open pursuit
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="mt-5 rounded-[24px] bg-slate-50 p-5 text-sm leading-7 text-slate-500">
+                      This challenge is not linked to a pursuit yet.
+                    </div>
+                  )}
+                </div>
+
+                <div className="app-surface rounded-[30px] p-5 sm:p-6">
+                  <p className="app-kicker">Evidence checklist</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">What still needs to be assembled</h2>
+                  {evidenceChecklist.length > 0 ? (
+                    <div className="mt-5 space-y-2">
+                      {evidenceChecklist.map(item => (
+                        <div key={item} className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-5 rounded-[24px] bg-slate-50 p-5 text-sm leading-7 text-slate-500">
+                      No evidence checklist has been captured yet.
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            {challenge.template ? (
+              <section className="app-surface rounded-[30px] p-5 sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="app-kicker">Draft correspondence</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Challenge draft</h2>
+                  </div>
+                  <button onClick={() => navigator.clipboard.writeText(challenge.template)} className="app-button-secondary">
+                    Copy draft
                   </button>
                 </div>
-                <pre className="text-sm text-slate-700 whitespace-pre-wrap font-mono bg-slate-50 p-4 rounded-lg overflow-auto max-h-96">
-                  {appeal.template}
+                <pre className="app-data mt-5 max-h-96 overflow-auto rounded-[24px] bg-slate-50 p-5 text-sm leading-7 whitespace-pre-wrap text-slate-700">
+                  {challenge.template}
                 </pre>
+              </section>
+            ) : null}
+
+            <section className="app-surface rounded-[30px] p-5 sm:p-6">
+              <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="app-kicker">Challenge documents</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Evidence and correspondence</h2>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <select
+                    value={documentType}
+                    onChange={event => setDocumentType(event.target.value)}
+                    className="app-select min-w-[12rem]"
+                  >
+                    {DOCUMENT_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+
+                  <label className="app-button-primary cursor-pointer whitespace-nowrap">
+                    {uploading ? 'Uploading...' : 'Upload file'}
+                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+                  </label>
+                </div>
               </div>
-            )}
+
+              {uploadError ? (
+                <div className="mt-5 rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {uploadError}
+                </div>
+              ) : null}
+
+              {challenge.documents?.length ? (
+                <div className="mt-5 space-y-3">
+                  {challenge.documents.map(document => (
+                    <div key={document.id} className="flex flex-col gap-4 rounded-[24px] border border-slate-200 bg-white/80 p-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                            {document.documentType}
+                          </span>
+                          <a href={document.filepath} target="_blank" rel="noopener noreferrer" className="truncate text-sm font-semibold text-slate-900 hover:text-[var(--brand-500)]">
+                            {document.filename}
+                          </a>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">Uploaded {formatDate(document.uploadedAt)}</p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <a href={document.filepath} target="_blank" rel="noopener noreferrer" className="app-button-secondary">
+                          Open
+                        </a>
+                        <button
+                          onClick={() => deleteDocument(document.id)}
+                          disabled={deletingDocumentId === document.id}
+                          className="app-button-danger disabled:opacity-60"
+                        >
+                          {deletingDocumentId === document.id ? 'Removing...' : 'Remove'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-[24px] bg-slate-50 px-5 py-10 text-center">
+                  <p className="text-sm font-semibold text-slate-800">No challenge documents yet.</p>
+                </div>
+              )}
+            </section>
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function InfoCard({ label, value }) {
+  return (
+    <div className="rounded-[24px] bg-slate-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900">{value || 'Not set'}</p>
+    </div>
+  )
+}
+
+function NoteCard({ label, value }) {
+  return (
+    <div className="mt-5 rounded-[24px] bg-slate-50 p-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+      <p className="mt-3 text-sm leading-7 text-slate-700">{value}</p>
     </div>
   )
 }

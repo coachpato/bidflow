@@ -1,12 +1,44 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { notifyTenderAssignees } from '@/lib/tender-assignment'
+import { findAssignedUser, notifyTenderAssignees } from '@/lib/tender-assignment'
+import { buildTenderChecklistItems } from '@/lib/tender-defaults'
+import { ensureOrganizationContext } from '@/lib/organization'
+import { refreshTenderQualification } from '@/lib/tender-qualification'
+import { refreshSubmissionPack } from '@/lib/submission-pack'
 
-// GET /api/tenders — list all tenders (with optional search/filter)
+function parseAssignedUserId(value) {
+  if (value === undefined) return undefined
+  if (value === null || value === '') return null
+
+  const parsed = parseInt(value, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+async function resolveAssignedFields(body) {
+  const assignedUserId = parseAssignedUserId(body.assignedUserId)
+
+  if (assignedUserId) {
+    const assignedUser = await findAssignedUser(assignedUserId)
+
+    if (assignedUser) {
+      return {
+        assignedUserId: assignedUser.id,
+        assignedTo: assignedUser.name || assignedUser.email,
+      }
+    }
+  }
+
+  return {
+    assignedUserId: null,
+    assignedTo: body.assignedTo?.trim() || null,
+  }
+}
+
 export async function GET(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureOrganizationContext(session.userId)
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
@@ -33,6 +65,15 @@ export async function GET(request) {
     orderBy: { createdAt: 'desc' },
     include: {
       createdBy: { select: { name: true } },
+      assignedUser: { select: { id: true, name: true, email: true } },
+      qualification: {
+        select: {
+          verdict: true,
+          readinessPercent: true,
+          blockerCount: true,
+          warningCount: true,
+        },
+      },
       _count: { select: { checklistItems: true, documents: true } },
     },
   })
@@ -40,16 +81,18 @@ export async function GET(request) {
   return Response.json(tenders)
 }
 
-// POST /api/tenders — create a new tender
 export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const organizationContext = await ensureOrganizationContext(session.userId)
 
   const body = await request.json()
 
   if (!body.title || !body.entity) {
     return Response.json({ error: 'Title and issuing entity are required' }, { status: 400 })
   }
+
+  const assignment = await resolveAssignedFields(body)
 
   const tender = await prisma.tender.create({
     data: {
@@ -62,31 +105,20 @@ export async function POST(request) {
       contactPerson: body.contactPerson || null,
       contactEmail: body.contactEmail || null,
       status: body.status || 'New',
-      assignedTo: body.assignedTo || null,
+      assignedTo: assignment.assignedTo,
+      assignedUserId: assignment.assignedUserId,
       notes: body.notes || null,
       userId: session.userId,
     },
+    include: {
+      assignedUser: { select: { id: true, name: true, email: true } },
+    },
   })
 
-  // Create default SA checklist items for every new tender
-  const defaultItems = [
-    'Tax Clearance Certificate (SARS)',
-    'CSD (Central Supplier Database) Registration',
-    'B-BBEE Certificate',
-    'Company Registration Documents (CIPC)',
-    'Pricing Schedule',
-    'SBD 1 — Invitation to Bid',
-    'SBD 4 — Declaration of Interest',
-    'SBD 6.1 — Preference Points Claim',
-    'SBD 8 — Declaration of Bidder\'s Past Supply Chain Management Practices',
-    'Technical Proposal / Methodology',
-  ]
-
   await prisma.tenderChecklistItem.createMany({
-    data: defaultItems.map(label => ({
-      label,
+    data: buildTenderChecklistItems().map(item => ({
+      ...item,
       tenderId: tender.id,
-      done: false,
     })),
   })
 
@@ -97,8 +129,18 @@ export async function POST(request) {
 
   await notifyTenderAssignees({
     tender,
+    assignedUserId: tender.assignedUserId,
     assignedTo: tender.assignedTo,
     actorName: session.name,
+  })
+
+  await refreshTenderQualification({
+    tenderId: tender.id,
+    organizationId: organizationContext.organization.id,
+  })
+  await refreshSubmissionPack({
+    tenderId: tender.id,
+    organizationId: organizationContext.organization.id,
   })
 
   return Response.json(tender, { status: 201 })
