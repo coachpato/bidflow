@@ -41,6 +41,7 @@ model Organization {
   firmExperiences     FirmExperience[]
   complianceDocuments ComplianceDocument[]
   opportunities       Opportunity[]
+  tenders             Tender[]
   contracts           Contract[]
   appeals             Appeal[]
   opportunityMatches  OpportunityMatch[]
@@ -102,6 +103,7 @@ model FirmPerson {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId  Int
 
+  @@index([organizationId, yearsExperience])
   @@map("firmPerson")
 }
 
@@ -121,6 +123,7 @@ model FirmExperience {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId Int
 
+  @@index([organizationId, completedYear])
   @@map("firmExperience")
 }
 
@@ -142,6 +145,8 @@ model ComplianceDocument {
   uploadedBy       User?        @relation("ComplianceDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
   uploadedByUserId Int?
 
+  @@index([organizationId, documentType, isDefault])
+  @@index([organizationId, expiryDate])
   @@map("complianceDocument")
 }
 
@@ -203,6 +208,7 @@ model Opportunity {
 
   @@unique([organizationId, dedupeKey])
   @@index([organizationId, status, deadline])
+  @@index([organizationId, status, fitScore, deadline])
   @@index([sourceId, publishedAt])
   @@map("opportunity")
 }
@@ -285,6 +291,8 @@ model Tender {
   notes          String?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
   createdBy      User?                 @relation(fields: [userId], references: [id])
   userId         Int?
   opportunity    Opportunity?          @relation(fields: [opportunityId], references: [id])
@@ -301,6 +309,8 @@ model Tender {
   activities     ActivityLog[]
   contract       Contract?
 
+  @@index([organizationId, status, deadline])
+  @@index([organizationId, assignedUserId, deadline])
   @@map("tender")
 }
 
@@ -312,6 +322,7 @@ model TenderDocument {
   tenderId   Int
   uploadedAt DateTime @default(now())
 
+  @@index([tenderId, uploadedAt])
   @@map("tenderDocument")
 }
 
@@ -325,6 +336,7 @@ model TenderChecklistItem {
   tender      Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   tenderId    Int
 
+  @@index([tenderId, done])
   @@map("tenderChecklistItem")
 }
 
@@ -451,6 +463,8 @@ model Contract {
   activities                ActivityLog[]
 
   @@index([organizationId, appointmentStatus, instructionStatus])
+  @@index([organizationId, endDate])
+  @@index([organizationId, nextFollowUpAt])
   @@map("contract")
 }
 
@@ -537,6 +551,8 @@ model Notification {
   user           User?         @relation(fields: [userId], references: [id])
   userId         Int?
 
+  @@index([organizationId, read, createdAt])
+  @@index([userId, read, createdAt])
   @@map("notification")
 }
 

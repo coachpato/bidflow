@@ -1,10 +1,11 @@
 import { logActivity } from '@/lib/activity'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import {
   buildManualMatchData,
   buildOpportunityDedupeKey,
   normalizeOpportunityStatus,
 } from '@/lib/opportunity-radar'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 
@@ -66,14 +67,15 @@ export async function GET(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { id } = await params
   const opportunity = await prisma.opportunity.findFirst({
     where: {
       id: parseInt(id, 10),
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
-    include: getOpportunityInclude(organizationContext.organization.id),
+    include: getOpportunityInclude(organizationId),
   })
 
   if (!opportunity) {
@@ -87,7 +89,8 @@ export async function PATCH(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { id } = await params
   const opportunityId = parseInt(id, 10)
   const body = await request.json()
@@ -95,7 +98,7 @@ export async function PATCH(request, { params }) {
   const existing = await prisma.opportunity.findFirst({
     where: {
       id: opportunityId,
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
   })
 
@@ -112,7 +115,7 @@ export async function PATCH(request, { params }) {
     where: {
       opportunityId_organizationId: {
         opportunityId,
-        organizationId: organizationContext.organization.id,
+        organizationId,
       },
     },
   })
@@ -124,7 +127,7 @@ export async function PATCH(request, { params }) {
   })
 
   const nextDedupeKey = buildOpportunityDedupeKey({
-    organizationId: organizationContext.organization.id,
+    organizationId,
     sourceKey: nextSourceName,
     externalId: nextReference,
     title: body.title ?? existing.title,
@@ -132,16 +135,19 @@ export async function PATCH(request, { params }) {
     deadline: nextDeadline,
   })
 
-  const duplicateOpportunity = await prisma.opportunity.findFirst({
-    where: {
-      organizationId: organizationContext.organization.id,
-      dedupeKey: nextDedupeKey,
-      NOT: { id: opportunityId },
-    },
-    select: { id: true },
-  })
+  const duplicateOpportunity = nextDedupeKey === existing.dedupeKey
+    ? null
+    : await prisma.opportunity.findUnique({
+        where: {
+          organizationId_dedupeKey: {
+            organizationId,
+            dedupeKey: nextDedupeKey,
+          },
+        },
+        select: { id: true },
+      })
 
-  if (duplicateOpportunity) {
+  if (duplicateOpportunity && duplicateOpportunity.id !== opportunityId) {
     return Response.json({ error: 'Another opportunity in your radar already uses this source record.' }, { status: 409 })
   }
 
@@ -182,7 +188,7 @@ export async function PATCH(request, { params }) {
       where: {
         opportunityId_organizationId: {
           opportunityId,
-          organizationId: organizationContext.organization.id,
+          organizationId,
         },
       },
       update: {
@@ -192,7 +198,7 @@ export async function PATCH(request, { params }) {
         matchReasons: existing.sourceId ? (existingMatch?.matchReasons || manualMatch.matchReasons) : manualMatch.matchReasons,
       },
       create: {
-        organizationId: organizationContext.organization.id,
+        organizationId,
         opportunityId,
         verdict: manualMatch.verdict,
         fitScore: nextFitScore,
@@ -203,13 +209,14 @@ export async function PATCH(request, { params }) {
 
     return tx.opportunity.findUnique({
       where: { id: opportunityId },
-      include: getOpportunityInclude(organizationContext.organization.id),
+      include: getOpportunityInclude(organizationId),
     })
   })
 
-  await logActivity(`Updated opportunity: ${updated.title}`, {
+  void logActivity(`Updated opportunity: ${updated.title}`, {
     userId: session.userId,
   })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json(serializeOpportunity(updated))
 }
@@ -219,13 +226,14 @@ export async function DELETE(request, { params }) {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { id } = await params
   const opportunityId = parseInt(id, 10)
   const existing = await prisma.opportunity.findFirst({
     where: {
       id: opportunityId,
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
   })
 
@@ -239,9 +247,10 @@ export async function DELETE(request, { params }) {
 
   await prisma.opportunity.delete({ where: { id: opportunityId } })
 
-  await logActivity(`Deleted opportunity: ${existing.title}`, {
+  void logActivity(`Deleted opportunity: ${existing.title}`, {
     userId: session.userId,
   })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json({ success: true })
 }

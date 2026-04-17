@@ -1,8 +1,9 @@
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 import { getSession } from '@/lib/session'
 import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return undefined
@@ -14,16 +15,30 @@ export async function PATCH(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { id, docId } = await params
-  const tenderId = Number.parseInt(id, 10)
-  const generatedDocumentId = Number.parseInt(docId, 10)
+  const tenderId = parseRecordId(id)
+  const generatedDocumentId = parseRecordId(docId)
+  if (!tenderId || !generatedDocumentId) {
+    return Response.json({ error: 'Generated document not found.' }, { status: 404 })
+  }
   const body = await request.json()
+
+  const tender = await findTenderForOrganization({
+    tenderId,
+    organizationId,
+    select: { id: true },
+  })
+  if (!tender) {
+    return Response.json({ error: 'Tender not found.' }, { status: 404 })
+  }
 
   const existing = await prisma.generatedDocument.findFirst({
     where: {
       id: generatedDocumentId,
       tenderId,
+      tender: { organizationId },
     },
   })
 
@@ -48,10 +63,10 @@ export async function PATCH(request, { params }) {
 
   await refreshSubmissionPack({
     tenderId,
-    organizationId: organizationContext.organization.id,
+    organizationId,
   })
 
-  await logActivity(`Updated generated document: ${updated.documentType}`, {
+  void logActivity(`Updated generated document: ${updated.documentType}`, {
     userId: session.userId,
     tenderId,
   })

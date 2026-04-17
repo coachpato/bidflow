@@ -1,6 +1,8 @@
+import { after } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { getSessionOrganizationId } from '@/lib/organization'
 import { logActivity } from '@/lib/activity'
 import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import { syncComplianceExpiryNotifications } from '@/lib/compliance-documents'
@@ -26,16 +28,15 @@ function normalizeBoolean(value) {
   return false
 }
 
-async function getAuthorizedDocument(id, userId) {
-  const organizationContext = await ensureOrganizationContext(userId)
+async function getAuthorizedDocument(id, organizationId) {
   const document = await prisma.complianceDocument.findFirst({
     where: {
       id,
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
   })
 
-  return { organizationContext, document }
+  return document
 }
 
 export async function PATCH(request, { params }) {
@@ -46,7 +47,10 @@ export async function PATCH(request, { params }) {
   const documentId = Number.parseInt(id, 10)
   if (Number.isNaN(documentId)) return Response.json({ error: 'Invalid document id.' }, { status: 400 })
 
-  const { organizationContext, document } = await getAuthorizedDocument(documentId, session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+
+  const document = await getAuthorizedDocument(documentId, organizationId)
   if (!document) return Response.json({ error: 'Document not found.' }, { status: 404 })
 
   const payload = await request.json()
@@ -62,7 +66,7 @@ export async function PATCH(request, { params }) {
     if (isDefault) {
       await tx.complianceDocument.updateMany({
         where: {
-          organizationId: organizationContext.organization.id,
+          organizationId,
           documentType,
           isDefault: true,
           id: { not: documentId },
@@ -93,9 +97,13 @@ export async function PATCH(request, { params }) {
     })
   })
 
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
-  await logActivity(`Updated compliance document: ${updated.documentType} - ${updated.filename}`, {
+  void logActivity(`Updated compliance document: ${updated.documentType} - ${updated.filename}`, {
     userId: session.userId,
+  })
+  await expireCacheTags(dashboardCacheTag(organizationId))
+  after(async () => {
+    await syncComplianceExpiryNotifications(organizationId)
+    await expireCacheTags(dashboardCacheTag(organizationId))
   })
 
   return Response.json(updated)
@@ -109,7 +117,10 @@ export async function DELETE(_request, { params }) {
   const documentId = Number.parseInt(id, 10)
   if (Number.isNaN(documentId)) return Response.json({ error: 'Invalid document id.' }, { status: 400 })
 
-  const { organizationContext, document } = await getAuthorizedDocument(documentId, session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+
+  const document = await getAuthorizedDocument(documentId, organizationId)
   if (!document) return Response.json({ error: 'Document not found.' }, { status: 404 })
 
   if (document.storagePath) {
@@ -127,9 +138,13 @@ export async function DELETE(_request, { params }) {
     where: { id: documentId },
   })
 
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
-  await logActivity(`Removed compliance document: ${document.documentType} - ${document.filename}`, {
+  void logActivity(`Removed compliance document: ${document.documentType} - ${document.filename}`, {
     userId: session.userId,
+  })
+  await expireCacheTags(dashboardCacheTag(organizationId))
+  after(async () => {
+    await syncComplianceExpiryNotifications(organizationId)
+    await expireCacheTags(dashboardCacheTag(organizationId))
   })
 
   return Response.json({ success: true })

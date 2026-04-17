@@ -1,18 +1,20 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { getSessionOrganizationId } from '@/lib/organization'
 import { notifyChallengeCreated } from '@/lib/challenge-notifications'
 
 // GET /api/appeals
 export async function GET(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const appeals = await prisma.appeal.findMany({
     where: {
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -40,7 +42,8 @@ export async function GET(request) {
 export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const body = await request.json()
 
@@ -50,7 +53,7 @@ export async function POST(request) {
 
   const appeal = await prisma.appeal.create({
     data: {
-      organizationId: organizationContext.organization.id,
+      organizationId,
       reason: body.reason,
       challengeType: body.challengeType || 'Administrative Appeal',
       exclusionReason: body.exclusionReason || null,
@@ -91,7 +94,7 @@ export async function POST(request) {
       title: 'Challenge opened',
       message: `New challenge created${body.tenderId ? ' (linked to pursuit)' : ''}: ${body.reason.substring(0, 80)}`,
       type: 'warning',
-      organizationId: organizationContext.organization.id,
+      organizationId,
       linkUrl: `/challenges/${appeal.id}`,
       linkLabel: 'Open challenge',
     },
@@ -100,6 +103,7 @@ export async function POST(request) {
   await notifyChallengeCreated({
     challenge: appeal,
   })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json(appeal, { status: 201 })
 }

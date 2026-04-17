@@ -1,61 +1,67 @@
-import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 import { getSession } from '@/lib/session'
 import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
+import { getCachedTenderSubmissionPack } from '@/lib/tender-read-model'
 
-async function buildResponse(tenderId) {
-  const submissionPack = await prisma.submissionPack.findUnique({
-    where: { tenderId },
+async function buildResponse(organizationId, tenderId) {
+  return getCachedTenderSubmissionPack({
+    organizationId,
+    tenderId,
   })
-  const generatedDocuments = await prisma.generatedDocument.findMany({
-    where: { tenderId },
-    orderBy: [{ documentType: 'asc' }, { updatedAt: 'desc' }],
-  })
-
-  return {
-    submissionPack,
-    generatedDocuments,
-  }
 }
 
 export async function GET(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { id } = await params
-  const tenderId = Number.parseInt(id, 10)
+  const tenderId = parseRecordId(id)
+  if (!tenderId) return Response.json({ error: 'Tender not found.' }, { status: 404 })
 
-  await refreshSubmissionPack({
+  const tender = await findTenderForOrganization({
     tenderId,
-    organizationId: organizationContext.organization.id,
+    organizationId,
+    select: { id: true },
   })
+  if (!tender) return Response.json({ error: 'Tender not found.' }, { status: 404 })
 
-  return Response.json(await buildResponse(tenderId))
+  return Response.json(await buildResponse(organizationId, tenderId))
 }
 
 export async function POST(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { id } = await params
-  const tenderId = Number.parseInt(id, 10)
+  const tenderId = parseRecordId(id)
+  if (!tenderId) return Response.json({ error: 'Tender not found.' }, { status: 404 })
   const body = await request.json().catch(() => ({}))
+
+  const tender = await findTenderForOrganization({
+    tenderId,
+    organizationId,
+    select: { id: true },
+  })
+  if (!tender) return Response.json({ error: 'Tender not found.' }, { status: 404 })
 
   await refreshSubmissionPack({
     tenderId,
-    organizationId: organizationContext.organization.id,
+    organizationId,
     regenerate: Boolean(body?.regenerate),
   })
 
   if (body?.regenerate) {
-    await logActivity('Regenerated submission pack drafts', {
+    void logActivity('Regenerated submission pack drafts', {
       userId: session.userId,
       tenderId,
     })
   }
 
-  return Response.json(await buildResponse(tenderId))
+  return Response.json(await buildResponse(organizationId, tenderId))
 }

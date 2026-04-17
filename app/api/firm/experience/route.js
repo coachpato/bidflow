@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -24,10 +24,11 @@ export async function GET() {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const experience = await prisma.firmExperience.findMany({
-    where: { organizationId: organizationContext.organization.id },
+    where: { organizationId },
     orderBy: [{ completedYear: 'desc' }, { matterName: 'asc' }],
   })
 
@@ -38,7 +39,8 @@ export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const payload = await request.json()
   const matterName = normalizeString(payload.matterName)
 
@@ -48,7 +50,7 @@ export async function POST(request) {
 
   const experience = await prisma.firmExperience.create({
     data: {
-      organizationId: organizationContext.organization.id,
+      organizationId,
       matterName,
       clientName: normalizeString(payload.clientName),
       entityName: normalizeString(payload.entityName),

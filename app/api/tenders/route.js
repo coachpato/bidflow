@@ -1,11 +1,11 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { dashboardCacheTag, expireCacheTags, tendersListCacheTag } from '@/lib/cache-tags'
 import { findAssignedUser, notifyTenderAssignees } from '@/lib/tender-assignment'
 import { buildTenderChecklistItems } from '@/lib/tender-defaults'
-import { ensureOrganizationContext } from '@/lib/organization'
-import { refreshTenderQualification } from '@/lib/tender-qualification'
-import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { getSessionOrganizationId } from '@/lib/organization'
+import { getCachedTenderList } from '@/lib/tender-read-model'
 
 function parseAssignedUserId(value) {
   if (value === undefined) return undefined
@@ -38,44 +38,17 @@ async function resolveAssignedFields(body) {
 export async function GET(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const search = searchParams.get('search')
 
-  const where = {}
-
-  if (status && status !== 'active') {
-    where.status = status
-  } else if (status === 'active') {
-    where.status = { in: ['New', 'Under Review', 'In Progress'] }
-  }
-
-  if (search) {
-    where.OR = [
-      { title: { contains: search } },
-      { reference: { contains: search } },
-      { entity: { contains: search } },
-    ]
-  }
-
-  const tenders = await prisma.tender.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      createdBy: { select: { name: true } },
-      assignedUser: { select: { id: true, name: true, email: true } },
-      qualification: {
-        select: {
-          verdict: true,
-          readinessPercent: true,
-          blockerCount: true,
-          warningCount: true,
-        },
-      },
-      _count: { select: { checklistItems: true, documents: true } },
-    },
+  const tenders = await getCachedTenderList({
+    organizationId,
+    status,
+    search,
   })
 
   return Response.json(tenders)
@@ -84,7 +57,8 @@ export async function GET(request) {
 export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const body = await request.json()
 
@@ -108,6 +82,7 @@ export async function POST(request) {
       assignedTo: assignment.assignedTo,
       assignedUserId: assignment.assignedUserId,
       notes: body.notes || null,
+      organizationId,
       userId: session.userId,
     },
     include: {
@@ -122,7 +97,7 @@ export async function POST(request) {
     })),
   })
 
-  await logActivity(`Created tender: ${tender.title}`, {
+  void logActivity(`Created tender: ${tender.title}`, {
     userId: session.userId,
     tenderId: tender.id,
   })
@@ -133,15 +108,10 @@ export async function POST(request) {
     assignedTo: tender.assignedTo,
     actorName: session.name,
   })
-
-  await refreshTenderQualification({
-    tenderId: tender.id,
-    organizationId: organizationContext.organization.id,
-  })
-  await refreshSubmissionPack({
-    tenderId: tender.id,
-    organizationId: organizationContext.organization.id,
-  })
+  await expireCacheTags(
+    dashboardCacheTag(organizationId),
+    tendersListCacheTag(organizationId)
+  )
 
   return Response.json(tender, { status: 201 })
 }

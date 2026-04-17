@@ -1,10 +1,17 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import {
+  dashboardCacheTag,
+  expireCacheTags,
+  tenderDetailCacheTag,
+  tenderPackCacheTag,
+  tendersListCacheTag,
+} from '@/lib/cache-tags'
 import { findAssignedUser, notifyTenderAssignees } from '@/lib/tender-assignment'
-import { ensureOrganizationContext } from '@/lib/organization'
-import { refreshTenderQualification } from '@/lib/tender-qualification'
-import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { getSessionOrganizationId } from '@/lib/organization'
+import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
+import { getCachedTenderDetail } from '@/lib/tender-read-model'
 
 function parseAssignedUserId(value) {
   if (value === undefined) return undefined
@@ -51,39 +58,16 @@ async function resolveAssignedFields(body, existing) {
 export async function GET(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
-  const tenderId = parseInt(id)
+  const tenderId = parseRecordId(id)
+  if (!tenderId) return Response.json({ error: 'Tender not found' }, { status: 404 })
 
-  await refreshTenderQualification({
+  const tender = await getCachedTenderDetail({
+    organizationId,
     tenderId,
-    organizationId: organizationContext.organization.id,
-  })
-  await refreshSubmissionPack({
-    tenderId,
-    organizationId: organizationContext.organization.id,
-  })
-
-  const tender = await prisma.tender.findUnique({
-    where: { id: tenderId },
-    include: {
-      createdBy: { select: { name: true, email: true } },
-      assignedUser: { select: { id: true, name: true, email: true } },
-      opportunity: { select: { id: true, title: true, status: true, sourceUrl: true, fitScore: true, estimatedValue: true, practiceArea: true } },
-      documents: { orderBy: { uploadedAt: 'desc' } },
-      checklistItems: { orderBy: { id: 'asc' } },
-      requirements: { orderBy: { label: 'asc' } },
-      qualification: {
-        include: {
-          checks: { orderBy: { sortOrder: 'asc' } },
-        },
-      },
-      generatedDocuments: { orderBy: [{ documentType: 'asc' }, { updatedAt: 'desc' }] },
-      submissionPack: true,
-      appeals: { orderBy: { createdAt: 'desc' } },
-      contract: true,
-    },
   })
 
   if (!tender) return Response.json({ error: 'Tender not found' }, { status: 404 })
@@ -95,18 +79,39 @@ export async function GET(request, { params }) {
 export async function PATCH(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
+  const tenderId = parseRecordId(id)
+  if (!tenderId) return Response.json({ error: 'Tender not found' }, { status: 404 })
   const body = await request.json()
 
-  const existing = await prisma.tender.findUnique({ where: { id: parseInt(id) } })
+  const existing = await findTenderForOrganization({
+    tenderId,
+    organizationId,
+    select: {
+      id: true,
+      title: true,
+      reference: true,
+      entity: true,
+      description: true,
+      deadline: true,
+      briefingDate: true,
+      contactPerson: true,
+      contactEmail: true,
+      status: true,
+      assignedTo: true,
+      assignedUserId: true,
+      notes: true,
+    },
+  })
   if (!existing) return Response.json({ error: 'Tender not found' }, { status: 404 })
 
   const assignment = await resolveAssignedFields(body, existing)
 
   const updated = await prisma.tender.update({
-    where: { id: parseInt(id) },
+    where: { id: tenderId },
     data: {
       title: body.title ?? existing.title,
       reference: body.reference ?? existing.reference,
@@ -128,12 +133,12 @@ export async function PATCH(request, { params }) {
 
   // Log status changes specifically
   if (body.status && body.status !== existing.status) {
-    await logActivity(
+    void logActivity(
       `Status changed from "${existing.status}" to "${body.status}" on tender: ${updated.title}`,
       { userId: session.userId, tenderId: updated.id }
     )
   } else {
-    await logActivity(`Updated tender: ${updated.title}`, {
+    void logActivity(`Updated tender: ${updated.title}`, {
       userId: session.userId,
       tenderId: updated.id,
     })
@@ -147,15 +152,12 @@ export async function PATCH(request, { params }) {
     previousAssignedTo: existing.assignedTo,
     actorName: session.name,
   })
-
-  await refreshTenderQualification({
-    tenderId: updated.id,
-    organizationId: organizationContext.organization.id,
-  })
-  await refreshSubmissionPack({
-    tenderId: updated.id,
-    organizationId: organizationContext.organization.id,
-  })
+  await expireCacheTags(
+    dashboardCacheTag(organizationId),
+    tendersListCacheTag(organizationId),
+    tenderDetailCacheTag(organizationId, tenderId),
+    tenderPackCacheTag(organizationId, tenderId)
+  )
 
   return Response.json(updated)
 }
@@ -165,15 +167,29 @@ export async function DELETE(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
+  const tenderId = parseRecordId(id)
+  if (!tenderId) return Response.json({ error: 'Tender not found' }, { status: 404 })
 
-  const existing = await prisma.tender.findUnique({ where: { id: parseInt(id) } })
+  const existing = await findTenderForOrganization({
+    tenderId,
+    organizationId,
+    select: { id: true, title: true },
+  })
   if (!existing) return Response.json({ error: 'Tender not found' }, { status: 404 })
 
-  await logActivity(`Deleted tender: ${existing.title}`, { userId: session.userId })
+  void logActivity(`Deleted tender: ${existing.title}`, { userId: session.userId })
 
-  await prisma.tender.delete({ where: { id: parseInt(id) } })
+  await prisma.tender.delete({ where: { id: tenderId } })
+  await expireCacheTags(
+    dashboardCacheTag(organizationId),
+    tendersListCacheTag(organizationId),
+    tenderDetailCacheTag(organizationId, tenderId),
+    tenderPackCacheTag(organizationId, tenderId)
+  )
 
   return Response.json({ success: true })
 }

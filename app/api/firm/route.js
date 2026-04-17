@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { dashboardCacheTag, expireCacheTags, organizationCacheTag } from '@/lib/cache-tags'
+import { getSessionOrganizationId } from '@/lib/organization'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -33,12 +34,27 @@ export async function GET() {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: {
+      firmProfile: true,
+    },
+  })
+
+  if (!organization) {
+    return Response.json({ error: 'Organization not found.' }, { status: 404 })
+  }
 
   return Response.json({
-    organization: organizationContext.organization,
-    membership: organizationContext.membership,
-    firmProfile: organizationContext.firmProfile,
+    organization,
+    membership: {
+      organizationId,
+      role: session.organizationRole || 'member',
+    },
+    firmProfile: organization.firmProfile,
   })
 }
 
@@ -46,7 +62,8 @@ export async function PUT(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const payload = await request.json()
 
   const displayName = normalizeString(payload.displayName)
@@ -57,12 +74,12 @@ export async function PUT(request) {
 
   const updated = await prisma.$transaction(async tx => {
     const organization = await tx.organization.update({
-      where: { id: organizationContext.organization.id },
+      where: { id: organizationId },
       data: { name: displayName },
     })
 
     const firmProfile = await tx.firmProfile.update({
-      where: { organizationId: organizationContext.organization.id },
+      where: { organizationId },
       data: {
         displayName,
         legalName: normalizeString(payload.legalName),
@@ -83,6 +100,11 @@ export async function PUT(request) {
 
     return { organization, firmProfile }
   })
+
+  await expireCacheTags(
+    dashboardCacheTag(organizationId),
+    organizationCacheTag(organizationId)
+  )
 
   return Response.json(updated)
 }

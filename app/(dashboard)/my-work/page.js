@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
-import { ensureOrganizationContext } from '@/lib/organization'
-import prisma from '@/lib/prisma'
+import { getOrganizationContextFromSession } from '@/lib/organization'
+import { getCachedMyWorkData } from '@/lib/my-work-read-model'
 import { requireAuth } from '@/lib/session'
 
 const TENDER_STATUSES = ['New', 'Under Review', 'In Progress', 'Submitted', 'Awarded']
@@ -53,76 +53,14 @@ function getContractLabel(daysRemaining) {
 
 export default async function MyWorkPage() {
   const session = await requireAuth()
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationContext = await getOrganizationContextFromSession(session)
+  const organizationId = organizationContext.organization.id
   const legacyAssigneeTokens = [session.email, session.name].filter(Boolean)
-  const assignmentWhere = legacyAssigneeTokens.length > 0
-    ? {
-        OR: [
-          { assignedUserId: session.userId },
-          { assignedUserId: null, assignedTo: { in: legacyAssigneeTokens } },
-        ],
-      }
-    : { assignedUserId: session.userId }
-  const tenderOrganizationWhere = {
-    OR: [
-      { opportunity: { organizationId: organizationContext.organization.id } },
-      { createdBy: { memberships: { some: { organizationId: organizationContext.organization.id } } } },
-    ],
-  }
-
-  const [tenders, contracts, unreadNotifications] = await prisma.$transaction([
-    prisma.tender.findMany({
-      where: {
-        AND: [
-          tenderOrganizationWhere,
-          assignmentWhere,
-          { status: { in: TENDER_STATUSES } },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        entity: true,
-        reference: true,
-        deadline: true,
-        status: true,
-      },
-      orderBy: [{ deadline: 'asc' }, { createdAt: 'desc' }],
-      take: 12,
-    }),
-    prisma.contract.findMany({
-      where: {
-        AND: [
-          assignmentWhere,
-          { organizationId: organizationContext.organization.id },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        client: true,
-        appointmentStatus: true,
-        instructionStatus: true,
-        nextFollowUpAt: true,
-        startDate: true,
-        endDate: true,
-        renewalDate: true,
-        value: true,
-        tender: { select: { id: true, title: true } },
-      },
-      orderBy: [{ endDate: 'asc' }, { createdAt: 'desc' }],
-      take: 12,
-    }),
-    prisma.notification.count({
-      where: {
-        AND: [
-          { read: false },
-          { OR: [{ userId: session.userId }, { userId: null }] },
-          { OR: [{ organizationId: organizationContext.organization.id }, { organizationId: null }] },
-        ],
-      },
-    }),
-  ])
+  const { tenders, contracts, unreadNotifications } = await getCachedMyWorkData({
+    organizationId,
+    userId: session.userId,
+    legacyAssigneeTokens,
+  })
 
   const dueSoonTenders = tenders.filter(tender => {
     const remaining = daysUntil(tender.deadline)

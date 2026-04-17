@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { sendAppointmentFollowUpReminder, sendContractDateReminder } from '@/lib/contract-notifications'
 import { resolveAssignedRecipients } from '@/lib/tender-assignment'
 
@@ -106,6 +107,7 @@ export async function GET(request) {
   })
 
   let remindersSent = 0
+  const touchedOrganizationIds = new Set()
 
   for (const contract of contracts) {
     if (contract.endDate && !contract.endDateReminderSentAt) {
@@ -115,6 +117,7 @@ export async function GET(request) {
         data: { endDateReminderSentAt: reminderRunAt },
       })
       remindersSent += 1
+      touchedOrganizationIds.add(contract.organizationId)
     }
 
     if (contract.renewalDate && !contract.renewalDateReminderSentAt) {
@@ -124,6 +127,7 @@ export async function GET(request) {
         data: { renewalDateReminderSentAt: reminderRunAt },
       })
       remindersSent += 1
+      touchedOrganizationIds.add(contract.organizationId)
     }
 
     if (contract.nextFollowUpAt && !contract.nextFollowUpReminderSentAt) {
@@ -133,6 +137,7 @@ export async function GET(request) {
         data: { nextFollowUpReminderSentAt: reminderRunAt },
       })
       remindersSent += 1
+      touchedOrganizationIds.add(contract.organizationId)
     }
   }
 
@@ -162,6 +167,13 @@ export async function GET(request) {
       data: { reminderSentAt: reminderRunAt },
     })
     remindersSent += 1
+    touchedOrganizationIds.add(milestone.contract.organizationId)
+  }
+
+  if (touchedOrganizationIds.size > 0) {
+    await expireCacheTags(
+      Array.from(touchedOrganizationIds, organizationId => dashboardCacheTag(organizationId))
+    )
   }
 
   return Response.json({

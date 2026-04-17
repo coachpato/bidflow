@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { isPublicRegistrationEnabled } from '@/lib/env'
-import { applyOrganizationToSession, ensureOrganizationContext } from '@/lib/organization'
+import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
 
 export async function POST(request) {
   try {
@@ -20,12 +20,9 @@ export async function POST(request) {
     }
 
     // Check if email is already registered
-    const existing = await prisma.user.findFirst({
+    const existing = await prisma.user.findUnique({
       where: {
-        email: {
-          equals: normalizedEmail,
-          mode: 'insensitive',
-        },
+        email: normalizedEmail,
       },
     })
     if (existing) {
@@ -52,7 +49,10 @@ export async function POST(request) {
       },
     })
 
-    const organizationContext = await ensureOrganizationContext(user.id)
+    const organizationContext = await ensureOrganizationContextForUser({
+      ...user,
+      memberships: [],
+    })
 
     // Log them in immediately after registering
     const session = await getSession()

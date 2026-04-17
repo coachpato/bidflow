@@ -1,11 +1,9 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { dashboardCacheTag, expireCacheTags, tenderDetailCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { buildTenderChecklistItems } from '@/lib/tender-defaults'
-import { notifyTenderAssignees } from '@/lib/tender-assignment'
-import { ensureOrganizationContext } from '@/lib/organization'
-import { refreshTenderQualification } from '@/lib/tender-qualification'
-import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { getSessionOrganizationId } from '@/lib/organization'
 
 function formatMoney(value) {
   if (value === null || value === undefined) return null
@@ -68,7 +66,8 @@ function buildOpportunityChecklistItems(opportunity) {
 export async function POST(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
   const opportunityId = parseInt(id, 10)
@@ -76,7 +75,7 @@ export async function POST(request, { params }) {
   const opportunity = await prisma.opportunity.findFirst({
     where: {
       id: opportunityId,
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
     include: {
       documents: true,
@@ -96,69 +95,68 @@ export async function POST(request, { params }) {
     })
   }
 
-  const tender = await prisma.tender.create({
-    data: {
-      title: opportunity.title,
-      reference: opportunity.reference,
-      entity: opportunity.entity,
-      description: opportunity.summary,
-      deadline: opportunity.deadline,
-      briefingDate: opportunity.briefingDate,
-      contactPerson: opportunity.contactPerson,
-      contactEmail: opportunity.contactEmail,
-      status: 'New',
-      assignedTo: session.name || session.email || null,
-      assignedUserId: session.userId,
-      notes: buildTenderNotes(opportunity),
-      userId: session.userId,
-      opportunityId: opportunity.id,
-    },
-  })
+  const checklistItems = buildTenderChecklistItems(buildOpportunityChecklistItems(opportunity))
+  const tenderDocuments = opportunity.documents.map(document => ({
+    filename: document.filename,
+    filepath: document.filepath,
+  }))
 
-  await notifyTenderAssignees({
-    tender,
-    assignedUserId: tender.assignedUserId,
-    assignedTo: tender.assignedTo,
-    actorName: session.name || 'A teammate',
-  })
-
-  await prisma.tenderChecklistItem.createMany({
-    data: buildTenderChecklistItems(buildOpportunityChecklistItems(opportunity)).map(item => ({
-      ...item,
-      tenderId: tender.id,
-    })),
-  })
-
-  if (opportunity.documents.length > 0) {
-    await prisma.tenderDocument.createMany({
-      data: opportunity.documents.map(document => ({
-        filename: document.filename,
-        filepath: document.filepath,
-        tenderId: tender.id,
-      })),
-    })
-  }
-
-  await prisma.opportunity.update({
+  const convertedOpportunity = await prisma.opportunity.update({
     where: { id: opportunity.id },
     data: {
       status: 'Converted',
+      tender: {
+        create: {
+          title: opportunity.title,
+          reference: opportunity.reference,
+          entity: opportunity.entity,
+          description: opportunity.summary,
+          deadline: opportunity.deadline,
+          briefingDate: opportunity.briefingDate,
+          contactPerson: opportunity.contactPerson,
+          contactEmail: opportunity.contactEmail,
+          status: 'New',
+          assignedTo: session.name || session.email || null,
+          assignedUserId: session.userId,
+          notes: buildTenderNotes(opportunity),
+          organizationId,
+          userId: session.userId,
+          checklistItems: checklistItems.length > 0
+            ? {
+                create: checklistItems,
+              }
+            : undefined,
+          documents: tenderDocuments.length > 0
+            ? {
+                create: tenderDocuments,
+              }
+            : undefined,
+        },
+      },
+    },
+    select: {
+      tender: {
+        select: {
+          id: true,
+        },
+      },
     },
   })
 
-  await logActivity(`Converted opportunity to pursuit: ${opportunity.title}`, {
+  const tenderId = convertedOpportunity.tender?.id
+  if (!tenderId) {
+    return Response.json({ error: 'Could not create the pursuit.' }, { status: 500 })
+  }
+
+  void logActivity(`Converted opportunity to pursuit: ${opportunity.title}`, {
     userId: session.userId,
-    tenderId: tender.id,
+    tenderId,
   })
+  await expireCacheTags(
+    dashboardCacheTag(organizationId),
+    tendersListCacheTag(organizationId),
+    tenderDetailCacheTag(organizationId, tenderId)
+  )
 
-  await refreshTenderQualification({
-    tenderId: tender.id,
-    organizationId: organizationContext.organization.id,
-  })
-  await refreshSubmissionPack({
-    tenderId: tender.id,
-    organizationId: organizationContext.organization.id,
-  })
-
-  return Response.json({ success: true, tenderId: tender.id }, { status: 201 })
+  return Response.json({ success: true, tenderId }, { status: 201 })
 }

@@ -1,19 +1,21 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { getSessionOrganizationId } from '@/lib/organization'
 
 // GET /api/appeals/:id
 export async function GET(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
   const appeal = await prisma.appeal.findFirst({
     where: {
       id: parseInt(id, 10),
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
     include: {
       tender: {
@@ -40,7 +42,8 @@ export async function GET(request, { params }) {
 export async function PATCH(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
   const body = await request.json()
@@ -48,7 +51,7 @@ export async function PATCH(request, { params }) {
   const existing = await prisma.appeal.findFirst({
     where: {
       id: parseInt(id, 10),
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
   })
   if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
@@ -79,6 +82,7 @@ export async function PATCH(request, { params }) {
     userId: session.userId,
     appealId: updated.id,
   })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json(updated)
 }
@@ -87,20 +91,22 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const { id } = await params
   const appealId = parseInt(id, 10)
   const existing = await prisma.appeal.findFirst({
     where: {
       id: appealId,
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
   })
 
   if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
 
   await prisma.appeal.delete({ where: { id: appealId } })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json({ success: true })
 }

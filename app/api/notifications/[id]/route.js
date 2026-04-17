@@ -1,4 +1,5 @@
 import { getSession } from '@/lib/session'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import prisma from '@/lib/prisma'
 import { ensureOrganizationContext } from '@/lib/organization'
 
@@ -19,6 +20,7 @@ async function getAuthorizedNotification(id, userId) {
 export async function PATCH(_request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const organizationContext = await ensureOrganizationContext(session.userId)
 
   const { id } = await params
   const notificationId = Number.parseInt(id, 10)
@@ -32,12 +34,15 @@ export async function PATCH(_request, { params }) {
     data: { read: true },
   })
 
+  await expireCacheTags(dashboardCacheTag(organizationContext.organization.id))
+
   return Response.json(updated)
 }
 
 export async function DELETE(_request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const organizationContext = await ensureOrganizationContext(session.userId)
 
   const { id } = await params
   const notificationId = Number.parseInt(id, 10)
@@ -49,6 +54,8 @@ export async function DELETE(_request, { params }) {
   await prisma.notification.delete({
     where: { id: notificationId },
   })
+
+  await expireCacheTags(dashboardCacheTag(organizationContext.organization.id))
 
   return Response.json({ success: true })
 }

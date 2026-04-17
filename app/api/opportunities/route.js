@@ -1,10 +1,11 @@
 import { logActivity } from '@/lib/activity'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import {
   buildManualMatchData,
   buildOpportunityDedupeKey,
   normalizeOpportunityStatus,
 } from '@/lib/opportunity-radar'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 
@@ -65,13 +66,14 @@ export async function GET(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const search = searchParams.get('search')
 
   const where = {
-    organizationId: organizationContext.organization.id,
+    organizationId,
   }
 
   if (status && status !== 'All') {
@@ -92,7 +94,7 @@ export async function GET(request) {
   const opportunities = await prisma.opportunity.findMany({
     where,
     orderBy: [{ deadline: 'asc' }, { fitScore: 'desc' }, { createdAt: 'desc' }],
-    include: getOpportunityInclude(organizationContext.organization.id),
+    include: getOpportunityInclude(organizationId),
   })
 
   return Response.json(opportunities.map(serializeOpportunity), {
@@ -106,7 +108,8 @@ export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const body = await request.json()
 
   if (!body.title || !body.entity) {
@@ -124,7 +127,7 @@ export async function POST(request) {
   })
 
   const dedupeKey = buildOpportunityDedupeKey({
-    organizationId: organizationContext.organization.id,
+    organizationId,
     sourceKey: toNullableString(body.sourceName) || 'manual',
     externalId: toNullableString(body.reference),
     title: body.title,
@@ -132,12 +135,14 @@ export async function POST(request) {
     deadline,
   })
 
-  const existingOpportunity = await prisma.opportunity.findFirst({
+  const existingOpportunity = await prisma.opportunity.findUnique({
     where: {
-      organizationId: organizationContext.organization.id,
-      dedupeKey,
+      organizationId_dedupeKey: {
+        organizationId,
+        dedupeKey,
+      },
     },
-    include: getOpportunityInclude(organizationContext.organization.id),
+    include: getOpportunityInclude(organizationId),
   })
 
   if (existingOpportunity) {
@@ -147,57 +152,49 @@ export async function POST(request) {
     }, { status: 409 })
   }
 
-  const opportunity = await prisma.$transaction(async tx => {
-    const created = await tx.opportunity.create({
-      data: {
-        organizationId: organizationContext.organization.id,
-        title: body.title,
-        reference: toNullableString(body.reference),
-        externalId: toNullableString(body.reference),
-        dedupeKey,
-        entity: body.entity,
-        sourceName: toNullableString(body.sourceName) || 'Manual intake',
-        sourceUrl: toNullableString(body.sourceUrl),
-        category: toNullableString(body.category),
-        practiceArea: manualMatch.practiceArea,
-        summary: toNullableString(body.summary),
-        estimatedValue: toNullableNumber(body.estimatedValue),
-        publishedAt: toNullableDate(body.publishedAt),
-        deadline,
-        briefingDate: toNullableDate(body.briefingDate),
-        siteVisitDate: toNullableDate(body.siteVisitDate),
-        contactPerson: toNullableString(body.contactPerson),
-        contactEmail: toNullableString(body.contactEmail),
-        fitScore,
-        status: normalizedStatus,
-        notes: toNullableString(body.notes),
-        parsedRequirements: Array.isArray(body.parsedRequirements) ? body.parsedRequirements : null,
-        parsedAppointments: Array.isArray(body.parsedAppointments) ? body.parsedAppointments : null,
-        userId: session.userId,
+  const opportunity = await prisma.opportunity.create({
+    data: {
+      organizationId,
+      title: body.title,
+      reference: toNullableString(body.reference),
+      externalId: toNullableString(body.reference),
+      dedupeKey,
+      entity: body.entity,
+      sourceName: toNullableString(body.sourceName) || 'Manual intake',
+      sourceUrl: toNullableString(body.sourceUrl),
+      category: toNullableString(body.category),
+      practiceArea: manualMatch.practiceArea,
+      summary: toNullableString(body.summary),
+      estimatedValue: toNullableNumber(body.estimatedValue),
+      publishedAt: toNullableDate(body.publishedAt),
+      deadline,
+      briefingDate: toNullableDate(body.briefingDate),
+      siteVisitDate: toNullableDate(body.siteVisitDate),
+      contactPerson: toNullableString(body.contactPerson),
+      contactEmail: toNullableString(body.contactEmail),
+      fitScore,
+      status: normalizedStatus,
+      notes: toNullableString(body.notes),
+      parsedRequirements: Array.isArray(body.parsedRequirements) ? body.parsedRequirements : null,
+      parsedAppointments: Array.isArray(body.parsedAppointments) ? body.parsedAppointments : null,
+      userId: session.userId,
+      matches: {
+        create: {
+          organizationId,
+          verdict: manualMatch.verdict,
+          fitScore,
+          matchedKeywords: manualMatch.matchedKeywords,
+          matchReasons: manualMatch.matchReasons,
+        },
       },
-      include: getOpportunityInclude(organizationContext.organization.id),
-    })
-
-    await tx.opportunityMatch.create({
-      data: {
-        organizationId: organizationContext.organization.id,
-        opportunityId: created.id,
-        verdict: manualMatch.verdict,
-        fitScore,
-        matchedKeywords: manualMatch.matchedKeywords,
-        matchReasons: manualMatch.matchReasons,
-      },
-    })
-
-    return tx.opportunity.findUnique({
-      where: { id: created.id },
-      include: getOpportunityInclude(organizationContext.organization.id),
-    })
+    },
+    include: getOpportunityInclude(organizationId),
   })
 
-  await logActivity(`Captured opportunity: ${opportunity.title}`, {
+  void logActivity(`Captured opportunity: ${opportunity.title}`, {
     userId: session.userId,
   })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json(serializeOpportunity(opportunity), { status: 201 })
 }

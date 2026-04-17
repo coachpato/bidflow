@@ -1,15 +1,30 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { expireCacheTags, tenderDetailCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
+import { getSessionOrganizationId } from '@/lib/organization'
+import { parseRecordId } from '@/lib/tenders'
+import { refreshSubmissionPack } from '@/lib/submission-pack'
 
 // DELETE /api/tenders/:id/documents/:docId
 export async function DELETE(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
-  const { docId } = await params
+  const { id, docId } = await params
+  const tenderId = parseRecordId(id)
+  const parsedDocId = parseRecordId(docId)
+  if (!tenderId || !parsedDocId) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  const doc = await prisma.tenderDocument.findUnique({ where: { id: parseInt(docId) } })
+  const doc = await prisma.tenderDocument.findFirst({
+    where: {
+      id: parsedDocId,
+      tenderId,
+      tender: { organizationId },
+    },
+  })
   if (!doc) return Response.json({ error: 'Not found' }, { status: 404 })
 
   // Delete from Supabase Storage
@@ -26,7 +41,15 @@ export async function DELETE(request, { params }) {
     // Continue anyway — remove the DB record even if storage delete fails
   }
 
-  await prisma.tenderDocument.delete({ where: { id: parseInt(docId) } })
+  await prisma.tenderDocument.delete({ where: { id: parsedDocId } })
+  await refreshSubmissionPack({
+    tenderId,
+    organizationId,
+  })
+  await expireCacheTags(
+    tendersListCacheTag(organizationId),
+    tenderDetailCacheTag(organizationId, tenderId)
+  )
 
   return Response.json({ success: true })
 }

@@ -1,21 +1,30 @@
+import { after } from 'next/server'
 import { getSession } from '@/lib/session'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import prisma from '@/lib/prisma'
-import { ensureOrganizationContext } from '@/lib/organization'
-import { syncComplianceExpiryNotifications } from '@/lib/compliance-documents'
+import { getSessionOrganizationId } from '@/lib/organization'
+import { syncComplianceExpiryNotificationsIfNeeded } from '@/lib/compliance-documents'
 
 // GET /api/notifications — get all notifications (newest first)
 export async function GET() {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+
+  after(async () => {
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeeded(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
+  })
 
   const notifications = await prisma.notification.findMany({
     where: {
       AND: [
         { OR: [{ userId: session.userId }, { userId: null }] },
-        { OR: [{ organizationId: organizationContext.organization.id }, { organizationId: null }] },
+        { OR: [{ organizationId }, { organizationId: null }] },
       ],
     },
     orderBy: { createdAt: 'desc' },
@@ -29,7 +38,8 @@ export async function PATCH(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const body = await request.json().catch(() => ({}))
 
   if (body?.action !== 'markAllRead') {
@@ -41,13 +51,15 @@ export async function PATCH(request) {
       read: false,
       AND: [
         { OR: [{ userId: session.userId }, { userId: null }] },
-        { OR: [{ organizationId: organizationContext.organization.id }, { organizationId: null }] },
+        { OR: [{ organizationId }, { organizationId: null }] },
       ],
     },
     data: {
       read: true,
     },
   })
+
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json({ success: true, updatedCount: result.count })
 }
@@ -57,7 +69,8 @@ export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const { title, message, type, userId, linkUrl, linkLabel } = await request.json()
 
   const notification = await prisma.notification.create({
@@ -66,11 +79,13 @@ export async function POST(request) {
       message,
       type: type || 'info',
       userId: userId || null,
-      organizationId: organizationContext.organization.id,
+      organizationId,
       linkUrl: linkUrl || null,
       linkLabel: linkLabel || null,
     },
   })
+
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json(notification, { status: 201 })
 }

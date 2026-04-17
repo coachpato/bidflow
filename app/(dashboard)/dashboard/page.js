@@ -1,201 +1,73 @@
 import Link from 'next/link'
+import { after } from 'next/server'
 import EmailTestCard from '@/app/components/EmailTestCard'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
-import { syncComplianceExpiryNotifications } from '@/lib/compliance-documents'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { syncComplianceExpiryNotificationsIfNeeded } from '@/lib/compliance-documents'
+import { getCachedDashboardOrganizationData, getCachedDashboardUserData } from '@/lib/dashboard-read-model'
 import { isEmailConfigured } from '@/lib/email'
-import { ACTIVE_OPPORTUNITY_STATUSES } from '@/lib/opportunity-radar'
-import { ensureOrganizationContext } from '@/lib/organization'
-import prisma from '@/lib/prisma'
+import { getCachedPilotLeadCount } from '@/lib/pilot-leads-read-model'
+import { getOrganizationContextFromSession } from '@/lib/organization'
 import { requireAuth } from '@/lib/session'
-
-const DEADLINE_WARNING_DAYS = 14
-const CONTRACT_EXPIRY_WARNING_DAYS = 30
-const OPPORTUNITY_WARNING_DAYS = 10
-
-function addDays(date, days) {
-  const copy = new Date(date)
-  copy.setDate(copy.getDate() + days)
-  return copy
-}
 
 function formatShortDate(value) {
   return new Date(value).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
 }
 
-function isWithinRange(value, start, end) {
-  if (!value) return false
-  return value >= start && value <= end
-}
-
 export default async function DashboardPage() {
   const session = await requireAuth()
-  const organizationContext = await ensureOrganizationContext(session.userId)
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
+  const organizationContext = await getOrganizationContextFromSession(session)
+  const organizationId = organizationContext.organization.id
+  after(async () => {
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeeded(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
+  })
 
-  const now = new Date()
-  const contractExpiryCutoff = addDays(now, CONTRACT_EXPIRY_WARNING_DAYS)
-  const deadlineCutoff = addDays(now, DEADLINE_WARNING_DAYS)
-  const opportunityCutoff = addDays(now, OPPORTUNITY_WARNING_DAYS)
-  const complianceCutoff = addDays(now, 30)
   const legacyAssigneeTokens = [session.email, session.name].filter(Boolean)
-  const tenderOrganizationWhere = {
-    OR: [
-      { opportunity: { organizationId: organizationContext.organization.id } },
-      { createdBy: { memberships: { some: { organizationId: organizationContext.organization.id } } } },
-    ],
-  }
 
   const [
-    organizationTenders,
-    organizationContracts,
-    organizationOpportunities,
-    pendingAppeals,
-    unreadNotifications,
-    teamMemberCount,
-    expiringComplianceDocuments,
-  ] = await prisma.$transaction([
-    prisma.tender.findMany({
-      where: {
-        AND: [tenderOrganizationWhere],
-      },
-      select: {
-        id: true,
-        title: true,
-        entity: true,
-        deadline: true,
-        status: true,
-        assignedUserId: true,
-        assignedTo: true,
-      },
-    }),
-    prisma.contract.findMany({
-      where: {
-        organizationId: organizationContext.organization.id,
-      },
-      select: {
-        id: true,
-        title: true,
-        client: true,
-        endDate: true,
-        assignedUserId: true,
-        assignedTo: true,
-      },
-    }),
-    prisma.opportunity.findMany({
-      where: {
-        organizationId: organizationContext.organization.id,
-        status: { in: ACTIVE_OPPORTUNITY_STATUSES },
-      },
-      select: {
-        id: true,
-        title: true,
-        entity: true,
-        deadline: true,
-        fitScore: true,
-        status: true,
-        matches: {
-          where: { organizationId: organizationContext.organization.id },
-          orderBy: { updatedAt: 'desc' },
-          take: 1,
-          select: {
-            matchReasons: true,
-          },
-        },
-      },
-    }),
-    prisma.appeal.count({
-      where: {
-        organizationId: organizationContext.organization.id,
-        status: 'Pending',
-      },
-    }),
-    prisma.notification.count({
-      where: {
-        AND: [
-          { read: false },
-          { OR: [{ userId: session.userId }, { userId: null }] },
-          { OR: [{ organizationId: organizationContext.organization.id }, { organizationId: null }] },
-        ],
-      },
-    }),
-    prisma.membership.count({
-      where: { organizationId: organizationContext.organization.id },
-    }),
-    prisma.complianceDocument.findMany({
-      where: {
-        organizationId: organizationContext.organization.id,
-        expiryDate: {
-          not: null,
-          lte: complianceCutoff,
-        },
-      },
-      select: {
-        id: true,
-        filename: true,
-        documentType: true,
-        expiryDate: true,
-      },
-      orderBy: { expiryDate: 'asc' },
-      take: 4,
+    organizationDashboardData,
+    userDashboardData,
+  ] = await Promise.all([
+    getCachedDashboardOrganizationData(organizationId),
+    getCachedDashboardUserData({
+      organizationId,
+      userId: session.userId,
+      legacyAssigneeTokens,
     }),
   ])
 
   const pilotLeadCount = session.role === 'admin'
-    ? await prisma.pilotLead.count()
+    ? await getCachedPilotLeadCount()
     : 0
-  const matchesAssignment = record => {
-    if (record.assignedUserId) {
-      return record.assignedUserId === session.userId
-    }
-
-    if (!record.assignedTo) {
-      return false
-    }
-
-    return legacyAssigneeTokens.includes(record.assignedTo)
+  const summary = {
+    ...(organizationDashboardData.summary || {}),
+    ...(userDashboardData || {}),
   }
-  const activeTenders = organizationTenders.filter(tender => ['New', 'Under Review', 'In Progress'].includes(tender.status)).length
-  const submittedTenders = organizationTenders.filter(tender => tender.status === 'Submitted').length
-  const awardedTenders = organizationTenders.filter(tender => tender.status === 'Awarded').length
-  const lostTenders = organizationTenders.filter(tender => tender.status === 'Lost').length
-  const upcomingDeadlines = organizationTenders
-    .filter(tender => (
-      isWithinRange(tender.deadline, now, deadlineCutoff) &&
-      !['Submitted', 'Awarded', 'Lost', 'Cancelled'].includes(tender.status)
-    ))
-    .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
-    .slice(0, 5)
-  const myTenders = organizationTenders.filter(tender => (
-    matchesAssignment(tender) &&
-    ['New', 'Under Review', 'In Progress', 'Submitted'].includes(tender.status)
-  )).length
-  const expiringContracts = organizationContracts
-    .filter(contract => isWithinRange(contract.endDate, now, contractExpiryCutoff))
-    .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
-    .slice(0, 5)
-  const myContracts = organizationContracts.filter(contract => matchesAssignment(contract)).length
-  const opportunityQueueCount = organizationOpportunities.length
-  const highFitOpportunityCount = organizationOpportunities.filter(opportunity => (opportunity.fitScore || 0) >= 75).length
-  const opportunitiesToReview = organizationOpportunities
-    .sort((a, b) => {
-      const deadlineA = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER
-      const deadlineB = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER
-
-      if (deadlineA !== deadlineB) return deadlineA - deadlineB
-
-      const fitA = a.fitScore ?? -1
-      const fitB = b.fitScore ?? -1
-
-      if (fitA !== fitB) return fitB - fitA
-
-      return a.id - b.id
-    })
-    .slice(0, 5)
+  const upcomingDeadlines = organizationDashboardData.upcomingDeadlines || []
+  const expiringContracts = organizationDashboardData.expiringContracts || []
+  const opportunitiesToReview = organizationDashboardData.opportunitiesToReview || []
+  const expiringComplianceDocuments = organizationDashboardData.expiringComplianceDocuments || []
+  const activeTenders = summary.activeTenders || 0
+  const submittedTenders = summary.submittedTenders || 0
+  const awardedTenders = summary.awardedTenders || 0
+  const lostTenders = summary.lostTenders || 0
+  const myTenders = summary.myTenders || 0
+  const myContracts = summary.myContracts || 0
+  const expiringContractsCount = summary.expiringContractsCount || 0
+  const opportunityQueueCount = summary.opportunityQueueCount || 0
+  const highFitOpportunityCount = summary.highFitOpportunityCount || 0
+  const dueSoonOpportunities = summary.dueSoonOpportunities || 0
+  const pendingAppeals = summary.pendingAppeals || 0
+  const unreadNotifications = summary.unreadNotifications || 0
+  const teamMemberCount = summary.teamMemberCount || 0
   const expiringComplianceCount = expiringComplianceDocuments.length
 
-  const firmProfileStatus = organizationContext.firmProfile.practiceAreas.length > 0 ||
-    organizationContext.firmProfile.overview
+  const firmProfileStatus = (organizationContext.firmProfile?.practiceAreas?.length || 0) > 0 ||
+    organizationContext.firmProfile?.overview
     ? 'Started'
     : 'Needs setup'
 
@@ -207,14 +79,9 @@ export default async function DashboardPage() {
     { label: 'Appointed', value: awardedTenders, tone: 'text-emerald-700', href: '/pursuits?status=Awarded' },
     { label: 'Lost', value: lostTenders, tone: 'text-rose-700', href: '/pursuits?status=Lost' },
     { label: 'Active challenges', value: pendingAppeals, tone: 'text-amber-700', href: '/challenges' },
-    { label: 'Appointments ending', value: expiringContracts.length, tone: 'text-cyan-700', href: '/appointments' },
+    { label: 'Appointments ending', value: expiringContractsCount, tone: 'text-cyan-700', href: '/appointments' },
     { label: 'Compliance alerts', value: expiringComplianceCount, tone: 'text-indigo-700', href: '/vault' },
   ]
-
-  const dueSoonOpportunities = opportunitiesToReview.filter(opportunity => {
-    if (!opportunity.deadline) return false
-    return opportunity.deadline >= now && opportunity.deadline <= opportunityCutoff
-  }).length
 
   if (session.role === 'admin') {
     stats.splice(2, 0, {
@@ -240,7 +107,7 @@ export default async function DashboardPage() {
           { label: 'Assigned to you', value: `${myTenders + myContracts}` },
           { label: 'Opportunity queue', value: `${opportunityQueueCount}` },
           { label: 'Deadlines soon', value: `${upcomingDeadlines.length}` },
-          { label: 'Appointments ending', value: `${expiringContracts.length}` },
+          { label: 'Appointments ending', value: `${expiringContractsCount}` },
         ]}
       />
 

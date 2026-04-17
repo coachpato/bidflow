@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { applyOrganizationToSession, ensureOrganizationContext } from '@/lib/organization'
+import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
 
 export async function POST(request) {
   try {
@@ -14,11 +14,21 @@ export async function POST(request) {
     }
 
     // Normalize email input so login is not blocked by case or accidental spaces.
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: {
-        email: {
-          equals: normalizedEmail,
-          mode: 'insensitive',
+        email: normalizedEmail,
+      },
+      include: {
+        memberships: {
+          orderBy: { id: 'asc' },
+          take: 1,
+          include: {
+            organization: {
+              include: {
+                firmProfile: true,
+              },
+            },
+          },
         },
       },
     })
@@ -38,7 +48,7 @@ export async function POST(request) {
       return Response.json({ error: 'The password for this account is incorrect.' }, { status: 401 })
     }
 
-    const organizationContext = await ensureOrganizationContext(user.id)
+    const organizationContext = await ensureOrganizationContextForUser(user)
 
     // Save session
     const session = await getSession()

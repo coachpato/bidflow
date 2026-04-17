@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -20,16 +20,15 @@ function normalizeNumber(value) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-async function getAuthorizedExperience(id, userId) {
-  const organizationContext = await ensureOrganizationContext(userId)
+async function getAuthorizedExperience(id, organizationId) {
   const experience = await prisma.firmExperience.findFirst({
     where: {
       id,
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
   })
 
-  return { organizationContext, experience }
+  return experience
 }
 
 export async function PATCH(request, { params }) {
@@ -39,8 +38,10 @@ export async function PATCH(request, { params }) {
   const { id } = await params
   const experienceId = Number.parseInt(id, 10)
   if (Number.isNaN(experienceId)) return Response.json({ error: 'Invalid experience id.' }, { status: 400 })
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
-  const { experience } = await getAuthorizedExperience(experienceId, session.userId)
+  const experience = await getAuthorizedExperience(experienceId, organizationId)
   if (!experience) return Response.json({ error: 'Experience record not found.' }, { status: 404 })
 
   const payload = await request.json()
@@ -75,8 +76,10 @@ export async function DELETE(_request, { params }) {
   const { id } = await params
   const experienceId = Number.parseInt(id, 10)
   if (Number.isNaN(experienceId)) return Response.json({ error: 'Invalid experience id.' }, { status: 400 })
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
-  const { experience } = await getAuthorizedExperience(experienceId, session.userId)
+  const experience = await getAuthorizedExperience(experienceId, organizationId)
   if (!experience) return Response.json({ error: 'Experience record not found.' }, { status: 404 })
 
   await prisma.firmExperience.delete({

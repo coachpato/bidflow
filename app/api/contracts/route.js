@@ -1,9 +1,10 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { notifyContractAssignees } from '@/lib/contract-notifications'
 import { findAssignedUser } from '@/lib/tender-assignment'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { getSessionOrganizationId } from '@/lib/organization'
 
 function toNullableNumber(value) {
   if (value === undefined) return undefined
@@ -51,11 +52,12 @@ async function resolveAssignedFields(body) {
 export async function GET() {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const contracts = await prisma.contract.findMany({
     where: {
-      organizationId: organizationContext.organization.id,
+      organizationId,
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -76,7 +78,8 @@ export async function GET() {
 export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   const body = await request.json()
 
@@ -88,7 +91,7 @@ export async function POST(request) {
 
   const contract = await prisma.contract.create({
     data: {
-      organizationId: organizationContext.organization.id,
+      organizationId,
       title: body.title,
       client: body.client || null,
       assignedTo: assignment.assignedTo,
@@ -124,6 +127,7 @@ export async function POST(request) {
     assignedTo: contract.assignedTo,
     actorName: session.name,
   })
+  await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json(contract, { status: 201 })
 }

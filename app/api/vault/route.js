@@ -1,9 +1,14 @@
+import { after } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { ensureOrganizationContext } from '@/lib/organization'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { getSessionOrganizationId } from '@/lib/organization'
 import { logActivity } from '@/lib/activity'
 import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
-import { syncComplianceExpiryNotifications } from '@/lib/compliance-documents'
+import {
+  syncComplianceExpiryNotifications,
+  syncComplianceExpiryNotificationsIfNeeded,
+} from '@/lib/compliance-documents'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -30,8 +35,15 @@ export async function GET(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+
+  after(async () => {
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeeded(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
+  })
 
   const { searchParams } = new URL(request.url)
   const expiringOnly = searchParams.get('expiring') === '1'
@@ -41,7 +53,7 @@ export async function GET(request) {
 
   const documents = await prisma.complianceDocument.findMany({
     where: {
-      organizationId: organizationContext.organization.id,
+      organizationId,
       ...(documentType ? { documentType } : {}),
       ...(expiringOnly ? {
         expiryDate: {
@@ -73,7 +85,8 @@ export async function POST(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const organizationContext = await ensureOrganizationContext(session.userId)
+  const organizationId = getSessionOrganizationId(session)
+  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const formData = await request.formData()
   const file = formData.get('file')
   const documentType = normalizeString(formData.get('documentType'))
@@ -87,7 +100,7 @@ export async function POST(request) {
   }
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-  const storagePath = `compliance/${organizationContext.organization.id}/${Date.now()}_${safeName}`
+  const storagePath = `compliance/${organizationId}/${Date.now()}_${safeName}`
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
 
@@ -115,7 +128,7 @@ export async function POST(request) {
     if (isDefault) {
       await tx.complianceDocument.updateMany({
         where: {
-          organizationId: organizationContext.organization.id,
+          organizationId,
           documentType,
           isDefault: true,
         },
@@ -125,7 +138,7 @@ export async function POST(request) {
 
     return tx.complianceDocument.create({
       data: {
-        organizationId: organizationContext.organization.id,
+        organizationId,
         filename: file.name,
         filepath: publicUrl,
         storagePath,
@@ -149,9 +162,13 @@ export async function POST(request) {
     })
   })
 
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
-  await logActivity(`Uploaded compliance document: ${document.documentType} - ${document.filename}`, {
+  void logActivity(`Uploaded compliance document: ${document.documentType} - ${document.filename}`, {
     userId: session.userId,
+  })
+  await expireCacheTags(dashboardCacheTag(organizationId))
+  after(async () => {
+    await syncComplianceExpiryNotifications(organizationId)
+    await expireCacheTags(dashboardCacheTag(organizationId))
   })
 
   return Response.json(document, { status: 201 })

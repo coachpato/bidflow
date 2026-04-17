@@ -1,12 +1,18 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { expireCacheTags, tenderDetailCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { getSessionOrganizationId } from '@/lib/organization'
+import { findTenderForOrganization } from '@/lib/tenders'
+import { refreshSubmissionPack } from '@/lib/submission-pack'
 
 export async function POST(request) {
   try {
     const session = await getSession()
     if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    const organizationId = getSessionOrganizationId(session)
+    if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
     const formData = await request.formData()
     const file = formData.get('file')
@@ -18,6 +24,15 @@ export async function POST(request) {
 
     if (typeof file.name !== 'string' || typeof file.arrayBuffer !== 'function') {
       return Response.json({ error: 'Invalid file upload payload.' }, { status: 400 })
+    }
+
+    const tender = await findTenderForOrganization({
+      tenderId,
+      organizationId,
+      select: { id: true },
+    })
+    if (!tender) {
+      return Response.json({ error: 'Tender not found' }, { status: 404 })
     }
 
     // Sanitize filename
@@ -63,10 +78,18 @@ export async function POST(request) {
       },
     })
 
-    await logActivity(`Uploaded document: ${file.name}`, {
+    void logActivity(`Uploaded document: ${file.name}`, {
       userId: session.userId,
       tenderId,
     })
+    await refreshSubmissionPack({
+      tenderId,
+      organizationId,
+    })
+    await expireCacheTags(
+      tendersListCacheTag(organizationId),
+      tenderDetailCacheTag(organizationId, tenderId)
+    )
 
     return Response.json(doc, { status: 201 })
   } catch (error) {

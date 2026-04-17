@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { sendChallengeDeadlineReminder } from '@/lib/challenge-notifications'
 
 const REMINDER_WINDOW_DAYS = 7
@@ -52,6 +53,7 @@ export async function GET(request) {
   })
 
   let remindersSent = 0
+  const touchedOrganizationIds = new Set()
 
   for (const challenge of challenges) {
     await sendChallengeDeadlineReminder({ challenge })
@@ -60,6 +62,13 @@ export async function GET(request) {
       data: { deadlineReminderSentAt: reminderRunAt },
     })
     remindersSent += 1
+    touchedOrganizationIds.add(challenge.organizationId)
+  }
+
+  if (touchedOrganizationIds.size > 0) {
+    await expireCacheTags(
+      Array.from(touchedOrganizationIds, organizationId => dashboardCacheTag(organizationId))
+    )
   }
 
   return Response.json({

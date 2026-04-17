@@ -100,17 +100,29 @@ export default function TenderDetailPage() {
   const [uploadError, setUploadError] = useState('')
   const [parsedFields, setParsedFields] = useState(null)
   const [parsingPdf, setParsingPdf] = useState(false)
+  const [submissionPackLoading, setSubmissionPackLoading] = useState(true)
   const [submissionPackBusy, setSubmissionPackBusy] = useState(false)
   const [documentDrafts, setDocumentDrafts] = useState({})
 
-  const fetchTender = useCallback(async () => {
-    const res = await fetch(`/api/tenders/${id}`)
+  const fetchSubmissionPack = useCallback(async () => {
+    setSubmissionPackLoading(true)
+
+    const res = await fetch(`/api/tenders/${id}/submission-pack`)
     if (!res.ok) {
-      router.push('/tenders')
+      setSubmissionPackLoading(false)
       return
     }
+
     const data = await res.json()
-    setTender(data)
+    setTender(current => (
+      current
+        ? {
+            ...current,
+            submissionPack: data.submissionPack || null,
+            generatedDocuments: data.generatedDocuments || [],
+          }
+        : current
+    ))
     setDocumentDrafts(
       Object.fromEntries(
         (data.generatedDocuments || []).map(document => ([
@@ -124,8 +136,28 @@ export default function TenderDetailPage() {
         ]))
       )
     )
+    setSubmissionPackLoading(false)
+  }, [id])
+
+  const fetchTender = useCallback(async ({ includeSubmissionPack = true } = {}) => {
+    const res = await fetch(`/api/tenders/${id}`)
+    if (!res.ok) {
+      router.push('/tenders')
+      return
+    }
+    const data = await res.json()
+    setTender({
+      ...data,
+      submissionPack: data.submissionPack || null,
+      generatedDocuments: data.generatedDocuments || [],
+    })
     setLoading(false)
-  }, [id, router])
+    if (includeSubmissionPack) {
+      void fetchSubmissionPack()
+    } else {
+      setSubmissionPackLoading(false)
+    }
+  }, [fetchSubmissionPack, id, router])
 
   useEffect(() => {
     fetchTender()
@@ -138,7 +170,7 @@ export default function TenderDetailPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     })
-    await fetchTender()
+    await fetchTender({ includeSubmissionPack: false })
     setStatusUpdating(false)
   }
 
@@ -148,7 +180,7 @@ export default function TenderDetailPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done: !done }),
     })
-    fetchTender()
+    await fetchTender()
   }
 
   async function addChecklistItem(e) {
@@ -162,12 +194,12 @@ export default function TenderDetailPage() {
     })
     setNewItem('')
     setAddingItem(false)
-    fetchTender()
+    await fetchTender()
   }
 
   async function deleteChecklistItem(itemId) {
     await fetch(`/api/tenders/${id}/checklist/${itemId}`, { method: 'DELETE' })
-    fetchTender()
+    await fetchTender()
   }
 
   async function handleFileUpload(e) {
@@ -190,7 +222,7 @@ export default function TenderDetailPage() {
         return
       }
 
-      fetchTender()
+      await fetchTender()
 
       if (file.name.toLowerCase().endsWith('.pdf')) {
         setParsingPdf(true)
@@ -217,7 +249,7 @@ export default function TenderDetailPage() {
   async function deleteDocument(docId) {
     if (!confirm('Remove this document from the tender?')) return
     await fetch(`/api/tenders/${id}/documents/${docId}`, { method: 'DELETE' })
-    fetchTender()
+    await fetchTender({ includeSubmissionPack: false })
   }
 
   async function deleteTender() {
@@ -243,7 +275,7 @@ export default function TenderDetailPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ regenerate: true }),
     })
-    await fetchTender()
+    await fetchSubmissionPack()
     setSubmissionPackBusy(false)
   }
 
@@ -257,7 +289,7 @@ export default function TenderDetailPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(draft),
     })
-    await fetchTender()
+    await fetchSubmissionPack()
     setSubmissionPackBusy(false)
   }
 
@@ -603,6 +635,12 @@ export default function TenderDetailPage() {
                 <InfoCard label="Checklist sync" value={`${submissionPack?.checklistCompletionPercent ?? progressPct}%`} />
               </div>
 
+              {submissionPackLoading ? (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                  Loading the latest draft pack and generated documents...
+                </div>
+              ) : null}
+
               <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -614,8 +652,14 @@ export default function TenderDetailPage() {
 
                   {generatedDocuments.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
-                      <p className="text-sm font-semibold text-slate-800">No draft pack has been generated yet.</p>
-                      <p className="mt-2 text-sm text-slate-500">Start with the generated cover letter, methodology, profile, and CV summaries.</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {submissionPackLoading ? 'Loading the draft pack...' : 'No draft pack has been generated yet.'}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {submissionPackLoading
+                          ? 'Bidflow is still loading the current draft set for this pursuit.'
+                          : 'Start with the generated cover letter, methodology, profile, and CV summaries.'}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -702,7 +746,9 @@ export default function TenderDetailPage() {
                   <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pack gaps</p>
                     <h3 className="mt-2 text-lg font-semibold text-slate-900">What still needs attention</h3>
-                    {packMissingItems.length === 0 ? (
+                    {submissionPackLoading && !submissionPack ? (
+                      <p className="mt-3 text-sm leading-6 text-slate-600">Loading the current pack summary...</p>
+                    ) : packMissingItems.length === 0 ? (
                       <p className="mt-3 text-sm leading-6 text-slate-600">No immediate pack gaps are flagged right now.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
@@ -720,7 +766,11 @@ export default function TenderDetailPage() {
                     <h3 className="mt-2 text-lg font-semibold text-slate-900">Included draft documents</h3>
                     <div className="mt-3 space-y-2">
                       {generatedDocuments.length === 0 ? (
-                        <p className="text-sm text-slate-600">Generate the first draft set to populate this panel.</p>
+                        <p className="text-sm text-slate-600">
+                          {submissionPackLoading
+                            ? 'Loading the latest draft set...'
+                            : 'Generate the first draft set to populate this panel.'}
+                        </p>
                       ) : (
                         generatedDocuments.map(document => (
                           <div key={document.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">

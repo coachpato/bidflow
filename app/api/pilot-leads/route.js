@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { expireCacheTags, pilotLeadsCacheTag } from '@/lib/cache-tags'
 import { getSession } from '@/lib/session'
 
 function normalizeValue(value) {
@@ -78,6 +79,7 @@ export async function POST(request) {
         userId: null,
       },
     })
+    await expireCacheTags(pilotLeadsCacheTag())
 
     return Response.json({ success: true, leadId: lead.id }, { status: 201 })
   } catch (error) {
