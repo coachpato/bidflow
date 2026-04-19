@@ -4,7 +4,7 @@ import EmailTestCard from '@/app/components/EmailTestCard'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
-import { syncComplianceExpiryNotificationsIfNeeded } from '@/lib/compliance-documents'
+import { syncComplianceExpiryNotificationsIfNeededSafely } from '@/lib/compliance-documents'
 import { getCachedDashboardOrganizationData, getCachedDashboardUserData } from '@/lib/dashboard-read-model'
 import { isEmailConfigured } from '@/lib/email'
 import { getCachedPilotLeadCount } from '@/lib/pilot-leads-read-model'
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   const organizationContext = await getOrganizationContextFromSession(session)
   const organizationId = organizationContext.organization.id
   after(async () => {
-    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeeded(organizationId)
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeededSafely(organizationId)
     if (syncedDocuments) {
       await expireCacheTags(dashboardCacheTag(organizationId))
     }

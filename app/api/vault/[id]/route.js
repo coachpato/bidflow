@@ -5,7 +5,7 @@ import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { logActivity } from '@/lib/activity'
 import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
-import { syncComplianceExpiryNotifications } from '@/lib/compliance-documents'
+import { syncComplianceExpiryNotificationsSafely } from '@/lib/compliance-documents'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -102,8 +102,10 @@ export async function PATCH(request, { params }) {
   })
   await expireCacheTags(dashboardCacheTag(organizationId))
   after(async () => {
-    await syncComplianceExpiryNotifications(organizationId)
-    await expireCacheTags(dashboardCacheTag(organizationId))
+    const syncedDocuments = await syncComplianceExpiryNotificationsSafely(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
   })
 
   return Response.json(updated)
@@ -143,8 +145,10 @@ export async function DELETE(_request, { params }) {
   })
   await expireCacheTags(dashboardCacheTag(organizationId))
   after(async () => {
-    await syncComplianceExpiryNotifications(organizationId)
-    await expireCacheTags(dashboardCacheTag(organizationId))
+    const syncedDocuments = await syncComplianceExpiryNotificationsSafely(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
   })
 
   return Response.json({ success: true })

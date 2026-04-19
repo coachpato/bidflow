@@ -3,7 +3,7 @@ import { getSession } from '@/lib/session'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import prisma from '@/lib/prisma'
 import { getSessionOrganizationId } from '@/lib/organization'
-import { syncComplianceExpiryNotificationsIfNeeded } from '@/lib/compliance-documents'
+import { syncComplianceExpiryNotificationsIfNeededSafely } from '@/lib/compliance-documents'
 
 // GET /api/notifications — get all notifications (newest first)
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
   if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   after(async () => {
-    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeeded(organizationId)
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeededSafely(organizationId)
     if (syncedDocuments) {
       await expireCacheTags(dashboardCacheTag(organizationId))
     }

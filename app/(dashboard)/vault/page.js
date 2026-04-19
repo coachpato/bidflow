@@ -1,18 +1,27 @@
+import { after } from 'next/server'
 import Header from '@/app/components/Header'
 import prisma from '@/lib/prisma'
 import { requireAuth } from '@/lib/session'
 import { ensureOrganizationContext } from '@/lib/organization'
-import { syncComplianceExpiryNotifications } from '@/lib/compliance-documents'
+import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { syncComplianceExpiryNotificationsIfNeededSafely } from '@/lib/compliance-documents'
 import { getComplianceStatus } from '@/lib/compliance-status'
 import ComplianceVaultManager from './ComplianceVaultManager'
 
 export default async function VaultPage() {
   const session = await requireAuth()
   const organizationContext = await ensureOrganizationContext(session.userId)
-  await syncComplianceExpiryNotifications(organizationContext.organization.id)
+  const organizationId = organizationContext.organization.id
+
+  after(async () => {
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeededSafely(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
+  })
 
   const documents = await prisma.complianceDocument.findMany({
-    where: { organizationId: organizationContext.organization.id },
+    where: { organizationId },
     include: {
       uploadedBy: {
         select: {

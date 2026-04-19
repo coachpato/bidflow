@@ -6,8 +6,8 @@ import { getSessionOrganizationId } from '@/lib/organization'
 import { logActivity } from '@/lib/activity'
 import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import {
-  syncComplianceExpiryNotifications,
-  syncComplianceExpiryNotificationsIfNeeded,
+  syncComplianceExpiryNotificationsIfNeededSafely,
+  syncComplianceExpiryNotificationsSafely,
 } from '@/lib/compliance-documents'
 
 function normalizeString(value) {
@@ -39,7 +39,7 @@ export async function GET(request) {
   if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
   after(async () => {
-    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeeded(organizationId)
+    const syncedDocuments = await syncComplianceExpiryNotificationsIfNeededSafely(organizationId)
     if (syncedDocuments) {
       await expireCacheTags(dashboardCacheTag(organizationId))
     }
@@ -167,8 +167,10 @@ export async function POST(request) {
   })
   await expireCacheTags(dashboardCacheTag(organizationId))
   after(async () => {
-    await syncComplianceExpiryNotifications(organizationId)
-    await expireCacheTags(dashboardCacheTag(organizationId))
+    const syncedDocuments = await syncComplianceExpiryNotificationsSafely(organizationId)
+    if (syncedDocuments) {
+      await expireCacheTags(dashboardCacheTag(organizationId))
+    }
   })
 
   return Response.json(document, { status: 201 })
