@@ -151,21 +151,16 @@ function buildPayload(form) {
 
 function OpportunityDetailLayout({
   actionError,
-  applyParsedInsights,
   converting,
   convertToTender,
   daysRemaining,
   documentsCount,
   form,
   opportunity,
-  parseResult,
-  parsing,
   removeDocument,
-  runParse,
   saveOpportunity,
   saving,
   setForm,
-  setParseResult,
   uploading,
   uploadError,
   handleFileUpload,
@@ -243,7 +238,7 @@ function OpportunityDetailLayout({
                 <div className="max-w-3xl">
                   <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{form.title}</h1>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                    {form.summary || 'Use this workspace to qualify the opportunity, store the source pack, and decide whether it should move into the pursuit pipeline.'}
+                    {form.summary || 'Use this workspace to review the opportunity, store the source pack, and decide whether it should move into the pursuit pipeline.'}
                   </p>
                 </div>
               </div>
@@ -285,34 +280,6 @@ function OpportunityDetailLayout({
             </div>
           </div>
         </section>
-
-        {parseResult && (
-          <section className="rounded-[24px] border border-teal-200 bg-teal-50 p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Parsed insight</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-900">A source PDF was parsed successfully</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Apply the extracted dates, summary, and requirements to the opportunity form, then review before converting.
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {Object.entries(parseResult.fields || {}).map(([key, value]) => value ? (
-                <div key={key} className="rounded-2xl bg-white/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-slate-800">{String(value)}</p>
-                </div>
-              ) : null)}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button onClick={applyParsedInsights} className="app-button-primary">
-                Apply parsed insights
-              </button>
-              <button onClick={() => setParseResult(null)} className="app-button-secondary">
-                Dismiss
-              </button>
-            </div>
-          </section>
-        )}
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_360px]">
           <div className="space-y-6">
@@ -614,19 +581,16 @@ function OpportunityDetailLayout({
               </div>
 
               <div className="pt-5">
-                  <div className="grid grid-cols-2 gap-3">
-                    <MetricCard label="Status" value={form.status} />
-                    <MetricCard label="Fit" value={form.fitScore ? `${form.fitScore}/100` : 'Pending'} />
-                    <MetricCard label="Documents" value={String(documentsCount)} />
-                    <MetricCard label="Requirements" value={String(form.parsedRequirements.length)} />
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <MetricCard label="Status" value={form.status} />
+                  <MetricCard label="Fit" value={form.fitScore ? `${form.fitScore}/100` : 'Pending'} />
+                  <MetricCard label="Documents" value={String(documentsCount)} />
+                  <MetricCard label="Captured items" value={String(form.parsedRequirements.length)} />
+                </div>
 
                 <div className="mt-5 space-y-3">
                   <button onClick={saveOpportunity} disabled={saving} className="app-button-secondary w-full disabled:opacity-60">
                     {saving ? 'Saving...' : 'Save opportunity'}
-                  </button>
-                  <button onClick={runParse} disabled={parsing || documentsCount === 0} className="app-button-secondary w-full disabled:opacity-60">
-                    {parsing ? 'Parsing latest PDF...' : 'Parse latest PDF'}
                   </button>
                   {opportunity.tender ? (
                     <Link href={`/pursuits/${opportunity.tender.id}`} className="app-button-primary w-full text-center">
@@ -699,8 +663,6 @@ export default function OpportunityDetailPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
-  const [parsing, setParsing] = useState(false)
-  const [parseResult, setParseResult] = useState(null)
   const [converting, setConverting] = useState(false)
   const [actionError, setActionError] = useState('')
 
@@ -787,59 +749,6 @@ export default function OpportunityDetailPage() {
     await fetchOpportunity()
   }
 
-  async function runParse() {
-    setActionError('')
-    setParsing(true)
-
-    const response = await fetch(`/api/opportunities/${id}/parse`, {
-      method: 'POST',
-    })
-    const data = await response.json()
-    setParsing(false)
-
-    if (!response.ok) {
-      setActionError(data.error || 'Could not parse the latest PDF.')
-      return
-    }
-
-    setParseResult(data)
-  }
-
-  function applyParsedInsights() {
-    if (!parseResult) return
-
-    setForm(current => {
-      const next = { ...current }
-      const fields = parseResult.fields || {}
-
-      for (const [key, value] of Object.entries(fields)) {
-        if (value === null || value === undefined || value === '') continue
-
-        if (['deadline', 'briefingDate', 'siteVisitDate'].includes(key)) {
-          const normalized = toDateTimeLocalValue(value)
-          if (normalized) next[key] = normalized
-          continue
-        }
-
-        next[key] = typeof value === 'number' ? String(value) : value
-      }
-
-      const parsedRequirements = normalizeRequirements(parseResult.requirements)
-      if (parsedRequirements.length > 0) {
-        next.parsedRequirements = parsedRequirements
-      }
-
-      const parsedAppointments = normalizeAppointments(parseResult.appointments)
-      if (parsedAppointments.length > 0) {
-        next.parsedAppointments = parsedAppointments
-      }
-
-      return next
-    })
-
-    setParseResult(null)
-  }
-
   async function convertToTender() {
     if (!confirm('Convert this opportunity into a pursuit? The pursuit will inherit the current details and source documents.')) {
       return
@@ -887,16 +796,16 @@ export default function OpportunityDetailPage() {
         title: 'Pursuit already created',
         body: 'This opportunity has already been handed off into the live pursuit workspace.',
       }
-    : documentsCount === 0
-      ? {
+      : documentsCount === 0
+        ? {
           title: 'Add the source pack',
-          body: 'Upload the tender pack or notice before parsing so the opportunity has real supporting material.',
+          body: 'Upload the tender pack or notice so the opportunity has real supporting material before conversion.',
         }
       : form.status === 'New'
         ? {
-            title: 'Qualify the opportunity',
-            body: 'Set the fit score, review the pack, and decide if this should move into the bid pipeline.',
-          }
+          title: 'Review and decide',
+          body: 'Check the dates, notes, and fit score, then decide whether this should move into the pursuit pipeline.',
+        }
         : form.status === 'Pursue'
           ? {
               title: 'Convert to pursuit',
@@ -910,21 +819,16 @@ export default function OpportunityDetailPage() {
   return (
     <OpportunityDetailLayout
       actionError={actionError}
-      applyParsedInsights={applyParsedInsights}
       converting={converting}
       convertToTender={convertToTender}
       daysRemaining={daysRemaining}
       documentsCount={documentsCount}
       form={form}
       opportunity={opportunity}
-      parseResult={parseResult}
-      parsing={parsing}
       removeDocument={removeDocument}
-      runParse={runParse}
       saveOpportunity={saveOpportunity}
       saving={saving}
       setForm={setForm}
-      setParseResult={setParseResult}
       uploading={uploading}
       uploadError={uploadError}
       handleFileUpload={handleFileUpload}

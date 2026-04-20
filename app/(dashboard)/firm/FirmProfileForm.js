@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { SERVICE_SECTOR_OPTIONS } from '@/lib/service-sectors'
 
 function joinList(values) {
   return Array.isArray(values) ? values.join(', ') : ''
@@ -9,6 +10,7 @@ function joinList(values) {
 export default function FirmProfileForm({ initialProfile }) {
   const [form, setForm] = useState({
     displayName: initialProfile.displayName || '',
+    serviceSector: initialProfile.serviceSector || '',
     legalName: initialProfile.legalName || '',
     registrationNumber: initialProfile.registrationNumber || '',
     primaryContactName: initialProfile.primaryContactName || '',
@@ -35,6 +37,33 @@ export default function FirmProfileForm({ initialProfile }) {
     ['primaryContactPhone', 'Primary contact phone'],
     ['website', 'Website'],
   ]), [])
+
+  const sectorPlaceholders = useMemo(() => {
+    if (form.serviceSector === 'BUILT_ENVIRONMENT') {
+      return {
+        practiceAreas: 'Engineering, quantity surveying, project management',
+        preferredEntities: 'SANRAL, Transnet, municipal infrastructure departments',
+        targetWorkTypes: 'Design frameworks, programme management, technical advisory',
+        overview: 'Describe the firm, the sectors it serves, and the kinds of public-sector projects it should pursue.',
+      }
+    }
+
+    if (form.serviceSector === 'ACCOUNTING') {
+      return {
+        practiceAreas: 'Audit, forensic accounting, tax advisory',
+        preferredEntities: 'National Treasury, SOEs, municipalities',
+        targetWorkTypes: 'Audit panels, financial reviews, forensic support',
+        overview: 'Describe the firm, its public-sector strengths, and the kinds of financial or advisory mandates it should pursue.',
+      }
+    }
+
+    return {
+      practiceAreas: 'Administrative law, labour law, investigations',
+      preferredEntities: 'City of Johannesburg, RAF, Eskom',
+      targetWorkTypes: 'Panels, litigation, investigations',
+      overview: 'Describe the firm, its public-sector strengths, and the kinds of legal mandates it should pursue.',
+    }
+  }, [form.serviceSector])
 
   function updateField(name, value) {
     setForm(current => ({
@@ -74,11 +103,27 @@ export default function FirmProfileForm({ initialProfile }) {
       <div className="mb-5 border-b border-slate-100 pb-4">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Firm profile</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Set the firm details Bidflow V2 will use for matching, alerts, and future qualification logic.
+          Set the firm details Bid360 will use for opportunity matching, alerts, and internal review context.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <label className="space-y-2">
+          <span className="text-sm font-semibold text-slate-700">Sector</span>
+          <select
+            value={form.serviceSector}
+            onChange={event => updateField('serviceSector', event.target.value)}
+            className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
+          >
+            <option value="">Select sector</option>
+            {SERVICE_SECTOR_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         {fields.map(([name, label]) => (
           <label key={name} className="space-y-2">
             <span className="text-sm font-semibold text-slate-700">{label}</span>
@@ -99,7 +144,7 @@ export default function FirmProfileForm({ initialProfile }) {
             onChange={event => updateField('practiceAreas', event.target.value)}
             rows={4}
             className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-            placeholder="Administrative law, labour law, investigations"
+            placeholder={sectorPlaceholders.practiceAreas}
           />
         </label>
         <label className="space-y-2">
@@ -109,7 +154,7 @@ export default function FirmProfileForm({ initialProfile }) {
             onChange={event => updateField('preferredEntities', event.target.value)}
             rows={4}
             className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-            placeholder="City of Johannesburg, RAF, Eskom"
+            placeholder={sectorPlaceholders.preferredEntities}
           />
         </label>
         <label className="space-y-2">
@@ -119,7 +164,7 @@ export default function FirmProfileForm({ initialProfile }) {
             onChange={event => updateField('targetWorkTypes', event.target.value)}
             rows={4}
             className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-            placeholder="Panels, litigation, investigations"
+            placeholder={sectorPlaceholders.targetWorkTypes}
           />
         </label>
         <label className="space-y-2">
@@ -165,7 +210,7 @@ export default function FirmProfileForm({ initialProfile }) {
           onChange={event => updateField('overview', event.target.value)}
           rows={5}
           className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-          placeholder="Describe the firm, its public-sector strengths, and the kinds of legal mandates it should pursue."
+          placeholder={sectorPlaceholders.overview}
         />
       </label>
 
@@ -173,7 +218,7 @@ export default function FirmProfileForm({ initialProfile }) {
         <p className={`text-sm ${
           status.type === 'error' ? 'text-rose-700' : status.type === 'success' ? 'text-emerald-700' : 'text-slate-500'
         }`}>
-          {status.message || 'Changes save to the firm workspace for future matching and qualification.'}
+          {status.message || 'Changes save to the firm workspace for matching and day-to-day review.'}
         </p>
         <button type="submit" disabled={isSaving} className="app-button-primary disabled:cursor-not-allowed disabled:opacity-70">
           {isSaving ? 'Saving...' : 'Save firm profile'}

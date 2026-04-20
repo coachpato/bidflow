@@ -35,7 +35,7 @@ export default function EmailTestCard({ email, isConfigured }) {
           <p className="app-kicker">Email delivery</p>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Test Resend</h2>
           <p className="text-sm leading-7 text-slate-600">
-            Send a sample BidFlow notification to <span className="font-semibold text-slate-900">{email}</span>.
+          Send a sample Bid360 notification to <span className="font-semibold text-slate-900">{email}</span>.
           </p>
           <p className="text-sm text-slate-500">
             {isConfigured

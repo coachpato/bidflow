@@ -45,7 +45,6 @@ model Organization {
   contracts           Contract[]
   appeals             Appeal[]
   opportunityMatches  OpportunityMatch[]
-  qualificationAssessments QualificationAssessment[]
   notifications       Notification[]
 
   @@map("organization")
@@ -67,6 +66,7 @@ model Membership {
 model FirmProfile {
   id                   Int          @id @default(autoincrement())
   displayName          String
+  serviceSector        String?
   legalName            String?
   registrationNumber   String?
   primaryContactName   String?
@@ -301,10 +301,6 @@ model Tender {
   assignedUserId Int?
   documents      TenderDocument[]
   checklistItems TenderChecklistItem[]
-  requirements   TenderRequirement[]
-  qualification  QualificationAssessment?
-  generatedDocuments GeneratedDocument[]
-  submissionPack SubmissionPack?
   appeals        Appeal[]
   activities     ActivityLog[]
   contract       Contract?
@@ -318,11 +314,13 @@ model TenderDocument {
   id         Int      @id @default(autoincrement())
   filename   String
   filepath   String // Stores full Supabase Storage URL in production
+  documentCategory String @default("SOURCE")
   tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   tenderId   Int
   uploadedAt DateTime @default(now())
 
   @@index([tenderId, uploadedAt])
+  @@index([tenderId, documentCategory, uploadedAt])
   @@map("tenderDocument")
 }
 
@@ -338,95 +336,6 @@ model TenderChecklistItem {
 
   @@index([tenderId, done])
   @@map("tenderChecklistItem")
-}
-
-model TenderRequirement {
-  id         Int      @id @default(autoincrement())
-  label      String
-  source     String   @default("parser")
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  tenderId   Int
-
-  @@unique([tenderId, label])
-  @@map("tenderRequirement")
-}
-
-model QualificationAssessment {
-  id                        Int                 @id @default(autoincrement())
-  verdict                   String
-  summary                   String?
-  readinessPercent          Int                 @default(0)
-  checklistCompletionPercent Int                @default(0)
-  blockerCount              Int                 @default(0)
-  warningCount              Int                 @default(0)
-  evaluatedAt               DateTime            @default(now())
-  createdAt                 DateTime            @default(now())
-  updatedAt                 DateTime            @updatedAt
-  organization              Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId            Int
-  tender                    Tender              @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  tenderId                  Int                 @unique
-  checks                    QualificationCheck[]
-
-  @@index([organizationId, verdict])
-  @@map("qualificationAssessment")
-}
-
-model QualificationCheck {
-  id             Int                     @id @default(autoincrement())
-  checkKey       String
-  label          String
-  status         String
-  severity       String
-  detail         String?
-  recommendation String?
-  sortOrder      Int                     @default(0)
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  assessment     QualificationAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  assessmentId   Int
-
-  @@unique([assessmentId, checkKey])
-  @@map("qualificationCheck")
-}
-
-model GeneratedDocument {
-  id                 Int      @id @default(autoincrement())
-  documentType       String
-  title              String
-  content            String
-  status             String   @default("Draft")
-  requiresManualInput Boolean @default(false)
-  manualInputSummary String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  tender             Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  tenderId           Int
-
-  @@unique([tenderId, documentType])
-  @@map("generatedDocument")
-}
-
-model SubmissionPack {
-  id                        Int      @id @default(autoincrement())
-  status                    String   @default("Draft")
-  readinessPercent          Int      @default(0)
-  checklistCompletionPercent Int     @default(0)
-  generatedDocumentCount    Int      @default(0)
-  reviewedDocumentCount     Int      @default(0)
-  manualInputCount          Int      @default(0)
-  requiredDocumentCount     Int      @default(0)
-  summary                   String?
-  missingItems              Json?
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
-  tender                    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  tenderId                  Int      @unique
-
-  @@map("submissionPack")
 }
 
 model Contract {

@@ -20,7 +20,7 @@ const cormorantGaramond = Cormorant_Garamond({
 
 export const metadata = {
   title: 'Bid360 - Tender 360 for Project Advisors',
-  description: 'Bid360 for the built environment, legal and accounting firms behind South Africa’s biggest projects.',
+  description: "Bid360 for the built environment, legal and accounting firms behind South Africa's biggest projects.",
 }
 
 export default function RootLayout({ children }) {
@@ -30,4 +30,3 @@ export default function RootLayout({ children }) {
     </html>
   )
 }
-// Build trigger at Sun Apr 19 12:39:50 SAST 2026

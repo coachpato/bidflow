@@ -15,13 +15,13 @@ export default async function RootPage() {
       <div className="absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.82),transparent_68%)]" />
 
       <header className="app-page flex items-center justify-between py-6 sm:py-8">
-        <AppLogo href="/" tone="dark" caption="Legal public-sector work operations" />
+        <AppLogo href="/" tone="dark" caption="For the built environment, legal and accounting firms behind South Africa's biggest projects" />
         <div className="flex items-center gap-3">
           <Link href="/login" className="app-button-secondary">
             Sign in
           </Link>
           <Link href="/register" className="app-button-primary">
-            Create account
+            Create workspace
           </Link>
         </div>
       </header>
@@ -30,33 +30,33 @@ export default async function RootPage() {
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:items-end">
           <div className="space-y-6">
             <div className="inline-flex items-center rounded-full border border-[rgba(22,33,50,0.12)] bg-white/78 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-slate-600 shadow-[0_12px_30px_rgba(22,33,50,0.06)]">
-              BidFlow V2
+              Bid360
             </div>
 
             <div className="max-w-4xl space-y-5">
               <h1 className="app-display max-w-4xl text-[3.4rem] font-semibold leading-[0.94] text-slate-950 sm:text-[4.6rem] xl:text-[5.6rem]">
-                Public-sector legal work,
+                Bid360 for
                 <br />
-                run end to end.
+                the firms behind South Africa&apos;s biggest projects.
               </h1>
               <p className="max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-                Find opportunities, run live pursuits, track appointments, and keep the firm’s state-work pipeline in one disciplined workspace.
+                Built for the built environment, legal and accounting teams that need one disciplined workspace for discovery, pursuits, submissions, appointments, and challenges.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/login" className="app-button-primary">
-                Open workspace
+              <Link href="/register" className="app-button-primary">
+                Create workspace
               </Link>
-              <Link href="/register" className="app-button-secondary">
-                Create account
+              <Link href="/login" className="app-button-secondary">
+                Open workspace
               </Link>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <SignalCard label="Opportunities" value="See the right work sooner" />
-              <SignalCard label="Pursuits" value="Track active bids with discipline" />
-              <SignalCard label="Appointments" value="Keep post-award follow-through visible" />
+              <SignalCard label="Radar" value="See the right tenders sooner" />
+              <SignalCard label="Pursuits" value="Run active bids with discipline" />
+              <SignalCard label="Outcomes" value="Track awards, contracts, and challenges cleanly" />
             </div>
           </div>
 
@@ -69,7 +69,7 @@ export default async function RootPage() {
                   <div>
                     <p className="app-kicker">Today</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                      One desk for the full value chain
+                      One desk for the full tender lifecycle
                     </h2>
                   </div>
                   <span className="rounded-full bg-[rgba(24,49,74,0.08)] px-3 py-1 text-xs font-semibold text-slate-700">
@@ -78,27 +78,27 @@ export default async function RootPage() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
+                  <PanelStat label="New matches" value="4 opportunities" tone="text-slate-950" />
                   <PanelStat label="Due soon" value="3 pursuits" tone="text-amber-700" />
-                  <PanelStat label="Assigned" value="5 matters" tone="text-slate-950" />
                   <PanelStat label="Appointments" value="2 follow-ups" tone="text-emerald-700" />
-                  <PanelStat label="Inbox" value="4 alerts" tone="text-slate-950" />
+                  <PanelStat label="Challenges" value="1 deadline" tone="text-slate-950" />
                 </div>
 
                 <div className="space-y-3 rounded-[26px] border border-slate-200/80 bg-white/88 p-4">
                   <WorkspaceRow
-                    title="Municipal legal services"
+                    title="Municipal legal panel"
                     meta="Pursuit"
                     status="4d left"
                   />
                   <WorkspaceRow
-                    title="Panel appointment follow-up"
-                    meta="Appointment"
-                    status="Needs instruction"
+                    title="Water network design framework"
+                    meta="Pursuit"
+                    status="Ready to submit"
                   />
                   <WorkspaceRow
-                    title="Assigned to you"
-                    meta="My Work"
-                    status="2 active items"
+                    title="Project audit appointment"
+                    meta="Appointment"
+                    status="Needs instruction"
                   />
                 </div>
               </div>

@@ -50,11 +50,6 @@ function getAssignedLabel(tender) {
   return tender?.assignedUser?.name || tender?.assignedTo || 'Unassigned'
 }
 
-function getQualificationLabel(tender) {
-  if (!tender?.qualification?.verdict) return 'Pending Review'
-  return `${tender.qualification.verdict} (${tender.qualification.readinessPercent ?? 0}%)`
-}
-
 export default function TendersClient({ initialSearch, initialStatus }) {
   const [tenders, setTenders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -201,7 +196,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
                       <Metric label="Owner" value={getAssignedLabel(tender)} />
                       <Metric label="Deadline" value={formatDate(tender.deadline)} tone={getDeadlineTone(daysRemaining)} />
                       <Metric label="Countdown" value={getDeadlineLabel(daysRemaining)} tone={getDeadlineTone(daysRemaining)} />
-                      <Metric label="Qualification" value={getQualificationLabel(tender)} />
+                      <Metric label="Documents" value={`${tender._count?.documents ?? 0}`} />
                     </div>
                   </Link>
                 )
@@ -216,7 +211,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
                     <th className="px-5 py-4 font-semibold text-slate-500">Reference</th>
                     <th className="px-5 py-4 font-semibold text-slate-500">Owner</th>
                     <th className="px-5 py-4 font-semibold text-slate-500">Deadline</th>
-                    <th className="px-5 py-4 font-semibold text-slate-500">Qualification</th>
+                    <th className="px-5 py-4 font-semibold text-slate-500">Checklist</th>
                     <th className="px-5 py-4 font-semibold text-slate-500">Status</th>
                     <th className="px-5 py-4 font-semibold text-slate-500">Documents</th>
                   </tr>
@@ -239,7 +234,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
                           <p className={`font-semibold ${getDeadlineTone(daysRemaining)}`}>{formatDate(tender.deadline)}</p>
                           <p className={`mt-1 text-xs ${getDeadlineTone(daysRemaining)}`}>{getDeadlineLabel(daysRemaining)}</p>
                         </td>
-                        <td className="px-5 py-4 text-slate-600">{getQualificationLabel(tender)}</td>
+                        <td className="px-5 py-4 text-slate-600">{tender._count?.checklistItems ?? 0} items</td>
                         <td className="px-5 py-4">
                           <StatusBadge status={tender.status} />
                         </td>

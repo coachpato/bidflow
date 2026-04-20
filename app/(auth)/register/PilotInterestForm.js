@@ -58,7 +58,7 @@ export default function PilotInterestForm() {
           Thanks. Your pilot request is in.
         </div>
         <p className="text-sm leading-7 text-slate-600">
-          We&apos;ll use this to gauge demand, pricing fit, and who BidFlow should be built for first.
+        We&apos;ll use this to gauge demand, pricing fit, and who Bid360 should be built for first.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/login" className="app-button-primary">
@@ -105,7 +105,7 @@ export default function PilotInterestForm() {
               required
               value={form.email}
               onChange={handleChange}
-              placeholder="you@lawfirm.co.za"
+              placeholder="you@firm.co.za"
               className="app-input"
             />
           </div>
@@ -135,7 +135,7 @@ export default function PilotInterestForm() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Who would use BidFlow?</label>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Who would use Bid360?</label>
           <textarea
             name="whoWouldUseIt"
             required

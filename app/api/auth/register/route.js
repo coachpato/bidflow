@@ -3,16 +3,19 @@ import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { isPublicRegistrationEnabled } from '@/lib/env'
 import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
+import { normalizeServiceSector } from '@/lib/service-sectors'
 
 export async function POST(request) {
   try {
-    const { name, email, password, role } = await request.json()
+    const { name, email, password, role, organizationName, serviceSector } = await request.json()
     const normalizedName = name?.trim()
     const normalizedEmail = email?.trim().toLowerCase()
+    const normalizedOrganizationName = organizationName?.trim()
+    const normalizedServiceSector = normalizeServiceSector(serviceSector)
 
     // Basic validation
-    if (!normalizedName || !normalizedEmail || !password) {
-      return Response.json({ error: 'Name, email and password are required' }, { status: 400 })
+    if (!normalizedName || !normalizedEmail || !password || !normalizedOrganizationName || !normalizedServiceSector) {
+      return Response.json({ error: 'Name, email, password, organization name, and sector are required.' }, { status: 400 })
     }
 
     if (password.length < 6) {
@@ -52,6 +55,9 @@ export async function POST(request) {
     const organizationContext = await ensureOrganizationContextForUser({
       ...user,
       memberships: [],
+    }, {
+      organizationName: normalizedOrganizationName,
+      serviceSector: normalizedServiceSector,
     })
 
     // Log them in immediately after registering
@@ -74,6 +80,7 @@ export async function POST(request) {
           name: organizationContext.organization.name,
           role: organizationContext.membership.role,
         },
+        serviceSector: organizationContext.firmProfile?.serviceSector || null,
       },
     })
   } catch (err) {

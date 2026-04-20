@@ -79,7 +79,7 @@ export default function FirmPeopleManager({ initialPeople }) {
       <div className="mb-5 border-b border-slate-100 pb-4">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Key personnel</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Capture the lawyers and subject matter experts you want Bidflow to reference in future qualification and drafting flows.
+          Capture the lawyers and subject matter experts the team needs to reference when reviewing opportunities and running pursuits.
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export default function FirmPeopleManager({ initialPeople }) {
 
         <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
           <p className={`text-sm ${status && status.includes('Could not') ? 'text-rose-700' : 'text-slate-500'}`}>
-            {status || 'These records will later support qualification decisions, CV summaries, and drafting.'}
+            {status || 'These records help the team remember who to involve for each kind of public-sector work.'}
           </p>
           <button type="submit" disabled={isSaving} className="app-button-primary disabled:cursor-not-allowed disabled:opacity-70">
             {isSaving ? 'Saving...' : 'Add person'}

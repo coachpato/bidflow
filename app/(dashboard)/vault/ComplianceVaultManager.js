@@ -196,7 +196,7 @@ export default function ComplianceVaultManager({ initialDocuments }) {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Upload compliance document</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Add the reusable documents your firm relies on in submissions, and tell Bidflow when they expire.
+          Add the reusable documents your firm relies on in submissions, and tell Bid360 when they expire.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

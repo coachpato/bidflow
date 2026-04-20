@@ -85,7 +85,7 @@ export default function FirmExperienceManager({ initialExperience }) {
       <div className="mb-5 border-b border-slate-100 pb-4">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Representative experience</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Add public-sector mandates, panels, investigations, and advisory work the firm can rely on in future qualification and submission packs.
+          Add public-sector mandates, panels, investigations, and advisory work the firm can reference when deciding what to pursue.
         </p>
       </div>
 
@@ -129,7 +129,7 @@ export default function FirmExperienceManager({ initialExperience }) {
 
         <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
           <p className={`text-sm ${status && status.includes('Could not') ? 'text-rose-700' : 'text-slate-500'}`}>
-            {status || 'These records will later support qualification, fit scoring, and company profile drafting.'}
+            {status || 'These records give the team better context when reviewing new state-work opportunities.'}
           </p>
           <button type="submit" disabled={isSaving} className="app-button-primary disabled:cursor-not-allowed disabled:opacity-70">
             {isSaving ? 'Saving...' : 'Add experience'}

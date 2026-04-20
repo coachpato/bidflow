@@ -7,16 +7,16 @@ import AuthShell from '@/app/components/AuthShell'
 
 const HIGHLIGHTS = [
   {
-    title: 'One live tender list',
-    body: 'Deadlines, ownership, and documents stay in one view.',
+    title: 'Built for core project advisors',
+    body: 'Bid360 starts with the built environment, legal, and accounting firms behind public-sector projects.',
   },
   {
-    title: 'Contracts without loose ends',
-    body: 'Carry awarded work into delivery without losing context.',
+    title: 'One tender lifecycle',
+    body: 'Move from discovery to pursuit, then into appointments or challenges.',
   },
   {
-    title: 'Clear responsibility',
-    body: 'See what is assigned, due soon, and sitting in the inbox.',
+    title: 'Less friction, more follow-through',
+    body: 'Deadlines, reminders, files, and ownership stay in one workspace.',
   },
 ]
 
@@ -52,8 +52,8 @@ export default function LoginPage() {
     <AuthShell
       title="Welcome back"
       description="Sign in to continue"
-      supportingLabel="BidFlow workspace"
-      supportingDescription="Tender work, contracts, and ownership in one disciplined workspace."
+      supportingLabel="Bid360 workspace"
+      supportingDescription="Tender 360 for the built environment, legal, and accounting firms working with the state."
       highlights={HIGHLIGHTS}
     >
       {error && (
@@ -72,7 +72,7 @@ export default function LoginPage() {
             required
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
-            placeholder="you@lawfirm.co.za"
+            placeholder="you@firm.co.za"
             className="app-input"
           />
         </div>

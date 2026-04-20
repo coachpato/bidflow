@@ -16,7 +16,8 @@ export default function AuthShell({
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(160,123,57,0.18),_transparent_24%)]" />
           <div className="relative z-10 flex h-full flex-col justify-between">
             <div className="space-y-10">
-              <AppLogo href="/" caption="Tender and contract operations" />
+              <AppLogo href="/" caption="For the built environment, legal and accounting firms behind South Africa's biggest projects" />
+
               <div className="max-w-md space-y-5">
                 <p className="app-kicker text-white/70">{supportingLabel}</p>
                 <h1 className="app-display text-5xl font-semibold leading-[1.02] tracking-tight">{title}</h1>
@@ -38,7 +39,7 @@ export default function AuthShell({
         <section className="flex items-center p-5 sm:p-8 lg:p-10">
           <div className="mx-auto w-full max-w-lg">
             <div className="mb-8 xl:hidden">
-              <AppLogo href="/" tone="dark" caption="Tender and contract operations" />
+              <AppLogo href="/" tone="dark" caption="For the built environment, legal and accounting firms behind South Africa's biggest projects" />
             </div>
             <div className="app-surface rounded-[24px] p-6 sm:p-8">
               <div className="mb-8 space-y-3">

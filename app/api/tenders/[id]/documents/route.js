@@ -2,10 +2,11 @@ import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { unlink } from 'fs/promises'
 import path from 'path'
-import { expireCacheTags, tenderDetailCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
+import { expireCacheTags, tenderDetailCacheTag, tenderPackCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { parseRecordId } from '@/lib/tenders'
 import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { SUBMISSION_BACKUP_DOCUMENT_CATEGORY } from '@/lib/tender-document-categories'
 
 // GET /api/tenders/:id/documents
 export async function GET(request, { params }) {
@@ -63,13 +64,16 @@ export async function DELETE(request, { params }) {
   }
 
   await prisma.tenderDocument.delete({ where: { id: parsedDocId } })
-  await refreshSubmissionPack({
-    tenderId,
-    organizationId,
-  })
+  if (doc.documentCategory === SUBMISSION_BACKUP_DOCUMENT_CATEGORY) {
+    await refreshSubmissionPack({
+      tenderId,
+      organizationId,
+    })
+  }
   await expireCacheTags(
     tendersListCacheTag(organizationId),
-    tenderDetailCacheTag(organizationId, tenderId)
+    tenderDetailCacheTag(organizationId, tenderId),
+    tenderPackCacheTag(organizationId, tenderId)
   )
 
   return Response.json({ success: true })

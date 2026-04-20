@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { dashboardCacheTag, expireCacheTags, organizationCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
+import { normalizeServiceSector } from '@/lib/service-sectors'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -82,6 +83,7 @@ export async function PUT(request) {
       where: { organizationId },
       data: {
         displayName,
+        serviceSector: normalizeServiceSector(payload.serviceSector),
         legalName: normalizeString(payload.legalName),
         registrationNumber: normalizeString(payload.registrationNumber),
         primaryContactName: normalizeString(payload.primaryContactName),

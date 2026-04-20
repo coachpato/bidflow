@@ -2,6 +2,7 @@ import Header from '@/app/components/Header'
 import prisma from '@/lib/prisma'
 import { requireAuth } from '@/lib/session'
 import { ensureOrganizationContext } from '@/lib/organization'
+import { getServiceSectorLabel } from '@/lib/service-sectors'
 import FirmProfileForm from './FirmProfileForm'
 import FirmPeopleManager from './FirmPeopleManager'
 import FirmExperienceManager from './FirmExperienceManager'
@@ -22,8 +23,6 @@ function formatCurrency(value) {
 export default async function FirmPage() {
   const session = await requireAuth()
   const organizationContext = await ensureOrganizationContext(session.userId)
-  const complianceCutoff = new Date()
-  complianceCutoff.setDate(complianceCutoff.getDate() + 30)
 
   const memberships = await prisma.membership.findMany({
     where: { organizationId: organizationContext.organization.id },
@@ -47,21 +46,10 @@ export default async function FirmPage() {
     where: { organizationId: organizationContext.organization.id },
     orderBy: [{ completedYear: 'desc' }, { matterName: 'asc' }],
   })
-  const complianceCount = await prisma.complianceDocument.count({
-    where: { organizationId: organizationContext.organization.id },
-  })
-  const expiringComplianceCount = await prisma.complianceDocument.count({
-    where: {
-      organizationId: organizationContext.organization.id,
-      expiryDate: {
-        not: null,
-        lte: complianceCutoff,
-      },
-    },
-  })
 
   const meta = [
     { label: 'Organization', value: organizationContext.organization.name },
+    { label: 'Sector', value: getServiceSectorLabel(organizationContext.firmProfile.serviceSector) },
     { label: 'Team members', value: `${memberships.length}` },
     { label: 'Practice areas', value: `${organizationContext.firmProfile.practiceAreas.length}` },
     { label: 'Key people', value: `${people.length}` },
@@ -72,9 +60,8 @@ export default async function FirmPage() {
     <div className="space-y-6">
       <Header
         title="Firm workspace"
-        eyebrow="Sprint 2"
+        eyebrow="Matching setup"
         meta={meta}
-        primaryAction={{ href: '/vault', label: 'Open compliance vault' }}
         secondaryAction={{ href: '/dashboard', label: 'Back to dashboard' }}
       />
 
@@ -85,6 +72,12 @@ export default async function FirmPage() {
           <section className="app-surface rounded-[24px] p-5">
             <h2 className="text-xl font-semibold text-slate-950">Current focus</h2>
             <dl className="mt-4 space-y-4 text-sm text-slate-600">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Sector</dt>
+                <dd className="mt-1 leading-6 text-slate-900">
+                  {getServiceSectorLabel(organizationContext.firmProfile.serviceSector)}
+                </dd>
+              </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Practice areas</dt>
                 <dd className="mt-1 leading-6 text-slate-900">
@@ -121,20 +114,6 @@ export default async function FirmPage() {
           </section>
 
           <section className="app-surface rounded-[24px] p-5">
-            <h2 className="text-xl font-semibold text-slate-950">Compliance footing</h2>
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-[18px] border border-slate-200 bg-white/80 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-900">{complianceCount} document{complianceCount === 1 ? '' : 's'} in vault</p>
-                <p className="mt-1 text-sm text-slate-500">Reusable for upcoming pursuits and qualification checks.</p>
-              </div>
-              <div className="rounded-[18px] border border-slate-200 bg-white/80 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-900">{expiringComplianceCount} item{expiringComplianceCount === 1 ? '' : 's'} expiring within 30 days</p>
-                <p className="mt-1 text-sm text-slate-500">Bidflow now surfaces these on the dashboard and in the inbox.</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="app-surface rounded-[24px] p-5">
             <h2 className="text-xl font-semibold text-slate-950">Team linked to this workspace</h2>
             <div className="mt-4 space-y-3">
               {memberships.map(member => (
@@ -150,11 +129,11 @@ export default async function FirmPage() {
           </section>
 
           <section className="app-surface rounded-[24px] p-5">
-            <h2 className="text-xl font-semibold text-slate-950">Sprint 2 operating notes</h2>
+            <h2 className="text-xl font-semibold text-slate-950">Operating notes</h2>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-              <li>Populate the firm profile with value bands and preferred entities before refining opportunity matching in Sprint 3.</li>
-              <li>Add the people and experience records you want reused in future qualification and drafting workflows.</li>
-              <li>Use the compliance vault to track expiries instead of relying on scattered folders and calendar memory.</li>
+              <li>Populate the firm profile with value bands, entities, and practice areas so the opportunity radar stays relevant.</li>
+              <li>Add the people and experience records you want visible when the team reviews opportunities and active pursuits.</li>
+              <li>Keep this workspace current so the same firm context follows the team from discovery into live pursuits.</li>
             </ul>
           </section>
         </div>

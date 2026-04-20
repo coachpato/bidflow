@@ -18,18 +18,6 @@ export const NAV_ITEMS = [
     ),
   },
   {
-    label: 'My Work',
-    href: '/my-work',
-    aliases: [],
-    accent: '#244e66',
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M17 20h5V4H2v16h5m10 0v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6m10 0H7" />
-      </svg>
-    ),
-  },
-  {
     label: 'Opportunities',
     href: '/opportunities',
     aliases: [],
@@ -77,30 +65,6 @@ export const NAV_ITEMS = [
       </svg>
     ),
   },
-  {
-    label: 'Vault',
-    href: '/vault',
-    aliases: [],
-    accent: '#6b4ea8',
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M4 7a2 2 0 012-2h12a2 2 0 012 2v3H4V7zm0 5h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5zm5 2h6" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Firm',
-    href: '/firm',
-    aliases: [],
-    accent: '#465fb1',
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M9 14h.01M9 18h.01M15 10h.01M15 14h.01M15 18h.01" />
-      </svg>
-    ),
-  },
 ]
 
 export default function Sidebar() {
@@ -110,7 +74,7 @@ export default function Sidebar() {
     <aside className="app-scroll-shadow hidden h-screen w-[19rem] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/10 bg-[linear-gradient(180deg,#091522_0%,#0d1c2d_58%,#132336_100%)] lg:flex">
       <div>
         <div className="border-b border-white/8 px-6 py-7">
-          <AppLogo caption="Legal opportunity, pursuit, and award operations" />
+          <AppLogo caption="Tender discovery, pursuit tracking, and award follow-through" />
         </div>
 
         <nav className="space-y-2 px-4 py-6">
@@ -153,10 +117,10 @@ export default function Sidebar() {
             Operator note
           </p>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            Run the firm’s public-sector opportunity flow from one disciplined workspace.
+            Keep the loop disciplined: review opportunities, run pursuits, store final submissions, then manage awards or challenges.
           </p>
         </div>
-        <p className="px-2 text-xs text-slate-500">BidFlow V2 workspace</p>
+        <p className="px-2 text-xs text-slate-500">Bid360 workspace</p>
       </div>
     </aside>
   )

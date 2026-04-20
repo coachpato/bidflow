@@ -173,7 +173,7 @@ function buildOpportunityNotes(match) {
     : null
 
   return [
-    'Identified through the Bidflow V2 legal opportunity radar.',
+      'Identified through the Bid360 opportunity radar.',
     ...match.matchReasons,
     keywordLine,
   ].filter(Boolean).join('\n\n')
@@ -369,7 +369,7 @@ async function sendDailyDigestEmail({ organization, sourceRun, opportunities }) 
     '',
     ...opportunities.map(item => `- ${item.title} | ${item.entity} | ${item.fitScore ?? 'Not scored'} | ${item.matchSummary}`),
     '',
-    appUrl ? `Review in Bidflow: ${appUrl}/opportunities` : null,
+      appUrl ? `Review in Bid360: ${appUrl}/opportunities` : null,
   ].filter(Boolean).join('\n')
 
   await Promise.all(

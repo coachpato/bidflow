@@ -35,7 +35,7 @@ export async function POST(request) {
 
     if (!name || !email || !whoWouldUseIt) {
       return Response.json(
-        { error: 'Name, email, and who would use BidFlow are required.' },
+      { error: 'Name, email, and who would use Bid360 are required.' },
         { status: 400 }
       )
     }

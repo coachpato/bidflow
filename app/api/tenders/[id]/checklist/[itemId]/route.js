@@ -3,8 +3,6 @@ import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
 import { expireCacheTags, tendersListCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
-import { refreshTenderQualification } from '@/lib/tender-qualification'
-import { refreshSubmissionPack } from '@/lib/submission-pack'
 import { parseRecordId } from '@/lib/tenders'
 
 // PATCH /api/tenders/:id/checklist/:itemId — update item (toggle done, etc.)
@@ -54,14 +52,6 @@ export async function PATCH(request, { params }) {
     )
   }
 
-  await refreshTenderQualification({
-    tenderId,
-    organizationId,
-  })
-  await refreshSubmissionPack({
-    tenderId,
-    organizationId,
-  })
   await expireCacheTags(tendersListCacheTag(organizationId))
 
   return Response.json(item)
@@ -94,14 +84,6 @@ export async function DELETE(request, { params }) {
 
   await prisma.tenderChecklistItem.delete({ where: { id: checklistItemId } })
 
-  await refreshTenderQualification({
-    tenderId,
-    organizationId,
-  })
-  await refreshSubmissionPack({
-    tenderId,
-    organizationId,
-  })
   await expireCacheTags(tendersListCacheTag(organizationId))
 
   return Response.json({ success: true })

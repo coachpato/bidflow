@@ -1,7 +1,5 @@
-import { logActivity } from '@/lib/activity'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { getSession } from '@/lib/session'
-import { refreshSubmissionPack } from '@/lib/submission-pack'
 import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
 import { getCachedTenderSubmissionPack } from '@/lib/tender-read-model'
 
@@ -41,7 +39,6 @@ export async function POST(request, { params }) {
   const { id } = await params
   const tenderId = parseRecordId(id)
   if (!tenderId) return Response.json({ error: 'Tender not found.' }, { status: 404 })
-  const body = await request.json().catch(() => ({}))
 
   const tender = await findTenderForOrganization({
     tenderId,
@@ -49,19 +46,6 @@ export async function POST(request, { params }) {
     select: { id: true },
   })
   if (!tender) return Response.json({ error: 'Tender not found.' }, { status: 404 })
-
-  await refreshSubmissionPack({
-    tenderId,
-    organizationId,
-    regenerate: Boolean(body?.regenerate),
-  })
-
-  if (body?.regenerate) {
-    void logActivity('Regenerated submission pack drafts', {
-      userId: session.userId,
-      tenderId,
-    })
-  }
 
   return Response.json(await buildResponse(organizationId, tenderId))
 }

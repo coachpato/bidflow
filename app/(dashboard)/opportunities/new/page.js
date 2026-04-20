@@ -281,7 +281,7 @@ export default function NewOpportunityPage() {
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Manual first</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Paste the opportunity into BidFlow before building automation. That gives you a real workflow to learn from.
+              Paste the opportunity into Bid360 before building automation. That gives you a real workflow to learn from.
                 </p>
               </div>
               <div className="rounded-[24px] bg-slate-50 p-4">

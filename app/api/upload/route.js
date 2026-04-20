@@ -1,11 +1,15 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { expireCacheTags, tenderDetailCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
+import { expireCacheTags, tenderDetailCacheTag, tenderPackCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { findTenderForOrganization } from '@/lib/tenders'
 import { refreshSubmissionPack } from '@/lib/submission-pack'
+import {
+  normalizeTenderDocumentCategory,
+  SUBMISSION_BACKUP_DOCUMENT_CATEGORY,
+} from '@/lib/tender-document-categories'
 
 export async function POST(request) {
   try {
@@ -17,6 +21,7 @@ export async function POST(request) {
     const formData = await request.formData()
     const file = formData.get('file')
     const tenderId = parseInt(formData.get('tenderId'), 10)
+    const documentCategory = normalizeTenderDocumentCategory(formData.get('documentCategory'))
 
     if (!file || Number.isNaN(tenderId)) {
       return Response.json({ error: 'File and tenderId are required' }, { status: 400 })
@@ -37,7 +42,10 @@ export async function POST(request) {
 
     // Sanitize filename
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const storagePath = `tenders/${tenderId}/${Date.now()}_${safeName}`
+    const storageFolder = documentCategory === SUBMISSION_BACKUP_DOCUMENT_CATEGORY
+      ? 'submission-backups'
+      : 'source-documents'
+    const storagePath = `tenders/${tenderId}/${storageFolder}/${Date.now()}_${safeName}`
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
@@ -74,21 +82,25 @@ export async function POST(request) {
       data: {
         filename: file.name,
         filepath: publicUrl,
+        documentCategory,
         tenderId,
       },
     })
 
-    void logActivity(`Uploaded document: ${file.name}`, {
+    void logActivity(`${documentCategory === SUBMISSION_BACKUP_DOCUMENT_CATEGORY ? 'Uploaded submission backup' : 'Uploaded document'}: ${file.name}`, {
       userId: session.userId,
       tenderId,
     })
-    await refreshSubmissionPack({
-      tenderId,
-      organizationId,
-    })
+    if (documentCategory === SUBMISSION_BACKUP_DOCUMENT_CATEGORY) {
+      await refreshSubmissionPack({
+        tenderId,
+        organizationId,
+      })
+    }
     await expireCacheTags(
       tendersListCacheTag(organizationId),
-      tenderDetailCacheTag(organizationId, tenderId)
+      tenderDetailCacheTag(organizationId, tenderId),
+      tenderPackCacheTag(organizationId, tenderId)
     )
 
     return Response.json(doc, { status: 201 })

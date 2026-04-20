@@ -3,8 +3,6 @@ import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
 import { expireCacheTags, tendersListCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
-import { refreshTenderQualification } from '@/lib/tender-qualification'
-import { refreshSubmissionPack } from '@/lib/submission-pack'
 import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
 
 // GET /api/tenders/:id/checklist
@@ -63,14 +61,6 @@ export async function POST(request, { params }) {
     tenderId,
   })
 
-  await refreshTenderQualification({
-    tenderId,
-    organizationId,
-  })
-  await refreshSubmissionPack({
-    tenderId,
-    organizationId,
-  })
   await expireCacheTags(tendersListCacheTag(organizationId))
 
   return Response.json(item, { status: 201 })

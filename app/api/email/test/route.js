@@ -47,25 +47,25 @@ export async function POST() {
 
   await sendEmail({
     to: session.email,
-    subject: 'BidFlow test email',
+      subject: 'Bid360 test email',
     html: `
       <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
         <p>Hello ${escapeHtml(recipientName)},</p>
-        <p>This is a test email from BidFlow.</p>
+        <p>This is a test email from Bid360.</p>
         <p><strong>Sent at:</strong> ${escapeHtml(formatDateTime(sentAt))}</p>
         <p><strong>Sender:</strong> ${escapeHtml(sender)}</p>
         <p>If this lands correctly, contract allocation and due-date reminders will use the same delivery setup.</p>
-        ${appUrl ? `<p><a href="${appUrl}">Open BidFlow</a></p>` : ''}
+        ${appUrl ? `<p><a href="${appUrl}">Open Bid360</a></p>` : ''}
       </div>
     `,
     text: [
       `Hello ${recipientName},`,
       '',
-      'This is a test email from BidFlow.',
+      'This is a test email from Bid360.',
       `Sent at: ${formatDateTime(sentAt)}`,
       `Sender: ${sender}`,
       'If this lands correctly, contract allocation and due-date reminders will use the same delivery setup.',
-      appUrl ? `Open BidFlow: ${appUrl}` : null,
+      appUrl ? `Open Bid360: ${appUrl}` : null,
     ].filter(Boolean).join('\n'),
   })
 

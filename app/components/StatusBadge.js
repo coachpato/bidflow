@@ -15,15 +15,6 @@ const STATUS_STYLES = {
   Skipped: { badge: 'border border-slate-200 bg-slate-50 text-slate-600', dot: 'bg-slate-400' },
   Ignore: { badge: 'border border-slate-200 bg-slate-50 text-slate-600', dot: 'bg-slate-400' },
   Converted: { badge: 'border border-violet-200 bg-violet-50 text-violet-800', dot: 'bg-violet-600' },
-  // Qualification statuses
-  Qualified: { badge: 'border border-emerald-200 bg-emerald-50 text-emerald-800', dot: 'bg-emerald-600' },
-  Borderline: { badge: 'border border-amber-200 bg-amber-50 text-amber-800', dot: 'bg-amber-500' },
-  'Do Not Bid': { badge: 'border border-rose-200 bg-rose-50 text-rose-800', dot: 'bg-rose-600' },
-  'Pending Review': { badge: 'border border-slate-200 bg-slate-50 text-slate-700', dot: 'bg-slate-500' },
-  Draft: { badge: 'border border-slate-200 bg-slate-50 text-slate-700', dot: 'bg-slate-500' },
-  Blocked: { badge: 'border border-rose-200 bg-rose-50 text-rose-800', dot: 'bg-rose-600' },
-  'Ready for Review': { badge: 'border border-amber-200 bg-amber-50 text-amber-800', dot: 'bg-amber-500' },
-  'Ready for Submission': { badge: 'border border-emerald-200 bg-emerald-50 text-emerald-800', dot: 'bg-emerald-600' },
   // Appointment statuses
   Appointed: { badge: 'border border-cyan-200 bg-cyan-50 text-cyan-800', dot: 'bg-cyan-600' },
   Dormant: { badge: 'border border-amber-200 bg-amber-50 text-amber-800', dot: 'bg-amber-500' },
