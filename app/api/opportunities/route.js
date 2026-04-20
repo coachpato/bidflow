@@ -9,6 +9,21 @@ import { getSessionOrganizationId } from '@/lib/organization'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 
+async function getOrganizationServiceSector(organizationId) {
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      firmProfile: {
+        select: {
+          serviceSector: true,
+        },
+      },
+    },
+  })
+
+  return organization?.firmProfile?.serviceSector || null
+}
+
 function toNullableString(value) {
   const trimmed = value?.trim()
   return trimmed ? trimmed : null
@@ -119,11 +134,13 @@ export async function POST(request) {
   const deadline = toNullableDate(body.deadline)
   const fitScore = toNullableInt(body.fitScore)
   const normalizedStatus = normalizeOpportunityStatus(body.status)
+  const serviceSector = await getOrganizationServiceSector(organizationId)
   const manualMatch = buildManualMatchData({
     title: body.title,
     entity: body.entity,
     practiceArea: toNullableString(body.practiceArea),
     fitScore,
+    serviceSector,
   })
 
   const dedupeKey = buildOpportunityDedupeKey({

@@ -328,7 +328,7 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                         </td>
                         <td className="px-5 py-4">
                           <p className={`font-semibold ${getFitTone(opportunity.fitScore)}`}>{getFitLabel(opportunity.fitScore)}</p>
-                          <p className="mt-1 text-xs text-slate-400">{opportunity.practiceArea || 'Legal Services'}</p>
+                          <p className="mt-1 text-xs text-slate-400">{opportunity.practiceArea || 'Not set'}</p>
                         </td>
                         <td className="px-5 py-4">
                           <StatusBadge status={opportunity.status} />

@@ -7,15 +7,46 @@ import { normalizeServiceSector } from '@/lib/service-sectors'
 
 export async function POST(request) {
   try {
-    const { name, email, password, role, organizationName, serviceSector } = await request.json()
+    const {
+      name,
+      email,
+      password,
+      role,
+      organizationName,
+      serviceSector,
+      practiceAreas,
+      targetWorkTypes,
+      targetProvinces,
+      preferredEntities,
+    } = await request.json()
     const normalizedName = name?.trim()
     const normalizedEmail = email?.trim().toLowerCase()
     const normalizedOrganizationName = organizationName?.trim()
     const normalizedServiceSector = normalizeServiceSector(serviceSector)
+    const normalizedPracticeAreas = Array.isArray(practiceAreas)
+      ? practiceAreas.map(item => item?.trim()).filter(Boolean)
+      : []
+    const normalizedTargetWorkTypes = Array.isArray(targetWorkTypes)
+      ? targetWorkTypes.map(item => item?.trim()).filter(Boolean)
+      : []
+    const normalizedTargetProvinces = Array.isArray(targetProvinces)
+      ? targetProvinces.map(item => item?.trim()).filter(Boolean)
+      : []
+    const normalizedPreferredEntities = Array.isArray(preferredEntities)
+      ? preferredEntities.map(item => item?.trim()).filter(Boolean)
+      : []
 
     // Basic validation
     if (!normalizedName || !normalizedEmail || !password || !normalizedOrganizationName || !normalizedServiceSector) {
       return Response.json({ error: 'Name, email, password, organization name, and sector are required.' }, { status: 400 })
+    }
+
+    if (normalizedPracticeAreas.length === 0) {
+      return Response.json({ error: 'Choose at least one practice area so Bid360 can tailor your opportunity radar.' }, { status: 400 })
+    }
+
+    if (normalizedTargetWorkTypes.length === 0) {
+      return Response.json({ error: 'Choose at least one opportunity type so Bid360 can tailor your opportunity radar.' }, { status: 400 })
     }
 
     if (password.length < 6) {
@@ -58,6 +89,10 @@ export async function POST(request) {
     }, {
       organizationName: normalizedOrganizationName,
       serviceSector: normalizedServiceSector,
+      practiceAreas: normalizedPracticeAreas,
+      targetWorkTypes: normalizedTargetWorkTypes,
+      targetProvinces: normalizedTargetProvinces,
+      preferredEntities: normalizedPreferredEntities,
     })
 
     // Log them in immediately after registering

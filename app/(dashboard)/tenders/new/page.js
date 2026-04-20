@@ -101,7 +101,7 @@ export default function NewTenderPage() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-2 block text-sm font-semibold text-slate-700">Tender title</label>
-                  <input name="title" required value={form.title} onChange={handleChange} placeholder="Legal services for eThekwini Municipality" className="app-input" />
+                  <input name="title" required value={form.title} onChange={handleChange} placeholder="Professional services for a public entity" className="app-input" />
                 </div>
 
                 <div>

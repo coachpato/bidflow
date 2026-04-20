@@ -9,6 +9,21 @@ import { getSessionOrganizationId } from '@/lib/organization'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 
+async function getOrganizationServiceSector(organizationId) {
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      firmProfile: {
+        select: {
+          serviceSector: true,
+        },
+      },
+    },
+  })
+
+  return organization?.firmProfile?.serviceSector || null
+}
+
 function toNullableString(value, existingValue) {
   if (value === undefined) return existingValue
   const trimmed = value?.trim()
@@ -111,6 +126,7 @@ export async function PATCH(request, { params }) {
   const nextReference = toNullableString(body.reference, existing.reference)
   const nextDeadline = toNullableDate(body.deadline, existing.deadline)
   const nextSourceName = toNullableString(body.sourceName, existing.sourceName) || 'Manual intake'
+  const serviceSector = await getOrganizationServiceSector(organizationId)
   const existingMatch = await prisma.opportunityMatch.findUnique({
     where: {
       opportunityId_organizationId: {
@@ -124,6 +140,7 @@ export async function PATCH(request, { params }) {
     entity: body.entity ?? existing.entity,
     practiceArea: nextPracticeArea,
     fitScore: nextFitScore,
+    serviceSector,
   })
 
   const nextDedupeKey = buildOpportunityDedupeKey({
@@ -163,7 +180,7 @@ export async function PATCH(request, { params }) {
         sourceName: nextSourceName,
         sourceUrl: toNullableString(body.sourceUrl, existing.sourceUrl),
         category: toNullableString(body.category, existing.category),
-        practiceArea: nextPracticeArea || 'Legal Services',
+        practiceArea: nextPracticeArea || manualMatch.practiceArea,
         summary: toNullableString(body.summary, existing.summary),
         estimatedValue: toNullableNumber(body.estimatedValue, existing.estimatedValue),
         publishedAt: toNullableDate(body.publishedAt, existing.publishedAt),

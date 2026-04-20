@@ -140,8 +140,14 @@ export default async function FirmPage() {
       </div>
 
       <div className="app-page grid gap-6 xl:grid-cols-2">
-        <FirmPeopleManager initialPeople={people} />
-        <FirmExperienceManager initialExperience={experience} />
+        <FirmPeopleManager
+          initialPeople={people}
+          serviceSector={organizationContext.firmProfile.serviceSector}
+        />
+        <FirmExperienceManager
+          initialExperience={experience}
+          serviceSector={organizationContext.firmProfile.serviceSector}
+        />
       </div>
     </div>
   )

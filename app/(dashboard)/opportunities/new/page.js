@@ -101,7 +101,7 @@ export default function NewOpportunityPage() {
                     required
                     value={form.title}
                     onChange={handleChange}
-                    placeholder="Panel of legal services for provincial entity"
+                    placeholder="Professional services panel for a public entity"
                     className="app-input"
                   />
                 </div>
@@ -158,7 +158,7 @@ export default function NewOpportunityPage() {
                     name="practiceArea"
                     value={form.practiceArea}
                     onChange={handleChange}
-                    placeholder="Litigation, investigations, labour, or panel work"
+                    placeholder="Audit, litigation, engineering, or project management"
                     className="app-input"
                   />
                 </div>

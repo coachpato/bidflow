@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getServiceSectorWorkspaceCopy } from '@/lib/service-sectors'
 
 function joinList(values) {
   return Array.isArray(values) ? values.join(', ') : ''
@@ -17,12 +18,13 @@ const EMPTY_FORM = {
   notes: '',
 }
 
-export default function FirmPeopleManager({ initialPeople }) {
+export default function FirmPeopleManager({ initialPeople, serviceSector }) {
   const [people, setPeople] = useState(initialPeople)
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const workspaceCopy = getServiceSectorWorkspaceCopy(serviceSector)
 
   function updateField(name, value) {
     setForm(current => ({
@@ -79,7 +81,7 @@ export default function FirmPeopleManager({ initialPeople }) {
       <div className="mb-5 border-b border-slate-100 pb-4">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Key personnel</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Capture the lawyers and subject matter experts the team needs to reference when reviewing opportunities and running pursuits.
+          {workspaceCopy.peopleDescription}
         </p>
       </div>
 
@@ -107,15 +109,15 @@ export default function FirmPeopleManager({ initialPeople }) {
         <div />
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Qualifications</span>
-          <textarea value={form.qualifications} onChange={event => updateField('qualifications', event.target.value)} rows={3} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="LLB, admitted attorney, mediator" />
+          <textarea value={form.qualifications} onChange={event => updateField('qualifications', event.target.value)} rows={3} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder={workspaceCopy.peopleQualificationsPlaceholder} />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Practice areas</span>
-          <textarea value={form.practiceAreas} onChange={event => updateField('practiceAreas', event.target.value)} rows={3} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Administrative law, labour law" />
+          <textarea value={form.practiceAreas} onChange={event => updateField('practiceAreas', event.target.value)} rows={3} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder={workspaceCopy.peoplePracticeAreasPlaceholder} />
         </label>
         <label className="space-y-2 md:col-span-2">
           <span className="text-sm font-semibold text-slate-700">Notes</span>
-          <textarea value={form.notes} onChange={event => updateField('notes', event.target.value)} rows={3} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Use this person for disciplinary matters and investigations." />
+          <textarea value={form.notes} onChange={event => updateField('notes', event.target.value)} rows={3} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder={workspaceCopy.peopleNotesPlaceholder} />
         </label>
 
         <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">

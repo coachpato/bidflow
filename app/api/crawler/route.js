@@ -1,6 +1,6 @@
 import { logActivity } from '@/lib/activity'
 import { crawlETenders, downloadPDF, getPDFLinksFromTender, getTenderDetails } from '@/lib/crawler/etenders-crawler'
-import { analyzeForLegalOpportunity } from '@/lib/crawler/keyword-matcher'
+import { analyzeTenderForSector } from '@/lib/crawler/keyword-matcher'
 import { extractTextFromPDF } from '@/lib/crawler/pdf-extractor'
 import { getAppUrl, sendEmail } from '@/lib/email'
 import { ensureOrganizationContext } from '@/lib/organization'
@@ -10,6 +10,7 @@ import {
   summarizeMatchReasons,
 } from '@/lib/opportunity-radar'
 import prisma from '@/lib/prisma'
+import { getServiceSectorLabel, normalizeServiceSector } from '@/lib/service-sectors'
 import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 
 const SOURCE_KEY = 'etenders-gov-za'
@@ -110,32 +111,19 @@ async function loadOrganizationsForRadar() {
 async function buildTenderSourcePack(tender) {
   const tenderDetails = await getTenderDetails(tender)
   const pdfLinks = await getPDFLinksFromTender(tender)
-
-  let legalAnalysis = analyzeForLegalOpportunity(tender.title, tender.description)
   const pdfAssets = []
+  const extractedTextSnippets = []
 
   for (const pdfLink of pdfLinks) {
     try {
       const pdfBuffer = await downloadPDF(pdfLink.url)
       if (!pdfBuffer) continue
 
-      let extractedText = ''
+      const pdfContent = await extractTextFromPDF(pdfBuffer)
+      const extractedText = pdfContent.text || ''
 
-      if (!legalAnalysis.isLegalOpportunity) {
-        const pdfContent = await extractTextFromPDF(pdfBuffer)
-        extractedText = pdfContent.text || ''
-
-        if (extractedText) {
-          const pdfAnalysis = analyzeForLegalOpportunity(
-            tender.title,
-            tender.description,
-            extractedText
-          )
-
-          if (pdfAnalysis.isLegalOpportunity) {
-            legalAnalysis = pdfAnalysis
-          }
-        }
+      if (extractedText) {
+        extractedTextSnippets.push(extractedText)
       }
 
       pdfAssets.push({
@@ -152,13 +140,13 @@ async function buildTenderSourcePack(tender) {
   return {
     tenderDetails,
     pdfAssets,
-    legalAnalysis,
+    pdfText: extractedTextSnippets.join('\n\n'),
   }
 }
 
 function buildOpportunitySummary(match, tender, tenderDetails) {
   const summaryBits = [
-    `${match.practiceArea || 'Legal Services'} opportunity`,
+    `${match.practiceArea || 'Relevant'} opportunity`,
     summarizeMatchReasons(match.matchReasons),
     tenderDetails.entity ? `Issuing entity: ${tenderDetails.entity}` : null,
     tender.category ? `Category: ${tender.category}` : null,
@@ -324,6 +312,7 @@ async function sendDailyDigestEmail({ organization, sourceRun, opportunities }) 
   if (recipients.length === 0 || opportunities.length === 0) return
 
   const appUrl = getAppUrl()
+  const sectorLabel = getServiceSectorLabel(organization.firmProfile?.serviceSector)
   const listRows = opportunities
     .map(item => `
       <tr>
@@ -331,7 +320,7 @@ async function sendDailyDigestEmail({ organization, sourceRun, opportunities }) 
           <strong>${item.title}</strong><br/>
           <small>${item.entity} | Ref: ${item.reference || 'N/A'}</small>
         </td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.practiceArea || 'Legal Services'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.practiceArea || 'Relevant Services'}</td>
         <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.fitScore ?? 'Not scored'}</td>
         <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.matchSummary}</td>
       </tr>
@@ -341,8 +330,8 @@ async function sendDailyDigestEmail({ organization, sourceRun, opportunities }) 
   const html = `
     <html>
       <body style="font-family: Arial, sans-serif; color: #111827;">
-        <h2>Daily Legal Opportunity Digest</h2>
-        <p>${organization.name} has <strong>${opportunities.length} new legal opportunity match(es)</strong> from ${SOURCE_NAME}.</p>
+        <h2>Daily ${sectorLabel} Opportunity Digest</h2>
+        <p>${organization.name} has <strong>${opportunities.length} new relevant opportunity match(es)</strong> from ${SOURCE_NAME}.</p>
 
         <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
           <thead>
@@ -363,9 +352,9 @@ async function sendDailyDigestEmail({ organization, sourceRun, opportunities }) 
   `
 
   const text = [
-    'Daily Legal Opportunity Digest',
+    `Daily ${sectorLabel} Opportunity Digest`,
     '',
-    `${organization.name} has ${opportunities.length} new legal opportunity match(es) from ${SOURCE_NAME}.`,
+    `${organization.name} has ${opportunities.length} new relevant opportunity match(es) from ${SOURCE_NAME}.`,
     '',
     ...opportunities.map(item => `- ${item.title} | ${item.entity} | ${item.fitScore ?? 'Not scored'} | ${item.matchSummary}`),
     '',
@@ -375,7 +364,7 @@ async function sendDailyDigestEmail({ organization, sourceRun, opportunities }) 
   await Promise.all(
     recipients.map(recipient => sendEmail({
       to: recipient,
-      subject: `Daily legal opportunities: ${opportunities.length} new match(es)`,
+      subject: `Daily ${sectorLabel.toLowerCase()} opportunities: ${opportunities.length} new match(es)`,
       html,
       text,
     }))
@@ -389,7 +378,7 @@ async function createDigestNotification({ organizationId, sourceRunId, count }) 
     },
     update: {
       title: 'Opportunity digest ready',
-      message: `${count} new legal opportunity match${count === 1 ? '' : 'es'} landed in your radar today.`,
+      message: `${count} new relevant opportunity match${count === 1 ? '' : 'es'} landed in your radar today.`,
       type: 'opportunity',
       organizationId,
       userId: null,
@@ -400,7 +389,7 @@ async function createDigestNotification({ organizationId, sourceRunId, count }) 
     create: {
       sourceKey: `opportunity-digest:${sourceRunId}:${organizationId}`,
       title: 'Opportunity digest ready',
-      message: `${count} new legal opportunity match${count === 1 ? '' : 'es'} landed in your radar today.`,
+      message: `${count} new relevant opportunity match${count === 1 ? '' : 'es'} landed in your radar today.`,
       type: 'opportunity',
       organizationId,
       userId: null,
@@ -441,17 +430,29 @@ export async function GET(request) {
     for (const tender of tenders) {
       try {
         const sourcePack = await buildTenderSourcePack(tender)
-
-        if (!sourcePack.legalAnalysis.isLegalOpportunity) {
-          continue
-        }
+        const sectorAnalysisCache = new Map()
 
         for (const organization of organizations) {
+          const serviceSector = normalizeServiceSector(organization.firmProfile?.serviceSector) || 'LEGAL'
+          let tenderAnalysis = sectorAnalysisCache.get(serviceSector)
+
+          if (!tenderAnalysis) {
+            tenderAnalysis = analyzeTenderForSector(
+              serviceSector,
+              tender.title,
+              tender.description,
+              sourcePack.pdfText
+            )
+            sectorAnalysisCache.set(serviceSector, tenderAnalysis)
+          }
+
+          if (!tenderAnalysis.isSectorOpportunity) continue
+
           const match = evaluateOpportunityMatch({
             firmProfile: organization.firmProfile,
             tender,
             tenderDetails: sourcePack.tenderDetails,
-            legalAnalysis: sourcePack.legalAnalysis,
+            tenderAnalysis,
           })
 
           if (!match.isMatch) continue

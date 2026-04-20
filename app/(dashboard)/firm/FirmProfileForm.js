@@ -1,7 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { SERVICE_SECTOR_OPTIONS } from '@/lib/service-sectors'
+import {
+  SERVICE_SECTOR_OPTIONS,
+  getServiceSectorDiscoveryConfig,
+  getServiceSectorWorkspaceCopy,
+} from '@/lib/service-sectors'
 
 function joinList(values) {
   return Array.isArray(values) ? values.join(', ') : ''
@@ -38,32 +42,8 @@ export default function FirmProfileForm({ initialProfile }) {
     ['website', 'Website'],
   ]), [])
 
-  const sectorPlaceholders = useMemo(() => {
-    if (form.serviceSector === 'BUILT_ENVIRONMENT') {
-      return {
-        practiceAreas: 'Engineering, quantity surveying, project management',
-        preferredEntities: 'SANRAL, Transnet, municipal infrastructure departments',
-        targetWorkTypes: 'Design frameworks, programme management, technical advisory',
-        overview: 'Describe the firm, the sectors it serves, and the kinds of public-sector projects it should pursue.',
-      }
-    }
-
-    if (form.serviceSector === 'ACCOUNTING') {
-      return {
-        practiceAreas: 'Audit, forensic accounting, tax advisory',
-        preferredEntities: 'National Treasury, SOEs, municipalities',
-        targetWorkTypes: 'Audit panels, financial reviews, forensic support',
-        overview: 'Describe the firm, its public-sector strengths, and the kinds of financial or advisory mandates it should pursue.',
-      }
-    }
-
-    return {
-      practiceAreas: 'Administrative law, labour law, investigations',
-      preferredEntities: 'City of Johannesburg, RAF, Eskom',
-      targetWorkTypes: 'Panels, litigation, investigations',
-      overview: 'Describe the firm, its public-sector strengths, and the kinds of legal mandates it should pursue.',
-    }
-  }, [form.serviceSector])
+  const discoveryConfig = useMemo(() => getServiceSectorDiscoveryConfig(form.serviceSector), [form.serviceSector])
+  const workspaceCopy = useMemo(() => getServiceSectorWorkspaceCopy(form.serviceSector), [form.serviceSector])
 
   function updateField(name, value) {
     setForm(current => ({
@@ -144,7 +124,7 @@ export default function FirmProfileForm({ initialProfile }) {
             onChange={event => updateField('practiceAreas', event.target.value)}
             rows={4}
             className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-            placeholder={sectorPlaceholders.practiceAreas}
+            placeholder={discoveryConfig.practiceAreaOptions.join(', ')}
           />
         </label>
         <label className="space-y-2">
@@ -154,7 +134,7 @@ export default function FirmProfileForm({ initialProfile }) {
             onChange={event => updateField('preferredEntities', event.target.value)}
             rows={4}
             className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-            placeholder={sectorPlaceholders.preferredEntities}
+            placeholder={discoveryConfig.preferredEntitiesPlaceholder}
           />
         </label>
         <label className="space-y-2">
@@ -164,7 +144,7 @@ export default function FirmProfileForm({ initialProfile }) {
             onChange={event => updateField('targetWorkTypes', event.target.value)}
             rows={4}
             className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-            placeholder={sectorPlaceholders.targetWorkTypes}
+            placeholder={discoveryConfig.workTypeOptions.join(', ')}
           />
         </label>
         <label className="space-y-2">
@@ -210,7 +190,7 @@ export default function FirmProfileForm({ initialProfile }) {
           onChange={event => updateField('overview', event.target.value)}
           rows={5}
           className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-          placeholder={sectorPlaceholders.overview}
+          placeholder={workspaceCopy.overviewPlaceholder}
         />
       </label>
 

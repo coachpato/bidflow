@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getServiceSectorWorkspaceCopy } from '@/lib/service-sectors'
 
 const EMPTY_FORM = {
   matterName: '',
@@ -23,12 +24,13 @@ function formatCurrency(value) {
   }).format(value)
 }
 
-export default function FirmExperienceManager({ initialExperience }) {
+export default function FirmExperienceManager({ initialExperience, serviceSector }) {
   const [experience, setExperience] = useState(initialExperience)
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const workspaceCopy = getServiceSectorWorkspaceCopy(serviceSector)
 
   function updateField(name, value) {
     setForm(current => ({
@@ -85,7 +87,7 @@ export default function FirmExperienceManager({ initialExperience }) {
       <div className="mb-5 border-b border-slate-100 pb-4">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Representative experience</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Add public-sector mandates, panels, investigations, and advisory work the firm can reference when deciding what to pursue.
+          {workspaceCopy.experienceDescription}
         </p>
       </div>
 
@@ -108,7 +110,7 @@ export default function FirmExperienceManager({ initialExperience }) {
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Work type</span>
-          <input value={form.workType} onChange={event => updateField('workType', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Panel, advisory, investigation" />
+          <input value={form.workType} onChange={event => updateField('workType', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder={workspaceCopy.experienceWorkTypePlaceholder} />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Project value (ZAR)</span>
@@ -124,7 +126,7 @@ export default function FirmExperienceManager({ initialExperience }) {
         </label>
         <label className="space-y-2 md:col-span-2">
           <span className="text-sm font-semibold text-slate-700">Summary</span>
-          <textarea value={form.summary} onChange={event => updateField('summary', event.target.value)} rows={4} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Describe the legal work, sector relevance, and outcomes." />
+          <textarea value={form.summary} onChange={event => updateField('summary', event.target.value)} rows={4} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder={workspaceCopy.experienceSummaryPlaceholder} />
         </label>
 
         <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
