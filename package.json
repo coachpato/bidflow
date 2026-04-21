@@ -24,6 +24,7 @@
     "axios": "^1.15.0",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
+    "google-auth-library": "^10.6.2",
     "iron-session": "^8.0.4",
     "next": "16.2.2",
     "pdf-parse": "^2.4.5",

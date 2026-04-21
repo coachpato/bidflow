@@ -32,7 +32,15 @@ export default function RootLayout({ children }) {
       <body className="h-full antialiased">
         <ThemeProvider>
           <ToastProvider>
-            {children}
+            {/* Skip to Content Link for Keyboard Navigation */}
+            <a href="#main-content" className="skip-to-content">
+              Skip to main content
+            </a>
+
+            {/* Main Content */}
+            <main id="main-content" role="main">
+              {children}
+            </main>
           </ToastProvider>
         </ThemeProvider>
       </body>

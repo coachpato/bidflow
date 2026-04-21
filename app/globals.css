@@ -679,3 +679,386 @@ pre code {
     display: none;
   }
 }
+
+/* ========================================
+   PHASE 4: ACCESSIBILITY IMPROVEMENTS
+   ======================================== */
+
+/* Skip to Content Link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--brand-500);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* Enhanced Focus Visible Styles */
+:focus-visible {
+  outline: 3px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+/* Link Focus Enhancement */
+a:focus-visible {
+  outline: 3px solid var(--brand-500);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Form Input Focus Enhancement */
+.app-input:focus-visible,
+.app-select:focus-visible,
+.app-textarea:focus-visible {
+  border-color: var(--brand-500);
+  box-shadow:
+    0 0 0 4px rgba(24, 49, 74, 0.15),
+    0 0 0 2px var(--brand-500);
+  outline: none;
+}
+
+/* Button Focus Enhancement */
+button:focus-visible,
+.app-button:focus-visible {
+  outline: 3px solid var(--brand-500);
+  outline-offset: 3px;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: more) {
+  :root {
+    --foreground: #000000;
+    --brand-500: #000066;
+    --brand-600: #000033;
+    --danger-500: #cc0000;
+    --success-500: #006600;
+  }
+
+  .app-button-primary {
+    border: 2px solid currentColor;
+  }
+
+  .app-button-secondary {
+    border: 2px solid currentColor;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+}
+
+/* ARIA Hidden Elements */
+[aria-hidden="true"] {
+  display: none !important;
+}
+
+/* ARIA Live Region */
+[aria-live] {
+  position: relative;
+}
+
+[aria-live="polite"],
+[aria-live="assertive"] {
+  overflow: hidden;
+}
+
+/* ARIA Busy State */
+[aria-busy="true"] {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ARIA Disabled State */
+[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ARIA Invalid (Error) State */
+[aria-invalid="true"] {
+  border-color: var(--danger-500) !important;
+  background: rgba(141, 47, 47, 0.04);
+}
+
+[aria-invalid="true"]:focus-visible {
+  box-shadow:
+    0 0 0 4px rgba(141, 47, 47, 0.15),
+    0 0 0 2px var(--danger-500);
+}
+
+/* Focus Within - Parent element focus indication */
+.app-card:focus-within {
+  border-color: var(--brand-500);
+}
+
+/* Better Color Contrast for Text */
+.app-kicker {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* Ensuring sufficient touch targets (44px minimum) */
+a,
+button,
+.app-button,
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Semantic HTML - Better Heading Hierarchy */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+h4 {
+  font-size: 1.125rem;
+}
+
+h5,
+h6 {
+  font-size: 1rem;
+}
+
+/* Improved List Styling */
+ul,
+ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+/* Table Accessibility */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+thead {
+  background: var(--background-muted);
+  border-bottom: 2px solid var(--line);
+}
+
+th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Better Visited Link Distinction */
+a:visited {
+  color: var(--brand-600);
+}
+
+/* Icon Button with Label */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--background-muted);
+}
+
+.icon-button:focus-visible {
+  outline: 3px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+/* SVG Icon Accessibility */
+svg {
+  fill: currentColor;
+  color: inherit;
+}
+
+/* Tooltip/Aria-label Support */
+[aria-label] {
+  position: relative;
+}
+
+/* Loading Spinner Accessibility */
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: spin 1s linear infinite;
+  aria-label: "Loading";
+}
+
+/* Alert/Status Message Box */
+.alert {
+  padding: 1rem;
+  border-radius: 0.875rem;
+  border-left: 4px solid transparent;
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  background: rgba(41, 94, 72, 0.08);
+  border-left-color: var(--success-500);
+  color: var(--success-600);
+}
+
+.alert-error {
+  background: rgba(141, 47, 47, 0.08);
+  border-left-color: var(--danger-500);
+  color: var(--danger-600);
+}
+
+.alert-warning {
+  background: rgba(165, 107, 31, 0.08);
+  border-left-color: var(--warning-500);
+  color: var(--warning-600);
+}
+
+.alert-info {
+  background: rgba(31, 122, 156, 0.08);
+  border-left-color: var(--info-500);
+  color: var(--info-600);
+}
+
+/* Label and Form Field */
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+/* Required Field Indicator */
+.required {
+  color: var(--danger-500);
+  margin-left: 0.25rem;
+  aria-label: "required";
+}
+
+/* Help Text / Hint */
+.hint,
+.form-hint {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-top: 0.375rem;
+  display: block;
+}
+
+.error-message,
+.form-error {
+  font-size: 0.875rem;
+  color: var(--danger-600);
+  margin-top: 0.375rem;
+  display: block;
+}
+
+/* Fieldset and Legend */
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+legend {
+  padding-inline: 0.5rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Checkbox and Radio Wrapper */
+.checkbox-wrapper,
+.radio-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  transition: background-color 200ms ease;
+}
+
+.checkbox-wrapper:focus-within,
+.radio-wrapper:focus-within {
+  background: var(--background-muted);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+  margin: 0;
+}
+
+/* Screen Reader Only Text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

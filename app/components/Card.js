@@ -8,6 +8,10 @@ export default function Card({
   interactive = false,
   elevated = false,
   noPadding = false,
+  role = 'region',
+  'aria-label': ariaLabel = null,
+  'aria-labelledby': ariaLabelledBy = null,
+  as = 'section',
   ...props
 }) {
   const classes = `
@@ -18,24 +22,33 @@ export default function Card({
     ${className}
   `.trim()
 
+  const Component = as
+
   return (
-    <div className={classes} {...props}>
+    <Component
+      className={classes}
+      role={role}
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      {...props}
+    >
       {children}
-    </div>
+    </Component>
   )
 }
 
-export function CardHeader({ children, className = '' }) {
+export function CardHeader({ children, className = '', as = 'header' }) {
+  const Component = as
   return (
-    <div className={`border-b border-var(--line) pb-4 mb-4 ${className}`}>
+    <Component className={`border-b border-var(--line) pb-4 mb-4 ${className}`}>
       {children}
-    </div>
+    </Component>
   )
 }
 
 export function CardBody({ children, className = '' }) {
   return (
-    <div className={className}>
+    <div className={className} role="main">
       {children}
     </div>
   )
@@ -43,8 +56,8 @@ export function CardBody({ children, className = '' }) {
 
 export function CardFooter({ children, className = '' }) {
   return (
-    <div className={`border-t border-var(--line) pt-4 mt-4 flex items-center justify-between gap-3 ${className}`}>
+    <footer className={`border-t border-var(--line) pt-4 mt-4 flex items-center justify-between gap-3 ${className}`}>
       {children}
-    </div>
+    </footer>
   )
 }

@@ -45,7 +45,11 @@ export async function POST(request) {
     )
 
     if (!passwordMatches) {
-      return Response.json({ error: 'The password for this account is incorrect.' }, { status: 401 })
+      const error = user.googleSubject
+        ? 'The password for this account is incorrect. This account is also linked to Google.'
+        : 'The password for this account is incorrect.'
+
+      return Response.json({ error }, { status: 401 })
     }
 
     const organizationContext = await ensureOrganizationContextForUser(user)

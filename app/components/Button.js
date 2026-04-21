@@ -13,6 +13,7 @@ export default function Button({
   icon: Icon = null,
   iconPosition = 'left',
   fullWidth = false,
+  'aria-label': ariaLabel = null,
   ...props
 }) {
   const baseClass = 'app-button inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all'
@@ -40,24 +41,31 @@ export default function Button({
     ${className}
   `.trim()
 
+  // For icon-only buttons, ensure aria-label is set
+  const iconOnly = !children || (Icon && !children)
+  const finalAriaLabel = ariaLabel || (iconOnly ? 'Button' : undefined)
+
   return (
     <button
       type={type}
       disabled={disabled || loading}
       className={classes}
+      aria-label={finalAriaLabel}
+      aria-busy={loading ? 'true' : 'false'}
+      aria-disabled={disabled || loading ? 'true' : 'false'}
       {...props}
     >
       {loading && <LoadingSpinner />}
-      {!loading && Icon && iconPosition === 'left' && <Icon size={18} />}
-      <span>{children}</span>
-      {!loading && Icon && iconPosition === 'right' && <Icon size={18} />}
+      {!loading && Icon && iconPosition === 'left' && <Icon size={18} aria-hidden="true" />}
+      {children && <span>{children}</span>}
+      {!loading && Icon && iconPosition === 'right' && <Icon size={18} aria-hidden="true" />}
     </button>
   )
 }
 
 function LoadingSpinner() {
   return (
-    <div className="animate-spin">
+    <div className="animate-spin" aria-hidden="true">
       <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
     </div>
   )

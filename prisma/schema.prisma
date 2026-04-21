@@ -15,6 +15,8 @@ model User {
   name              String
   email             String               @unique
   password          String
+  googleSubject     String?              @unique
+  avatarUrl         String?
   role              String               @default("member")
   createdAt         DateTime             @default(now())
   memberships       Membership[]

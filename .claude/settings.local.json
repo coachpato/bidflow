@@ -5,7 +5,10 @@
       "Bash(npx prisma:*)",
       "Bash(timeout 15 npx next build)",
       "Bash(npx next:*)",
-      "Bash(node -e ':*)"
+      "Bash(node -e ':*)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer"
     ]
   }
 }

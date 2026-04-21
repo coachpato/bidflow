@@ -9,9 +9,18 @@ export default function Textarea({
   required = false,
   rows = 4,
   className = '',
+  'aria-label': ariaLabel = null,
   ...props
 }) {
   const id = props.id || `textarea-${Math.random().toString(36).substr(2, 9)}`
+  const errorId = `${id}-error`
+  const hintId = `${id}-hint`
+
+  // Build aria-describedby
+  const describedByIds = []
+  if (error) describedByIds.push(errorId)
+  if (hint && !error) describedByIds.push(hintId)
+  const ariaDescribedBy = describedByIds.length > 0 ? describedByIds.join(' ') : undefined
 
   const textareaClass = `
     app-textarea
@@ -24,7 +33,7 @@ export default function Textarea({
       {label && (
         <label htmlFor={id} className="block text-sm font-semibold text-var(--foreground)">
           {label}
-          {required && <span className="text-var(--danger-500) ml-1">*</span>}
+          {required && <span className="required" aria-label="required">*</span>}
         </label>
       )}
 
@@ -32,17 +41,21 @@ export default function Textarea({
         id={id}
         rows={rows}
         className={textareaClass}
+        aria-label={ariaLabel}
+        aria-invalid={error ? 'true' : 'false'}
+        aria-required={required ? 'true' : 'false'}
+        aria-describedby={ariaDescribedBy}
         {...props}
       />
 
       {error && (
-        <p className="text-sm text-var(--danger-500)" role="alert">
+        <p id={errorId} className="text-sm text-var(--danger-500) error-message" role="alert">
           {error}
         </p>
       )}
 
       {hint && !error && (
-        <p className="text-sm text-var(--muted)">
+        <p id={hintId} className="text-sm text-var(--muted) hint">
           {hint}
         </p>
       )}
