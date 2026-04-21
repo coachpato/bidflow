@@ -1,23 +1,24 @@
-import { Cormorant_Garamond, IBM_Plex_Mono, Plus_Jakarta_Sans } from 'next/font/google'
+import { Inter, Playfair_Display, Inconsolata } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/app/components/ThemeProvider'
 import { ToastProvider } from '@/app/components/Toast'
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+  weight: ['400', '500', '600', '700'],
 })
 
-const ibmPlexMono = IBM_Plex_Mono({
+const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-mono',
-})
-
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
   variable: '--font-display',
+  weight: ['500', '600', '700', '800', '900'],
+})
+
+const inconsolata = Inconsolata({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  weight: ['400', '700'],
 })
 
 export const metadata = {
@@ -28,7 +29,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`h-full ${plusJakartaSans.variable} ${ibmPlexMono.variable} ${cormorantGaramond.variable}`}>
+    <html lang="en" className={`h-full ${inter.variable} ${playfairDisplay.variable} ${inconsolata.variable}`}>
       <body className="h-full antialiased">
         <ThemeProvider>
           <ToastProvider>
