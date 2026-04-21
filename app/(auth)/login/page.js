@@ -4,19 +4,20 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AuthShell from '@/app/components/AuthShell'
+import GoogleAuthButton from '@/app/components/GoogleAuthButton'
 
 const HIGHLIGHTS = [
   {
-    title: 'Built for core project advisors',
-    body: 'Bid360 starts with the built environment, legal, and accounting firms behind public-sector projects.',
+    title: 'Centralized tender management',
+    body: 'All tenders, pursuits, and contracts in one disciplined workspace.',
   },
   {
-    title: 'One tender lifecycle',
-    body: 'Move from discovery to pursuit, then into appointments or challenges.',
+    title: 'Built-in deadlines & reminders',
+    body: 'Never miss a submission or response deadline again.',
   },
   {
-    title: 'Less friction, more follow-through',
-    body: 'Deadlines, reminders, files, and ownership stay in one workspace.',
+    title: 'Made for your sector',
+    body: 'Customized for built environment, legal, and accounting firms.',
   },
 ]
 
@@ -48,40 +49,73 @@ export default function LoginPage() {
     router.push('/dashboard')
   }
 
+  function handleGoogleSuccess() {
+    router.push('/dashboard')
+  }
+
   return (
     <AuthShell
-      title="Welcome back"
-      description="Sign in to continue"
-      supportingLabel="Bid360 workspace"
-      supportingDescription="Tender 360 for the built environment, legal, and accounting firms working with the state."
+      title="Welcome back to Bid360"
+      description="Sign in to your workspace"
+      supportingLabel="Tender management"
+      supportingDescription="For the built environment, legal, and accounting firms behind South Africa's biggest projects."
       highlights={HIGHLIGHTS}
     >
       {error && (
-        <div className="mb-5 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+        <div className="mb-6 rounded-lg border border-var(--danger-500)/20 bg-var(--danger-500)/8 px-4 py-3 text-sm text-var(--danger-600) flex gap-3 items-start animate-slideInUp" role="alert">
+          <span className="text-lg mt-0.5">⚠️</span>
+          <div>
+            <p className="font-semibold mb-1">Sign in failed</p>
+            <p>{error}</p>
+          </div>
         </div>
       )}
 
+      <GoogleAuthButton
+        intent="login"
+        onError={setError}
+        onSuccess={handleGoogleSuccess}
+        label="Continue with Google"
+      />
+
+      <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-var(--muted)">
+        <span className="h-px flex-1 bg-var(--line)" />
+        <span>Or use email and password</span>
+        <span className="h-px flex-1 bg-var(--line)" />
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">
+          <label htmlFor="email" className="mb-2 block text-sm font-semibold text-var(--foreground)">
             Email address
           </label>
           <input
+            id="email"
             type="email"
             required
+            autoComplete="email"
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
             placeholder="you@firm.co.za"
             className="app-input"
+            aria-describedby={error ? 'error-message' : undefined}
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="mb-2 block text-sm font-semibold text-var(--foreground)">
+              Password
+            </label>
+            <a href="#" className="text-xs font-semibold text-var(--brand-500) hover:text-var(--brand-600) transition">
+              Forgot?
+            </a>
+          </div>
           <input
+            id="password"
             type="password"
             required
+            autoComplete="current-password"
             value={form.password}
             onChange={e => setForm({ ...form, password: e.target.value })}
             placeholder="Enter your password"
@@ -92,18 +126,24 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="app-button-primary w-full disabled:translate-y-0 disabled:opacity-60"
+          className="app-button-primary w-full app-button-lg"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? (
+            <>
+              <div className="animate-spin">
+                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+              </div>
+              Signing in...
+            </>
+          ) : 'Sign in'}
         </button>
       </form>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-        <span>Secure workspace access.</span>
+      <div className="mt-8 border-t border-var(--line) pt-6 text-center text-sm text-var(--muted)">
         <p>
-          No account yet?{' '}
-          <Link href="/register" className="font-semibold text-[var(--brand-500)] hover:underline">
-            Create one
+          Don't have a workspace?{' '}
+          <Link href="/register" className="font-semibold text-var(--brand-500) hover:text-var(--brand-600) transition">
+            Create one →
           </Link>
         </p>
       </div>
