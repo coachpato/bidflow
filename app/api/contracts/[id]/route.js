@@ -1,6 +1,17 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { recordContractStatusChange } from '@/lib/status-changes'
+import {
+  validateContractAppointmentTransition,
+  validateContractInstructionTransition,
+  ROLE_NAMES,
+} from '@/lib/status-machine'
+import { getUserRoleFromSession } from '@/lib/roles'
+import {
+  buildContractStatusChangePayload,
+  queueWebhook,
+} from '@/lib/webhooks'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { notifyContractAssignees } from '@/lib/contract-notifications'
 import { findAssignedUser } from '@/lib/tender-assignment'
@@ -105,7 +116,63 @@ export async function PATCH(request, { params }) {
   })
   if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
 
+  // =========================================================================
+  // RBAC CHECK: Validate status transitions with role-based access control
+  // =========================================================================
+  // Get user's role once (used for both status fields)
+  const userRole = getUserRoleFromSession(session)
+
+  if (body.appointmentStatus && body.appointmentStatus !== existing.appointmentStatus) {
+    const validation = validateContractAppointmentTransition(
+      existing.appointmentStatus,
+      body.appointmentStatus,
+      userRole
+    )
+    if (!validation.isValid) {
+      const statusCode = validation.code === 'INSUFFICIENT_ROLE' ? 403 : 400
+      return Response.json(
+        {
+          error: validation.error,
+          code: validation.code,
+          field: 'appointmentStatus',
+          ...(validation.code === 'INSUFFICIENT_ROLE' && {
+            requiredRole: ROLE_NAMES[validation.requiredRole],
+            userRole: ROLE_NAMES[validation.userRole],
+          }),
+        },
+        { status: statusCode }
+      )
+    }
+  }
+
+  if (body.instructionStatus && body.instructionStatus !== existing.instructionStatus) {
+    const validation = validateContractInstructionTransition(
+      existing.instructionStatus,
+      body.instructionStatus,
+      userRole
+    )
+    if (!validation.isValid) {
+      const statusCode = validation.code === 'INSUFFICIENT_ROLE' ? 403 : 400
+      return Response.json(
+        {
+          error: validation.error,
+          code: validation.code,
+          field: 'instructionStatus',
+          ...(validation.code === 'INSUFFICIENT_ROLE' && {
+            requiredRole: ROLE_NAMES[validation.requiredRole],
+            userRole: ROLE_NAMES[validation.userRole],
+          }),
+        },
+        { status: statusCode }
+      )
+    }
+  }
+
   const assignment = await resolveAssignedFields(body, existing)
+
+  // Determine new status values
+  const newAppointmentStatus = body.appointmentStatus ?? existing.appointmentStatus
+  const newInstructionStatus = body.instructionStatus ?? existing.instructionStatus
 
   const updated = await prisma.contract.update({
     where: { id: contractId },
@@ -114,8 +181,8 @@ export async function PATCH(request, { params }) {
       client: body.client ?? existing.client,
       assignedTo: assignment.assignedTo,
       assignedUserId: assignment.assignedUserId,
-      appointmentStatus: body.appointmentStatus ?? existing.appointmentStatus,
-      instructionStatus: body.instructionStatus ?? existing.instructionStatus,
+      appointmentStatus: newAppointmentStatus,
+      instructionStatus: newInstructionStatus,
       appointmentDate: toDateOrExisting(body.appointmentDate, existing.appointmentDate),
       startDate: toDateOrExisting(body.startDate, existing.startDate),
       endDate: toDateOrExisting(body.endDate, existing.endDate),
@@ -144,6 +211,57 @@ export async function PATCH(request, { params }) {
       assignedUser: { select: { id: true, name: true, email: true } },
     },
   })
+
+  // Record status changes with role information for audit trail
+  const userRoleName = ROLE_NAMES[userRole]
+
+  if (newAppointmentStatus !== existing.appointmentStatus) {
+    void recordContractStatusChange({
+      contractId: updated.id,
+      fieldName: 'appointmentStatus',
+      oldValue: existing.appointmentStatus,
+      newValue: newAppointmentStatus,
+      changedByUserId: session.userId,
+      userRole: userRoleName, // Include role in audit trail
+      reason: body.statusChangeReason || null,
+    })
+
+    // Dispatch webhook
+    void dispatchContractStatusChangeWebhook({
+      contract: updated,
+      fieldName: 'appointmentStatus',
+      oldValue: existing.appointmentStatus,
+      newValue: newAppointmentStatus,
+      changedBy: session,
+      userRole: userRoleName, // Include role in webhook payload
+      reason: body.statusChangeReason,
+      organizationId,
+    })
+  }
+
+  if (newInstructionStatus !== existing.instructionStatus) {
+    void recordContractStatusChange({
+      contractId: updated.id,
+      fieldName: 'instructionStatus',
+      oldValue: existing.instructionStatus,
+      newValue: newInstructionStatus,
+      changedByUserId: session.userId,
+      userRole: userRoleName, // Include role in audit trail
+      reason: body.statusChangeReason || null,
+    })
+
+    // Dispatch webhook
+    void dispatchContractStatusChangeWebhook({
+      contract: updated,
+      fieldName: 'instructionStatus',
+      oldValue: existing.instructionStatus,
+      newValue: newInstructionStatus,
+      changedBy: session,
+      userRole: userRoleName, // Include role in webhook payload
+      reason: body.statusChangeReason,
+      organizationId,
+    })
+  }
 
   await logActivity(`Updated contract: ${updated.title}`, {
     userId: session.userId,
@@ -186,4 +304,65 @@ export async function DELETE(request, { params }) {
   await expireCacheTags(dashboardCacheTag(organizationId))
 
   return Response.json({ success: true })
+}
+
+// Helper: Dispatch contract status change webhooks to subscribed endpoints
+async function dispatchContractStatusChangeWebhook({
+  contract,
+  fieldName,
+  oldValue,
+  newValue,
+  changedBy,
+  reason,
+  organizationId,
+}) {
+  try {
+    // Get all active webhook endpoints for this organization
+    const endpoints = await prisma.webhookEndpoint.findMany({
+      where: {
+        organizationId,
+        isActive: true,
+        events: {
+          hasSome: [
+            `contract.${fieldName === 'appointmentStatus' ? 'appointment_status' : 'instruction_status'}_changed`,
+            'contract.status_changed', // Wildcard subscription
+          ],
+        },
+      },
+    })
+
+    if (endpoints.length === 0) return
+
+    // Build payload
+    const payload = buildContractStatusChangePayload({
+      contract,
+      fieldName,
+      oldValue,
+      newValue,
+      changedBy: {
+        id: changedBy.userId,
+        name: changedBy.name,
+        email: changedBy.email,
+      },
+      reason,
+      organizationId,
+    })
+
+    // Queue webhooks for async dispatch
+    for (const endpoint of endpoints) {
+      const eventName = fieldName === 'appointmentStatus'
+        ? 'contract.appointment_status_changed'
+        : 'contract.instruction_status_changed'
+
+      void queueWebhook(prisma, {
+        organizationId,
+        event: eventName,
+        payload,
+        webhookUrl: endpoint.url,
+      })
+    }
+  } catch (error) {
+    console.error('Error dispatching contract status change webhooks:', error)
+    // Don't throw - webhook failure shouldn't block the update
+  }
 }
