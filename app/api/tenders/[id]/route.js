@@ -1,6 +1,14 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { recordTenderStatusChange } from '@/lib/status-changes'
+import { validateTenderTransition, ROLE_NAMES } from '@/lib/status-machine'
+import { getUserRoleFromSession } from '@/lib/roles'
+import {
+  buildTenderStatusChangePayload,
+  queueWebhook,
+  WEBHOOK_EVENTS,
+} from '@/lib/webhooks'
 import {
   dashboardCacheTag,
   expireCacheTags,
@@ -108,6 +116,32 @@ export async function PATCH(request, { params }) {
   })
   if (!existing) return Response.json({ error: 'Tender not found' }, { status: 404 })
 
+  // =========================================================================
+  // RBAC CHECK: Validate status transition with role-based access control
+  // =========================================================================
+  if (body.status && body.status !== existing.status) {
+    // Get user's role from session and convert to numeric value
+    const userRole = getUserRoleFromSession(session)
+
+    // Validate transition including role permissions
+    const validation = validateTenderTransition(existing.status, body.status, userRole)
+    if (!validation.isValid) {
+      // Return 403 Forbidden if permission issue, 400 for other validation errors
+      const statusCode = validation.code === 'INSUFFICIENT_ROLE' ? 403 : 400
+      return Response.json(
+        {
+          error: validation.error,
+          code: validation.code,
+          ...(validation.code === 'INSUFFICIENT_ROLE' && {
+            requiredRole: ROLE_NAMES[validation.requiredRole],
+            userRole: ROLE_NAMES[validation.userRole],
+          }),
+        },
+        { status: statusCode }
+      )
+    }
+  }
+
   const assignment = await resolveAssignedFields(body, existing)
 
   const updated = await prisma.tender.update({
@@ -133,10 +167,33 @@ export async function PATCH(request, { params }) {
 
   // Log status changes specifically
   if (body.status && body.status !== existing.status) {
+    // Get user's role for logging purposes
+    const userRole = getUserRoleFromSession(session)
+    const userRoleName = ROLE_NAMES[userRole]
+
     void logActivity(
-      `Status changed from "${existing.status}" to "${body.status}" on tender: ${updated.title}`,
+      `Status changed from "${existing.status}" to "${body.status}" on tender: ${updated.title} (by ${userRoleName})`,
       { userId: session.userId, tenderId: updated.id }
     )
+    // Record the status change in audit trail with role information
+    void recordTenderStatusChange({
+      tenderId: updated.id,
+      fromStatus: existing.status,
+      toStatus: body.status,
+      changedByUserId: session.userId,
+      userRole: userRoleName, // Include role in audit trail
+      reason: body.statusChangeReason || null,
+    })
+
+    // Dispatch webhooks to subscribed endpoints
+    void dispatchStatusChangeWebhook({
+      tender: updated,
+      fromStatus: existing.status,
+      toStatus: body.status,
+      changedBy: session,
+      reason: body.statusChangeReason,
+      organizationId,
+    })
   } else {
     void logActivity(`Updated tender: ${updated.title}`, {
       userId: session.userId,
@@ -192,4 +249,56 @@ export async function DELETE(request, { params }) {
   )
 
   return Response.json({ success: true })
+}
+
+// Helper: Dispatch status change webhooks to subscribed endpoints
+async function dispatchStatusChangeWebhook({
+  tender,
+  fromStatus,
+  toStatus,
+  changedBy,
+  reason,
+  organizationId,
+}) {
+  try {
+    // Get all active webhook endpoints for this organization
+    const endpoints = await prisma.webhookEndpoint.findMany({
+      where: {
+        organizationId,
+        isActive: true,
+        events: {
+          has: 'tender.status_changed', // Only endpoints subscribed to status changes
+        },
+      },
+    })
+
+    if (endpoints.length === 0) return
+
+    // Build payload
+    const payload = buildTenderStatusChangePayload({
+      tender,
+      fromStatus,
+      toStatus,
+      changedBy: {
+        id: changedBy.userId,
+        name: changedBy.name,
+        email: changedBy.email,
+      },
+      reason,
+      organizationId,
+    })
+
+    // Queue webhooks for async dispatch
+    for (const endpoint of endpoints) {
+      void queueWebhook(prisma, {
+        organizationId,
+        event: 'tender.status_changed',
+        payload,
+        webhookUrl: endpoint.url,
+      })
+    }
+  } catch (error) {
+    console.error('Error dispatching status change webhooks:', error)
+    // Don't throw - webhook failure shouldn't block the update
+  }
 }
