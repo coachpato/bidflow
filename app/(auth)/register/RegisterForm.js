@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import GoogleAuthButton from '@/app/components/GoogleAuthButton'
 import {
   SERVICE_SECTOR_OPTIONS,
   SOUTH_AFRICA_PROVINCES,
@@ -20,6 +21,46 @@ function parsePreferredEntities(value) {
     .split(/[\n,]/)
     .map(item => item.trim())
     .filter(Boolean)
+}
+
+function getRegistrationValidationError(form, { requirePassword } = { requirePassword: false }) {
+  if (!form.organizationName.trim()) {
+    return 'Organization name is required.'
+  }
+
+  if (!form.serviceSector) {
+    return 'Choose your sector so Bid360 can tailor your opportunity radar.'
+  }
+
+  if (form.practiceAreas.length === 0) {
+    return 'Choose at least one practice area so Bid360 can tailor your opportunity radar.'
+  }
+
+  if (form.targetWorkTypes.length === 0) {
+    return 'Choose at least one opportunity type so Bid360 can tailor your opportunity radar.'
+  }
+
+  if (!requirePassword) {
+    return ''
+  }
+
+  if (!form.name.trim()) {
+    return 'Full name is required when creating an account with email and password.'
+  }
+
+  if (!form.email.trim()) {
+    return 'Email address is required when creating an account with email and password.'
+  }
+
+  if (form.password.length < 6) {
+    return 'Password must be at least 6 characters.'
+  }
+
+  if (form.password !== form.confirm) {
+    return 'Passwords do not match'
+  }
+
+  return ''
 }
 
 export default function RegisterForm({ isBootstrapMode = false }) {
@@ -70,18 +111,9 @@ export default function RegisterForm({ isBootstrapMode = false }) {
     event.preventDefault()
     setError('')
 
-    if (form.password !== form.confirm) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (form.practiceAreas.length === 0) {
-      setError('Choose at least one practice area so Bid360 can tailor your opportunity radar.')
-      return
-    }
-
-    if (form.targetWorkTypes.length === 0) {
-      setError('Choose at least one opportunity type so Bid360 can tailor your opportunity radar.')
+    const validationError = getRegistrationValidationError(form, { requirePassword: true })
+    if (validationError) {
+      setError(validationError)
       return
     }
 
@@ -114,61 +146,85 @@ export default function RegisterForm({ isBootstrapMode = false }) {
     router.push('/dashboard')
   }
 
+  function handleGoogleValidation() {
+    setError('')
+    return getRegistrationValidationError(form, { requirePassword: false })
+  }
+
+  function handleGoogleSuccess() {
+    router.push('/dashboard')
+  }
+
+  const googlePayload = {
+    name: form.name,
+    organizationName: form.organizationName,
+    serviceSector: form.serviceSector,
+    practiceAreas: form.practiceAreas,
+    targetWorkTypes: form.targetWorkTypes,
+    targetProvinces: form.targetProvinces,
+    preferredEntities: parsePreferredEntities(form.preferredEntitiesText),
+  }
+
   return (
     <>
-      <p className="mb-6 text-sm leading-7 text-slate-600">
+      <p className="mb-6 text-sm leading-7 text-var(--foreground-secondary)">
         {isBootstrapMode
           ? 'The first registered user becomes the workspace admin and opens the initial Bid360 workspace.'
           : 'This creates a new Bid360 workspace for your team.'}
       </p>
 
       {error && (
-        <div className="mb-5 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+        <div className="mb-5 rounded-lg border border-var(--danger-500)/20 bg-var(--danger-500)/8 px-4 py-3 text-sm text-var(--danger-600) flex gap-3 items-start" role="alert">
+          <span className="text-lg mt-0.5">⚠️</span>
+          <p>{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Organization name</label>
-            <input
-              type="text"
-              required
-              value={form.organizationName}
-              onChange={event => setForm(current => ({ ...current, organizationName: event.target.value }))}
-              placeholder={getOrganizationPlaceholder()}
-              className="app-input"
-            />
-          </div>
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-var(--foreground)">Organization name *</label>
+          <input
+            type="text"
+            required
+            value={form.organizationName}
+            onChange={event => setForm(current => ({ ...current, organizationName: event.target.value }))}
+            placeholder={getOrganizationPlaceholder()}
+            className="app-input"
+          />
+        </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Sector</label>
-            <select
-              required
-              value={form.serviceSector}
-              onChange={event => handleSectorChange(event.target.value)}
-              className="app-input"
-            >
-              {SERVICE_SECTOR_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+        <div>
+          <label className="mb-4 block text-sm font-semibold text-var(--foreground)">Choose your sector *</label>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {SERVICE_SECTOR_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleSectorChange(option.value)}
+                className={`
+                  app-card p-4 transition-all
+                  ${form.serviceSector === option.value
+                    ? 'border-var(--brand-500) bg-var(--brand-500)/5 ring-2 ring-var(--brand-500)/20'
+                    : 'hover:border-var(--brand-500)/50'
+                  }
+                `}
+              >
+                <div className="text-2xl mb-3">{getSectorIcon(option.value)}</div>
+                <h3 className="font-semibold text-var(--foreground) text-left">{option.label}</h3>
+                <p className="text-xs text-var(--muted) mt-2 text-left">
+                  {option.description}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          {selectedSector?.description}
-        </div>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white/80 p-4 sm:p-5">
-          <div className="border-b border-slate-100 pb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Opportunity radar</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">What should Bid360 look for?</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              These answers stay behind the scenes and tune the scraper so your workspace starts with more relevant opportunities.
+        <section className="app-card">
+          <div className="border-b border-var(--line) pb-4 mb-4">
+            <p className="app-kicker">Opportunity radar</p>
+            <h2 className="mt-2 text-lg font-semibold text-var(--foreground)">What should Bid360 find for you?</h2>
+            <p className="mt-2 text-sm leading-6 text-var(--foreground-secondary)">
+              These answers help the scraper prioritize relevant opportunities for your workspace.
             </p>
           </div>
 
@@ -207,7 +263,7 @@ export default function RegisterForm({ isBootstrapMode = false }) {
             />
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
+              <label className="mb-2 block text-sm font-semibold text-var(--foreground)">
                 Which public entities should Bid360 pay attention to?
               </label>
               <textarea
@@ -217,38 +273,53 @@ export default function RegisterForm({ isBootstrapMode = false }) {
                 placeholder={discoveryConfig.preferredEntitiesPlaceholder}
                 className="app-textarea"
               />
-              <p className="mt-2 text-xs text-slate-500">Optional. Separate names with commas or new lines.</p>
+              <p className="mt-2 text-xs text-var(--muted)">Optional. Separate names with commas or new lines.</p>
             </div>
           </div>
         </section>
 
+        <GoogleAuthButton
+          intent="register"
+          payload={googlePayload}
+          validate={handleGoogleValidation}
+          onError={setError}
+          onSuccess={handleGoogleSuccess}
+          label="Create your account with Google"
+        />
+
+        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-var(--muted)">
+          <span className="h-px flex-1 bg-var(--line)" />
+          <span>Or use email and password</span>
+          <span className="h-px flex-1 bg-var(--line)" />
+        </div>
+
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Full name</label>
+          <label className="mb-2 block text-sm font-semibold text-var(--foreground)">Full name</label>
           <input
             type="text"
-            required
             value={form.name}
             onChange={event => setForm(current => ({ ...current, name: event.target.value }))}
             placeholder="Thabo Nkosi"
             className="app-input"
           />
+          <p className="mt-1 text-xs text-var(--muted)">Optional if you continue with Google.</p>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Email address</label>
+          <label className="mb-2 block text-sm font-semibold text-var(--foreground)">Email address</label>
           <input
             type="email"
-            required
             value={form.email}
             onChange={event => setForm(current => ({ ...current, email: event.target.value }))}
             placeholder={getEmailPlaceholder()}
             className="app-input"
           />
+          <p className="mt-1 text-xs text-var(--muted)">Optional if you continue with Google.</p>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+            <label className="mb-2 block text-sm font-semibold text-var(--foreground)">Password</label>
             <input
               type="password"
               required
@@ -261,7 +332,7 @@ export default function RegisterForm({ isBootstrapMode = false }) {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+            <label className="mb-2 block text-sm font-semibold text-var(--foreground)">
               Confirm password
             </label>
             <input
@@ -278,29 +349,43 @@ export default function RegisterForm({ isBootstrapMode = false }) {
         <button
           type="submit"
           disabled={loading}
-          className="app-button-primary w-full disabled:translate-y-0 disabled:opacity-60"
+          className="app-button-primary w-full app-button-lg"
         >
-          {loading ? 'Creating workspace...' : isBootstrapMode ? 'Create workspace' : 'Create account'}
+          {loading ? (
+            <>
+              <div className="animate-spin">
+                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+              </div>
+              Creating workspace...
+            </>
+          ) : isBootstrapMode ? 'Create workspace' : 'Create account'}
         </button>
       </form>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-        <span>Already have access?</span>
-        <p>
-          <Link href="/login" className="font-semibold text-[var(--brand-500)] hover:underline">
-            Sign in instead
-          </Link>
-        </p>
+      <div className="mt-8 border-t border-var(--line) pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-var(--muted)">
+        <span>Already have a workspace?</span>
+        <Link href="/login" className="font-semibold text-var(--brand-500) hover:text-var(--brand-600) transition">
+          Sign in →
+        </Link>
       </div>
     </>
   )
 }
 
+function getSectorIcon(sector) {
+  const icons = {
+    BUILT_ENVIRONMENT: '🏗️',
+    LEGAL: '⚖️',
+    ACCOUNTING: '📊',
+  }
+  return icons[sector] || '📋'
+}
+
 function SelectionGroup({ label, helper, options, selected, onToggle }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-slate-700">{label}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{helper}</p>
+      <p className="text-sm font-semibold text-var(--foreground)">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-var(--muted)">{helper}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {options.map(option => {
           const active = selected.includes(option)
@@ -310,11 +395,13 @@ function SelectionGroup({ label, helper, options, selected, onToggle }) {
               key={option}
               type="button"
               onClick={() => onToggle(option)}
-              className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
-                active
-                  ? 'border-transparent bg-[var(--brand-600)] text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`
+                rounded-full border px-4 py-2 text-sm font-medium transition
+                ${active
+                  ? 'border-var(--brand-500) bg-var(--brand-500) text-white'
+                  : 'border-var(--line) bg-var(--surface) text-var(--foreground) hover:border-var(--brand-500) hover:bg-var(--background-muted)'
+                }
+              `}
             >
               {option}
             </button>
