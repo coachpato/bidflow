@@ -1,7 +1,10 @@
 {
-  "name": "bidflow",
+  "name": "bid360",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/run-with-db-env.js \"prisma generate && next build\"",
@@ -13,7 +16,13 @@
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "rollout:inventory": "node scripts/freeze-workflow-inventory.js",
+    "rollout:check": "node scripts/run-workflow-regression.js",
+    "rollout:gate": "npm run rollout:inventory && npm run rollout:check",
+    "setup:local": "npm run db:migrate:deploy && npm run db:seed:test && npm run dev",
+    "db:seed:test": "node scripts/run-with-db-env.js \"node prisma/seed-test-data.js\"",
+    "db:reset": "node scripts/run-with-db-env.js \"npx prisma migrate reset --skip-generate\""
   },
   "prisma": {
     "seed": "node prisma/seed.js"
