@@ -89,6 +89,7 @@ export async function GET(request, { params }) {
     where: {
       id: parseInt(id, 10),
       organizationId,
+      dislikedAt: null,
     },
     include: getOpportunityInclude(organizationId),
   })
@@ -126,6 +127,7 @@ export async function PATCH(request, { params }) {
   const nextReference = toNullableString(body.reference, existing.reference)
   const nextDeadline = toNullableDate(body.deadline, existing.deadline)
   const nextSourceName = toNullableString(body.sourceName, existing.sourceName) || 'Manual intake'
+  const nextStatus = normalizeOpportunityStatus(body.status, existing.status)
   const serviceSector = await getOrganizationServiceSector(organizationId)
   const existingMatch = await prisma.opportunityMatch.findUnique({
     where: {
@@ -190,7 +192,15 @@ export async function PATCH(request, { params }) {
         contactPerson: toNullableString(body.contactPerson, existing.contactPerson),
         contactEmail: toNullableString(body.contactEmail, existing.contactEmail),
         fitScore: nextFitScore,
-        status: normalizeOpportunityStatus(body.status, existing.status),
+        status: nextStatus,
+        likedAt: nextStatus === 'Liked'
+          ? (existing.likedAt || new Date())
+          : nextStatus === 'Pursued'
+            ? (existing.likedAt || new Date())
+            : null,
+        dislikedAt: nextStatus === 'Disliked' ? new Date() : null,
+        dislikedByUserId: nextStatus === 'Disliked' ? session.userId : null,
+        pursuedAt: nextStatus === 'Pursued' ? (existing.pursuedAt || new Date()) : null,
         notes: toNullableString(body.notes, existing.notes),
         parsedRequirements: body.parsedRequirements !== undefined
           ? (Array.isArray(body.parsedRequirements) ? body.parsedRequirements : null)
@@ -258,8 +268,8 @@ export async function DELETE(request, { params }) {
     return Response.json({ error: 'Opportunity not found' }, { status: 404 })
   }
 
-  if (existing.status === 'Converted') {
-    return Response.json({ error: 'Converted opportunities cannot be deleted.' }, { status: 400 })
+  if (existing.tenderId || existing.status === 'Pursued') {
+    return Response.json({ error: 'Pursued opportunities cannot be deleted.' }, { status: 400 })
   }
 
   await prisma.opportunity.delete({ where: { id: opportunityId } })

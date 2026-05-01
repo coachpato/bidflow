@@ -8,13 +8,14 @@ import StatusBadge from '@/app/components/StatusBadge'
 const FILTERS = [
   { label: 'All', value: 'All' },
   { label: 'New', value: 'New' },
-  { label: 'Watch', value: 'Watch' },
-  { label: 'Pursue', value: 'Pursue' },
-  { label: 'Ignore', value: 'Ignore' },
-  { label: 'Converted', value: 'Converted' },
+  { label: 'Liked', value: 'Liked' },
+  { label: 'Pursued', value: 'Pursued' },
 ]
 
-const REVIEW_ACTIONS = ['Watch', 'Pursue', 'Ignore']
+const REVIEW_ACTIONS = [
+  { value: 'Liked', label: 'Like' },
+  { value: 'Disliked', label: 'Dislike' },
+]
 
 function formatDate(value) {
   if (!value) return 'No deadline'
@@ -65,10 +66,13 @@ function getMatchReasons(opportunity) {
 export default function OpportunitiesClient({ initialSearch, initialStatus }) {
   const [opportunities, setOpportunities] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [searchInput, setSearchInput] = useState(initialSearch)
   const [submittedSearch, setSubmittedSearch] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState(initialStatus)
   const [updatingId, setUpdatingId] = useState(null)
+  const [seeding, setSeeding] = useState(false)
+  const [seedStatus, setSeedStatus] = useState({ type: 'idle', message: '' })
 
   useEffect(() => {
     let isMounted = true
@@ -98,7 +102,7 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
     return () => {
       isMounted = false
     }
-  }, [statusFilter, submittedSearch])
+  }, [refreshKey, statusFilter, submittedSearch])
 
   const summary = useMemo(() => {
     const highFit = opportunities.filter(opportunity => (opportunity.fitScore ?? 0) >= 75).length
@@ -106,15 +110,15 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
       const daysRemaining = getDaysRemaining(opportunity.deadline)
       return daysRemaining != null && daysRemaining >= 0 && daysRemaining <= 10
     }).length
-    const pursueCount = opportunities.filter(opportunity => opportunity.status === 'Pursue').length
-    const watchCount = opportunities.filter(opportunity => opportunity.status === 'Watch').length
+    const pursuedCount = opportunities.filter(opportunity => opportunity.status === 'Pursued').length
+    const likedCount = opportunities.filter(opportunity => opportunity.status === 'Liked').length
 
     return {
       total: opportunities.length,
       highFit,
       dueSoon,
-      pursueCount,
-      watchCount,
+      pursuedCount,
+      likedCount,
     }
   }, [opportunities])
 
@@ -153,6 +157,35 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
     }
   }
 
+  async function loadMockFeed() {
+    setSeeding(true)
+    setSeedStatus({ type: 'idle', message: '' })
+
+    try {
+      const response = await fetch('/api/opportunities/mock-feed', {
+        method: 'POST',
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not load the mock feed.')
+      }
+
+      setSeedStatus({
+        type: 'success',
+        message: `${payload.createdCount} mock opportunit${payload.createdCount === 1 ? 'y was' : 'ies were'} added to the radar.`,
+      })
+      setRefreshKey(current => current + 1)
+    } catch (error) {
+      setSeedStatus({
+        type: 'error',
+        message: error.message || 'Could not load the mock feed.',
+      })
+    } finally {
+      setSeeding(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Header
@@ -164,8 +197,8 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
           { label: 'In radar', value: `${summary.total}` },
           { label: 'High fit', value: `${summary.highFit}` },
           { label: 'Closing soon', value: `${summary.dueSoon}` },
-          { label: 'Pursue', value: `${summary.pursueCount}` },
-          { label: 'Watch', value: `${summary.watchCount}` },
+          { label: 'Pursued', value: `${summary.pursuedCount}` },
+          { label: 'Liked', value: `${summary.likedCount}` },
         ]}
       />
 
@@ -180,7 +213,7 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                   <button
                     key={filter.value}
                     onClick={() => setStatusFilter(filter.value)}
-                    className={`rounded-full border px-3 py-2 text-xs font-semibold tracking-[0.08em] uppercase ${
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold tracking-[0.08em] uppercase ${
                       isActive
                         ? 'border-transparent bg-[var(--brand-600)] text-white'
                         : 'border-slate-200 bg-white/90 text-slate-600 hover:bg-slate-50'
@@ -193,6 +226,9 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
             </div>
 
             <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+              <button onClick={loadMockFeed} disabled={seeding} className="app-button-secondary whitespace-nowrap disabled:opacity-60">
+                {seeding ? 'Loading mock feed...' : 'Load mock feed'}
+              </button>
               <input
                 type="text"
                 placeholder="Search title, entity, practice area, or reference"
@@ -206,6 +242,16 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
               </button>
             </div>
           </div>
+
+          <p className={`mt-4 text-sm ${
+            seedStatus.type === 'error'
+              ? 'text-rose-700'
+              : seedStatus.type === 'success'
+                ? 'text-emerald-700'
+                : 'text-slate-500'
+          }`}>
+            {seedStatus.message || 'Admins can load a mock radar feed here to test the firm-wide Like, Dislike, and Pursue flow immediately after setup.'}
+          </p>
         </section>
 
         {loading ? (
@@ -259,14 +305,14 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {REVIEW_ACTIONS.map(status => (
+                      {REVIEW_ACTIONS.map(action => (
                         <button
-                          key={status}
-                          onClick={() => updateOpportunityStatus(opportunity.id, status)}
-                          disabled={updatingId === opportunity.id || opportunity.status === status || opportunity.status === 'Converted'}
-                          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 disabled:opacity-50"
+                          key={action.value}
+                          onClick={() => updateOpportunityStatus(opportunity.id, action.value)}
+                          disabled={updatingId === opportunity.id || opportunity.status === action.value || opportunity.status === 'Pursued'}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 disabled:opacity-50"
                         >
-                          {status}
+                          {action.label}
                         </button>
                       ))}
                     </div>
@@ -335,16 +381,16 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap gap-2">
-                            {REVIEW_ACTIONS.map(status => (
-                              <button
-                                key={status}
-                                onClick={() => updateOpportunityStatus(opportunity.id, status)}
-                                disabled={updatingId === opportunity.id || opportunity.status === status || opportunity.status === 'Converted'}
-                                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 disabled:opacity-50"
-                              >
-                                {status}
-                              </button>
-                            ))}
+                      {REVIEW_ACTIONS.map(action => (
+                        <button
+                          key={action.value}
+                          onClick={() => updateOpportunityStatus(opportunity.id, action.value)}
+                          disabled={updatingId === opportunity.id || opportunity.status === action.value || opportunity.status === 'Pursued'}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 disabled:opacity-50"
+                        >
+                          {action.label}
+                        </button>
+                      ))}
                           </div>
                           {opportunity.tender ? (
                             <p className="mt-2 text-xs text-slate-400">Pursuit linked</p>

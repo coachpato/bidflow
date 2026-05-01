@@ -33,8 +33,8 @@ export default async function DashboardPage() {
     opportunitiesCount,
     activePursuitsCount,
     submittedPursuitsCount,
-    appointmentsCount,
-    openChallengesCount,
+    contractsCount,
+    openAppealsCount,
     unreadInboxCount,
     opportunitiesToReview,
     pursuitsDueSoon,
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
     prisma.opportunity.count({
       where: {
         organizationId,
-        status: { in: ['New', 'Watch', 'Pursue'] },
+        status: { in: ['New', 'Liked'] },
       },
     }),
     prisma.tender.count({
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
     prisma.opportunity.findMany({
       where: {
         organizationId,
-        status: { in: ['New', 'Watch', 'Pursue'] },
+        status: { in: ['New', 'Liked'] },
       },
       orderBy: [
         { deadline: { sort: 'asc', nulls: 'last' } },
@@ -194,18 +194,18 @@ export default async function DashboardPage() {
       description: 'Awaiting feedback'
     },
     {
-      label: 'Appointments',
-      value: appointmentsCount,
-      href: '/appointments',
+      label: 'Contracts',
+      value: contractsCount,
+      href: '/contracts',
       icon: '📅',
-      description: 'Active contracts'
+      description: 'Won work and delivery'
     },
     {
-      label: 'Open challenges',
-      value: openChallengesCount,
-      href: '/challenges',
+      label: 'Open appeals',
+      value: openAppealsCount,
+      href: '/appeals',
       icon: '⚠️',
-      description: 'Requiring action'
+      description: 'Losses needing follow-through'
     },
     {
       label: 'Inbox unread',
@@ -227,8 +227,8 @@ export default async function DashboardPage() {
           { label: 'Firm', value: organizationContext.organization.name },
           { label: 'Opportunities', value: `${opportunitiesCount}` },
           { label: 'Active pursuits', value: `${activePursuitsCount}` },
-          { label: 'Appointments', value: `${appointmentsCount}` },
-          { label: 'Challenges', value: `${openChallengesCount}` },
+          { label: 'Contracts', value: `${contractsCount}` },
+          { label: 'Appeals', value: `${openAppealsCount}` },
           { label: 'Inbox unread', value: `${unreadInboxCount}` },
         ]}
       />
@@ -378,14 +378,14 @@ export default async function DashboardPage() {
 
         {/* Bottom Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Appointments Section */}
+          {/* Contracts Section */}
           <section className="app-card" aria-labelledby="apt-heading">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-var(--line)">
               <h2 id="apt-heading" className="text-xl font-bold text-var(--foreground)">
-                Appointment Follow-ups
+                Contract Follow-ups
               </h2>
               <Link
-                href="/appointments"
+                href="/contracts"
                 className="app-button-secondary app-button-sm"
               >
                 View all
@@ -396,16 +396,16 @@ export default async function DashboardPage() {
               <EmptyState
                 icon="📅"
                 title="No follow-ups due"
-                description="No appointment follow-ups in the next 30 days."
-                actionText="Manage appointments"
-                actionHref="/appointments"
+                description="No contract follow-ups in the next 30 days."
+                actionText="Manage contracts"
+                actionHref="/contracts"
               />
             ) : (
               <div className="space-y-3">
                 {appointmentReminders.map(contract => (
                   <Link
                     key={contract.id}
-                    href={`/appointments/${contract.id}`}
+                    href={`/contracts/${contract.id}`}
                     className="group block p-4 rounded-xl border border-var(--line) hover:border-var(--success-500) hover:bg-var(--background-muted) transition"
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -439,14 +439,14 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          {/* Challenges Section */}
+          {/* Appeals Section */}
           <section className="app-card" aria-labelledby="chal-heading">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-var(--line)">
               <h2 id="chal-heading" className="text-xl font-bold text-var(--foreground)">
-                Challenge Deadlines
+                Appeal Deadlines
               </h2>
               <Link
-                href="/challenges"
+                href="/appeals"
                 className="app-button-secondary app-button-sm"
               >
                 View all
@@ -456,17 +456,17 @@ export default async function DashboardPage() {
             {challengeDeadlines.length === 0 ? (
               <EmptyState
                 icon="✓"
-                title="No active challenges"
-                description="No challenge deadlines to manage right now."
-                actionText="View challenges"
-                actionHref="/challenges"
+                title="No active appeals"
+                description="No appeal deadlines to manage right now."
+                actionText="View appeals"
+                actionHref="/appeals"
               />
             ) : (
               <div className="space-y-3">
                 {challengeDeadlines.map(challenge => (
                   <Link
                     key={challenge.id}
-                    href={`/challenges/${challenge.id}`}
+                    href={`/appeals/${challenge.id}`}
                     className="group block p-4 rounded-xl border border-var(--line) hover:border-var(--warning-500) hover:bg-var(--background-muted) transition"
                   >
                     <div className="flex items-start justify-between gap-4">

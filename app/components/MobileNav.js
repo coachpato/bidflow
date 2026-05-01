@@ -18,7 +18,7 @@ export default function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`inline-flex min-w-fit items-center gap-2 rounded-[14px] border px-3 py-2 text-sm font-semibold ${
+                className={`inline-flex min-w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
                   isActive
                     ? 'border-transparent bg-[var(--brand-600)] text-white shadow-sm'
                     : 'border-slate-200 bg-[rgba(255,252,247,0.94)] text-slate-600'

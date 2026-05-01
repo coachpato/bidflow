@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = [
+  '/landing',
   '/login',
   '/register',
   '/api/auth/login',
@@ -14,7 +15,7 @@ const PUBLIC_PATHS = [
 export function proxy(request) {
   const { pathname } = request.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  const isPublic = pathname === '/' || PUBLIC_PATHS.some(p => pathname.startsWith(p))
   if (isPublic) return NextResponse.next()
 
   if (

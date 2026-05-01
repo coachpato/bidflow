@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 
-const STATUSES = ['New', 'Watch', 'Pursue', 'Ignore']
+const STATUSES = ['New', 'Liked']
 
 export default function NewOpportunityPage() {
   const router = useRouter()
@@ -287,7 +287,7 @@ export default function NewOpportunityPage() {
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Score honestly</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  A simple fit score is enough for now. The important part is being consistent about why you would pursue, watch, or ignore.
+                  A simple fit score is enough for now. The important part is being consistent about why you would like, pursue, or discard an opportunity.
                 </p>
               </div>
               <div className="rounded-[24px] bg-slate-50 p-4">

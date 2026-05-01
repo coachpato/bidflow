@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import {
   getTenderNextStatuses,
   canUserTransition,
   getTransitionRequiredRoleName,
 } from '@/lib/status-machine'
-import { getUserRoleFromSession } from '@/lib/roles'
 
 /**
  * RBAC-aware status selector for tenders
@@ -22,10 +21,8 @@ export default function TenderStatusSelector({
   showHelperText = true,
 }) {
   const nextStatuses = getTenderNextStatuses(currentStatus)
-  const [roleHints, setRoleHints] = useState({})
 
-  // Build role requirement hints for each possible transition
-  useEffect(() => {
+  const roleHints = useMemo(() => {
     const hints = {}
     nextStatuses.forEach(status => {
       const canTransition = userRole !== undefined
@@ -37,7 +34,7 @@ export default function TenderStatusSelector({
         hints[status] = requiredRole
       }
     })
-    setRoleHints(hints)
+    return hints
   }, [currentStatus, userRole, nextStatuses])
 
   return (

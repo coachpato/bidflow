@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { dashboardCacheTag, expireCacheTags, organizationCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
-import { normalizeServiceSector } from '@/lib/service-sectors'
+import { normalizeServiceSector, normalizeServiceSectors } from '@/lib/service-sectors'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -62,28 +62,38 @@ export async function GET() {
 export async function PUT(request) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
 
   const organizationId = getSessionOrganizationId(session)
   if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
   const payload = await request.json()
 
   const displayName = normalizeString(payload.displayName)
+  const serviceSectors = normalizeServiceSectors(payload.serviceSectors || [payload.serviceSector].filter(Boolean))
 
   if (!displayName) {
     return Response.json({ error: 'Firm display name is required.' }, { status: 400 })
   }
 
+  if (serviceSectors.length === 0) {
+    return Response.json({ error: 'Select at least one sector before continuing.' }, { status: 400 })
+  }
+
   const updated = await prisma.$transaction(async tx => {
     const organization = await tx.organization.update({
       where: { id: organizationId },
-      data: { name: displayName },
+      data: {
+        name: displayName,
+        setupCompletedAt: new Date(),
+      },
     })
 
     const firmProfile = await tx.firmProfile.update({
       where: { organizationId },
       data: {
         displayName,
-        serviceSector: normalizeServiceSector(payload.serviceSector),
+        serviceSector: normalizeServiceSector(serviceSectors[0]),
+        serviceSectors,
         legalName: normalizeString(payload.legalName),
         registrationNumber: normalizeString(payload.registrationNumber),
         primaryContactName: normalizeString(payload.primaryContactName),

@@ -44,7 +44,7 @@ export default function NewTenderPage() {
     setError('')
     setLoading(true)
 
-    const res = await fetch('/api/tenders', {
+    const res = await fetch('/api/pursuits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -58,14 +58,14 @@ export default function NewTenderPage() {
       return
     }
 
-    router.push(`/tenders/${data.id}`)
+    router.push(`/pursuits/${data.id}`)
   }
 
   return (
     <div className="space-y-6">
       <Header
-        title="Capture tender"
-        eyebrow="Tender intake"
+        title="Create pursuit"
+        eyebrow="Pursuit intake"
         description="Record the opportunity cleanly up front so deadlines, ownership, and compliance work stay easier to manage."
         meta={[
           { label: 'Stage', value: form.status },
@@ -75,14 +75,14 @@ export default function NewTenderPage() {
       />
 
       <div className="app-page space-y-6">
-        <Link href="/tenders" className="app-button-secondary">
-          Back to tenders
+        <Link href="/pursuits" className="app-button-secondary">
+          Back to pursuits
         </Link>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
-              <p className="app-kicker">Tender record</p>
+              <p className="app-kicker">Pursuit record</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
                 Matter details
               </h2>
@@ -100,7 +100,7 @@ export default function NewTenderPage() {
             <form onSubmit={handleSubmit} className="mt-5 space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Tender title</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Pursuit title</label>
                   <input name="title" required value={form.title} onChange={handleChange} placeholder="Professional services for a public entity" className="app-input" />
                 </div>
 
@@ -148,7 +148,7 @@ export default function NewTenderPage() {
                     label="Owner"
                     value={form.assignedUserId}
                     onChange={handleAssignedUserChange}
-                    helperText="Pick the person responsible for driving this tender."
+                    helperText="Pick the person responsible for driving this pursuit."
                   />
                 </div>
 
@@ -165,9 +165,9 @@ export default function NewTenderPage() {
 
               <div className="flex flex-wrap gap-3 pt-2">
                 <button type="submit" disabled={loading} className="app-button-primary disabled:translate-y-0 disabled:opacity-60">
-                  {loading ? 'Saving...' : 'Create tender'}
+                  {loading ? 'Saving...' : 'Create pursuit'}
                 </button>
-                <Link href="/tenders" className="app-button-secondary">
+                <Link href="/pursuits" className="app-button-secondary">
                   Cancel
                 </Link>
               </div>
@@ -189,13 +189,13 @@ export default function NewTenderPage() {
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Use internal notes sparingly</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Save the quick strategic cues here, then use the tender workspace to carry the matter forward.
+                  Save the quick strategic cues here, then use the pursuit workspace to carry the matter forward.
                 </p>
               </div>
             </div>
 
             <p className="mt-5 text-sm leading-7 text-slate-500">
-              A default South African compliance checklist will be created automatically after the tender is saved.
+              A default South African compliance checklist will be created automatically after the pursuit is saved.
             </p>
           </aside>
         </div>

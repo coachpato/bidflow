@@ -96,7 +96,7 @@ export async function POST(request) {
       client: body.client || null,
       assignedTo: assignment.assignedTo,
       assignedUserId: assignment.assignedUserId,
-      appointmentStatus: body.appointmentStatus || 'Appointed',
+      appointmentStatus: body.appointmentStatus || (body.tenderId ? 'Appointed' : 'Pending'),
       instructionStatus: body.instructionStatus || 'No Instruction',
       appointmentDate: toNullableDate(body.appointmentDate),
       startDate: body.startDate ? new Date(body.startDate) : null,

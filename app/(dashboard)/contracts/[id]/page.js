@@ -6,10 +6,24 @@ import Link from 'next/link'
 import Header from '@/app/components/Header'
 import UserSelect from '@/app/components/UserSelect'
 import StatusBadge from '@/app/components/StatusBadge'
+import {
+  CONTRACT_APPOINTMENT_STATUSES,
+  CONTRACT_INSTRUCTION_STATUSES,
+  getContractAppointmentAvailableActions,
+  getContractInstructionAvailableActions,
+} from '@/lib/status-machine'
 
-const DOCUMENT_TYPES = ['Appointment Letter', 'Work Order', 'SLA', 'Rate Card', 'Addendum', 'Other']
-const APPOINTMENT_STATUSES = ['Appointed', 'Dormant', 'Active', 'Completed', 'Closed']
-const INSTRUCTION_STATUSES = ['No Instruction', 'Instruction Received']
+const DOCUMENT_TYPES = ['Award Letter', 'Work Order', 'SLA', 'Rate Card', 'Addendum', 'Other']
+const APPOINTMENT_STATUSES = [
+  CONTRACT_APPOINTMENT_STATUSES.PENDING,
+  CONTRACT_APPOINTMENT_STATUSES.APPOINTED,
+  CONTRACT_APPOINTMENT_STATUSES.NOT_APPOINTED,
+]
+const INSTRUCTION_STATUSES = [
+  CONTRACT_INSTRUCTION_STATUSES.NO_INSTRUCTION,
+  CONTRACT_INSTRUCTION_STATUSES.INSTRUCTION_RECEIVED,
+  CONTRACT_INSTRUCTION_STATUSES.WORK_COMPLETE,
+]
 
 function formatDate(value) {
   if (!value) return 'Not set'
@@ -31,8 +45,8 @@ function seedForm(data) {
     client: data.client || '',
     assignedUserId: data.assignedUserId ? String(data.assignedUserId) : '',
     assignedTo: data.assignedUser?.name || data.assignedTo || '',
-    appointmentStatus: data.appointmentStatus || 'Appointed',
-    instructionStatus: data.instructionStatus || 'No Instruction',
+    appointmentStatus: data.appointmentStatus || CONTRACT_APPOINTMENT_STATUSES.PENDING,
+    instructionStatus: data.instructionStatus || CONTRACT_INSTRUCTION_STATUSES.NO_INSTRUCTION,
     appointmentDate: data.appointmentDate ? data.appointmentDate.substring(0, 10) : '',
     firstInstructionDate: data.firstInstructionDate ? data.firstInstructionDate.substring(0, 10) : '',
     startDate: data.startDate ? data.startDate.substring(0, 10) : '',
@@ -54,7 +68,7 @@ export default function ContractDetailPage() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
-  const [documentType, setDocumentType] = useState('Appointment Letter')
+  const [documentType, setDocumentType] = useState('Award Letter')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [deletingDocumentId, setDeletingDocumentId] = useState(null)
@@ -65,7 +79,7 @@ export default function ContractDetailPage() {
   async function fetchAppointment() {
     const res = await fetch(`/api/contracts/${id}`)
     if (!res.ok) {
-      router.push('/appointments')
+      router.push('/contracts')
       return
     }
 
@@ -100,9 +114,24 @@ export default function ContractDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this appointment? This cannot be undone.')) return
+    if (!confirm('Delete this contract? This cannot be undone.')) return
     await fetch(`/api/contracts/${id}`, { method: 'DELETE' })
-    router.push('/appointments')
+    router.push('/contracts')
+  }
+
+  async function runQuickUpdate(patch) {
+    setSaving(true)
+
+    try {
+      await fetch(`/api/contracts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      await fetchAppointment()
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleFileUpload(event) {
@@ -140,7 +169,7 @@ export default function ContractDetailPage() {
   }
 
   async function deleteDocument(docId) {
-    if (!confirm('Remove this document from the appointment?')) return
+    if (!confirm('Remove this document from the contract?')) return
     setDeletingDocumentId(docId)
 
     try {
@@ -192,30 +221,36 @@ export default function ContractDetailPage() {
   const daysUntilEnd = appointment?.endDate
     ? Math.ceil((new Date(appointment.endDate) - new Date()) / (1000 * 60 * 60 * 24))
     : null
+  const appointmentActions = appointment
+    ? getContractAppointmentAvailableActions(appointment.appointmentStatus || CONTRACT_APPOINTMENT_STATUSES.PENDING)
+    : []
+  const instructionActions = appointment
+    ? getContractInstructionAvailableActions(appointment.instructionStatus || CONTRACT_INSTRUCTION_STATUSES.NO_INSTRUCTION)
+    : []
 
   return (
     <div className="space-y-6">
       <Header
-        title={appointment?.title || 'Appointment workspace'}
-        eyebrow="Appointment detail"
-        description="Track appointment status, instructions, follow-ups, milestones, and source documents in one place."
+        title={appointment?.title || 'Contract workspace'}
+        eyebrow="Contract detail"
+        description="Track the contract outcome, instruction flow, follow-ups, milestones, and delivery files in one place."
         meta={appointment ? [
           { label: 'Client', value: appointment.client || 'Not set' },
           { label: 'Allocated to', value: getAssignedLabel(appointment) },
-          { label: 'Appointment', value: appointment.appointmentStatus || 'Appointed' },
-          { label: 'Instruction', value: appointment.instructionStatus || 'No Instruction' },
+          { label: 'Contract', value: appointment.appointmentStatus || CONTRACT_APPOINTMENT_STATUSES.PENDING },
+          { label: 'Instruction', value: appointment.instructionStatus || CONTRACT_INSTRUCTION_STATUSES.NO_INSTRUCTION },
           { label: 'Files', value: `${appointment.documents?.length || 0}` },
         ] : []}
       />
 
       <div className="app-page space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/appointments" className="app-button-secondary">
-            Back to appointments
+          <Link href="/contracts" className="app-button-secondary">
+            Back to contracts
           </Link>
           <div className="flex flex-wrap gap-3">
             <button onClick={() => setEditing(!editing)} className="app-button-secondary">
-              {editing ? 'Cancel edit' : 'Edit appointment'}
+              {editing ? 'Cancel edit' : 'Edit contract'}
             </button>
             <button onClick={handleDelete} className="app-button-danger">
               Delete
@@ -228,21 +263,21 @@ export default function ContractDetailPage() {
             <p className="app-kicker">{daysUntilEnd <= 0 ? 'End date passed' : 'Upcoming end date'}</p>
             <p className={`mt-2 text-lg font-semibold ${daysUntilEnd <= 0 ? 'text-red-800' : 'text-amber-800'}`}>
               {daysUntilEnd <= 0
-                ? 'This appointment has moved past its planned end date.'
-                : `This appointment reaches its end date in ${daysUntilEnd} day${daysUntilEnd === 1 ? '' : 's'}.`}
+                ? 'This contract has moved past its planned end date.'
+                : `This contract reaches its end date in ${daysUntilEnd} day${daysUntilEnd === 1 ? '' : 's'}.`}
             </p>
           </div>
         ) : null}
 
         {!appointment ? (
           <div className="app-surface rounded-[30px] px-6 py-16 text-center text-slate-500">
-            Loading appointment...
+            Loading contract...
           </div>
         ) : editing ? (
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
-              <p className="app-kicker">Edit appointment</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Appointment details</h2>
+              <p className="app-kicker">Edit contract</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Contract details</h2>
             </div>
 
             <form onSubmit={handleSave} className="mt-5 space-y-5">
@@ -260,11 +295,11 @@ export default function ContractDetailPage() {
                     label="Allocated to"
                     value={form.assignedUserId}
                     onChange={handleAssignedUserChange}
-                    helperText="This controls who sees the appointment in My Work."
+                    helperText="This controls who sees the contract in My Work."
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appointment status</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Contract status</label>
                   <select value={form.appointmentStatus} onChange={event => setForm({ ...form, appointmentStatus: event.target.value })} className="app-select">
                     {APPOINTMENT_STATUSES.map(status => (
                       <option key={status} value={status}>{status}</option>
@@ -280,7 +315,7 @@ export default function ContractDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appointment date</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Award date</label>
                   <input type="date" value={form.appointmentDate} onChange={event => setForm({ ...form, appointmentDate: event.target.value })} className="app-input" />
                 </div>
                 <div>
@@ -336,12 +371,12 @@ export default function ContractDetailPage() {
               <section className="app-surface rounded-[30px] p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-5">
                   <div>
-                    <p className="app-kicker">Appointment summary</p>
+                    <p className="app-kicker">Contract summary</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Key record details</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <StatusBadge status={appointment.appointmentStatus || 'Appointed'} />
-                    <StatusBadge status={appointment.instructionStatus || 'No Instruction'} />
+                    <StatusBadge status={appointment.appointmentStatus || CONTRACT_APPOINTMENT_STATUSES.PENDING} />
+                    <StatusBadge status={appointment.instructionStatus || CONTRACT_INSTRUCTION_STATUSES.NO_INSTRUCTION} />
                   </div>
                 </div>
 
@@ -349,7 +384,7 @@ export default function ContractDetailPage() {
                   <InfoCard label="Client" value={appointment.client} />
                   <InfoCard label="Allocated to" value={getAssignedLabel(appointment)} />
                   <InfoCard label="Value" value={formatMoney(appointment.value)} />
-                  <InfoCard label="Appointment date" value={formatDate(appointment.appointmentDate)} />
+                  <InfoCard label="Award date" value={formatDate(appointment.appointmentDate)} />
                   <InfoCard label="First instruction" value={formatDate(appointment.firstInstructionDate)} />
                   <InfoCard label="Start date" value={formatDate(appointment.startDate)} />
                   <InfoCard label="End date" value={formatDate(appointment.endDate)} />
@@ -392,17 +427,61 @@ export default function ContractDetailPage() {
                 </section>
 
                 <section className="app-surface rounded-[30px] p-5 sm:p-6">
-                  <p className="app-kicker">Next move</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Follow-up posture</h2>
-                  <div className="mt-5 rounded-[24px] bg-slate-50 p-5">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {appointment.instructionStatus === 'No Instruction'
-                        ? 'This appointment still needs follow-up to convert into live work.'
-                        : 'Instructions are flowing. Keep milestones and dates current.'}
-                    </p>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">
-                      Next follow-up: {formatDate(appointment.nextFollowUpAt)}
-                    </p>
+                  <p className="app-kicker">Workflow actions</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Contract controls</h2>
+                  <div className="mt-5 space-y-4">
+                    <div className="rounded-[24px] bg-slate-50 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Contract outcome</p>
+                      <div className="mt-3 grid gap-2">
+                        {appointmentActions.length === 0 ? (
+                          <p className="text-sm text-slate-500">No contract outcome changes are available from this state.</p>
+                        ) : (
+                          appointmentActions.map(action => (
+                            <button
+                              key={action.nextStatus}
+                              onClick={() => runQuickUpdate({ appointmentStatus: action.nextStatus })}
+                              disabled={saving}
+                              className="app-button-secondary justify-center disabled:opacity-60"
+                            >
+                              {action.label}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[24px] bg-slate-50 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Instruction flow</p>
+                      <div className="mt-3 grid gap-2">
+                        {instructionActions.length === 0 ? (
+                          <p className="text-sm text-slate-500">No instruction changes are available from this state.</p>
+                        ) : (
+                          instructionActions.map(action => (
+                            <button
+                              key={action.nextStatus}
+                              onClick={() => runQuickUpdate({ instructionStatus: action.nextStatus })}
+                              disabled={saving}
+                              className="app-button-secondary justify-center disabled:opacity-60"
+                            >
+                              {action.label}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[24px] bg-slate-50 p-5">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {appointment.instructionStatus === CONTRACT_INSTRUCTION_STATUSES.NO_INSTRUCTION
+                          ? 'This contract still needs follow-up to convert into live delivery.'
+                          : appointment.instructionStatus === CONTRACT_INSTRUCTION_STATUSES.WORK_COMPLETE
+                            ? 'Delivery is complete. Keep the record and supporting files tidy.'
+                            : 'Instructions are flowing. Keep milestones and dates current.'}
+                      </p>
+                      <p className="mt-3 text-sm leading-6 text-slate-600">
+                        Next follow-up: {formatDate(appointment.nextFollowUpAt)}
+                      </p>
+                    </div>
                   </div>
                 </section>
               </div>
@@ -481,7 +560,7 @@ export default function ContractDetailPage() {
             <section className="app-surface rounded-[30px] p-5 sm:p-6">
               <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="app-kicker">Appointment documents</p>
+                  <p className="app-kicker">Contract documents</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Letters, work orders, and supporting files</h2>
                 </div>
 
@@ -553,7 +632,7 @@ export default function ContractDetailPage() {
                 </div>
               ) : (
                 <div className="mt-5 rounded-[24px] bg-slate-50 px-5 py-10 text-center">
-                  <p className="text-sm font-semibold text-slate-800">No appointment documents yet.</p>
+                  <p className="text-sm font-semibold text-slate-800">No contract documents yet.</p>
                 </div>
               )}
             </section>

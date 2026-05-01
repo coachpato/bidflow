@@ -5,6 +5,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/pursuits/reminders",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/crawler",
       "schedule": "0 4 * * *"
     }

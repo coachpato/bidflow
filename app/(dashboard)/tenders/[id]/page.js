@@ -6,12 +6,16 @@ import { useParams, useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
 import {
+  canConvertTenderToContract,
+  getTenderAvailableActions,
+  TENDER_STATUSES,
+} from '@/lib/status-machine'
+import {
   isSubmissionBackupDocumentCategory,
   SUBMISSION_BACKUP_DOCUMENT_CATEGORY,
   TENDER_SOURCE_DOCUMENT_CATEGORY,
 } from '@/lib/tender-document-categories'
 
-const STATUSES = ['New', 'Under Review', 'In Progress', 'Submitted', 'Awarded', 'Lost', 'Cancelled']
 const DEADLINE_WARNING_DAYS = 14
 
 function formatDate(value) {
@@ -65,7 +69,7 @@ export default function TenderDetailPage() {
   const [uploadError, setUploadError] = useState('')
 
   const fetchTender = useCallback(async () => {
-    const res = await fetch(`/api/tenders/${id}`)
+    const res = await fetch(`/api/pursuits/${id}`)
     if (!res.ok) {
       router.push('/pursuits')
       return
@@ -81,7 +85,7 @@ export default function TenderDetailPage() {
 
   async function updateStatus(newStatus) {
     setStatusUpdating(true)
-    await fetch(`/api/tenders/${id}`, {
+    await fetch(`/api/pursuits/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
@@ -91,7 +95,7 @@ export default function TenderDetailPage() {
   }
 
   async function toggleChecklistItem(itemId, done) {
-    await fetch(`/api/tenders/${id}/checklist/${itemId}`, {
+    await fetch(`/api/pursuits/${id}/checklist/${itemId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done: !done }),
@@ -104,7 +108,7 @@ export default function TenderDetailPage() {
     if (!newItem.trim()) return
 
     setAddingItem(true)
-    await fetch(`/api/tenders/${id}/checklist`, {
+    await fetch(`/api/pursuits/${id}/checklist`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label: newItem }),
@@ -115,7 +119,7 @@ export default function TenderDetailPage() {
   }
 
   async function deleteChecklistItem(itemId) {
-    await fetch(`/api/tenders/${id}/checklist/${itemId}`, { method: 'DELETE' })
+    await fetch(`/api/pursuits/${id}/checklist/${itemId}`, { method: 'DELETE' })
     await fetchTender()
   }
 
@@ -152,13 +156,13 @@ export default function TenderDetailPage() {
 
   async function deleteDocument(docId) {
     if (!confirm('Remove this document from the pursuit?')) return
-    await fetch(`/api/tenders/${id}/documents/${docId}`, { method: 'DELETE' })
+    await fetch(`/api/pursuits/${id}/documents/${docId}`, { method: 'DELETE' })
     await fetchTender()
   }
 
   async function deleteTender() {
     if (!confirm('Are you sure you want to delete this pursuit? This cannot be undone.')) return
-    await fetch(`/api/tenders/${id}`, { method: 'DELETE' })
+    await fetch(`/api/pursuits/${id}`, { method: 'DELETE' })
     router.push('/pursuits')
   }
 
@@ -200,25 +204,34 @@ export default function TenderDetailPage() {
     createContractParams.set('assignedTo', getAssignedLabel(tender))
   }
 
-  const createContractHref = `/appointments/new?${createContractParams.toString()}`
-  const nextStep = tender.status === 'Awarded' && !tender.contract
-    ? { title: 'Turn this win into an appointment', body: 'The pursuit is awarded and ready to move into the appointment tracker.', href: createContractHref, cta: 'Create Appointment' }
-    : ['Submitted', 'Awarded'].includes(tender.status) && submissionBackupDocuments.length === 0
-      ? { title: 'Back up the final submission', body: 'Store the exact files that were submitted so the firm has a reliable record of what went out.', target: 'submission-pack-section', cta: 'Open Submission Backup' }
+  const createContractHref = `/contracts/new?${createContractParams.toString()}`
+  const appealIntakeHref = `/appeals/new?tenderId=${tender.id}&markTenderLost=1`
+  const tenderActions = getTenderAvailableActions(tender.status)
+  const lossAction = tenderActions.find(action => action.nextStatus === TENDER_STATUSES.LOST)
+  const directTenderActions = tenderActions.filter(action => action.nextStatus !== TENDER_STATUSES.LOST)
+  const canCreateContract = !tender.contract && canConvertTenderToContract(tender.status)
+  const nextStep = canCreateContract
+    ? { title: 'Turn this win into a contract', body: 'The pursuit is awarded and ready to move into the contract tracker.', href: createContractHref, cta: 'Convert to Contract' }
+    : tender.contract
+      ? { title: 'Contract created', body: 'This pursuit has already moved into the contract workspace.', href: `/contracts/${tender.contract.id}`, cta: 'Open Contract' }
+      : lossAction
+        ? { title: 'Record the loss properly', body: 'Open the appeal intake, upload the regret letter, and keep the loss trail tied to this pursuit.', href: appealIntakeHref, cta: lossAction.label }
+      : ['Submitted', 'Awarded'].includes(tender.status) && submissionBackupDocuments.length === 0
+        ? { title: 'Back up the final submission', body: 'Store the exact files that were submitted so the firm has a reliable record of what went out.', target: 'submission-pack-section', cta: 'Open Submission Backup' }
       : sourceDocuments.length === 0
         ? { title: 'Upload the source pack', body: 'Add the tender notice, clarifications, and source files so the pursuit record is complete.', target: 'documents-section', cta: 'Go to Documents' }
         : totalCount > 0 && doneCount < totalCount
           ? { title: 'Work through the checklist', body: `${totalCount - doneCount} checklist item${totalCount - doneCount === 1 ? '' : 's'} still need attention.`, target: 'checklist-section', cta: 'Review Checklist' }
-          : tender.status === 'New'
-            ? { title: 'Move the pursuit into active review', body: 'The key details are in place, so the next step is to start working it.', status: 'Under Review', cta: 'Set to Under Review' }
-            : { title: 'Pursuit is on track', body: 'Use this page to manage dates, documents, reminders, appeals, and appointments.' }
+          : directTenderActions.length > 0
+            ? { title: 'Advance the pursuit', body: 'Use the workflow actions below to move this pursuit to the next real business state.', status: directTenderActions[0].nextStatus, cta: directTenderActions[0].label }
+            : { title: 'Pursuit is on track', body: 'Use this page to manage dates, documents, reminders, appeals, and contracts.' }
 
   return (
     <div>
       <Header
         title={tender.title}
         eyebrow="Pursuit detail"
-        description="Manage the pursuit simply: dates, status, documents, reminders, challenges, and post-award follow-through."
+        description="Manage the pursuit simply: dates, status, documents, reminders, appeals, and post-award follow-through."
         meta={[
           { label: 'Status', value: tender.status },
           { label: 'Documents', value: `${tender.documents.length}` },
@@ -233,10 +246,10 @@ export default function TenderDetailPage() {
             Back to Pursuits
           </Link>
           <div className="flex flex-wrap gap-2">
-            <Link href={`/tenders/${id}/edit`} className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Link href={`/pursuits/${id}/edit`} className="app-button-secondary">
               Edit Pursuit
             </Link>
-            <button onClick={deleteTender} className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
+            <button onClick={deleteTender} className="app-button-danger">
               Delete
             </button>
           </div>
@@ -266,13 +279,12 @@ export default function TenderDetailPage() {
                 </div>
               </div>
 
-              {tender.status === 'Awarded' && !tender.contract ? (
+              {canCreateContract ? (
                 <Link
                   href={createContractHref}
-                  className="inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-sm hover:-translate-y-0.5"
-                  style={{ backgroundColor: '#185FA5' }}
+                  className="app-button-primary"
                 >
-                  Create Appointment
+                  Convert to Contract
                 </Link>
               ) : null}
             </div>
@@ -394,22 +406,22 @@ export default function TenderDetailPage() {
 
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <SectionHeader
-                eyebrow="Challenges"
-                title="Challenges linked to this pursuit"
-                description="Track any rejection, challenge, or appeal without losing the main pursuit context."
+                eyebrow="Appeals"
+                title="Appeals linked to this pursuit"
+                description="Track any rejection, service intake, or appeal without losing the main pursuit context."
               />
 
               {tender.appeals.length === 0 ? (
                 <EmptyPanel
-                  title="No challenges linked yet."
+                  title="No appeals linked yet."
                   body="If the outcome needs to be challenged, capture it here so the history stays with the pursuit."
-                  actionHref={`/challenges/new?tenderId=${tender.id}`}
-                  actionLabel="Log challenge"
+                  actionHref={`/appeals/new?tenderId=${tender.id}`}
+                  actionLabel="Open appeal intake"
                 />
               ) : (
                 <div className="space-y-3 pt-5">
                   {tender.appeals.map(appeal => (
-                    <Link key={appeal.id} href={`/challenges/${appeal.id}`} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">
+                    <Link key={appeal.id} href={`/appeals/${appeal.id}`} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-800">{appeal.reason}</p>
@@ -440,17 +452,17 @@ export default function TenderDetailPage() {
                 {nextStep.cta ? (
                   <div className="mt-4">
                     {nextStep.href ? (
-                      <Link href={nextStep.href} className="inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#185FA5' }}>
+                      <Link href={nextStep.href} className="app-button-primary w-full">
                         {nextStep.cta}
                       </Link>
                     ) : null}
                     {nextStep.target ? (
-                      <button onClick={() => jumpTo(nextStep.target)} className="inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#185FA5' }}>
+                      <button onClick={() => jumpTo(nextStep.target)} className="app-button-primary w-full">
                         {nextStep.cta}
                       </button>
                     ) : null}
                     {nextStep.status ? (
-                      <button onClick={() => updateStatus(nextStep.status)} disabled={statusUpdating} className="inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60" style={{ backgroundColor: '#185FA5' }}>
+                      <button onClick={() => updateStatus(nextStep.status)} disabled={statusUpdating} className="app-button-primary w-full disabled:opacity-60">
                         {nextStep.cta}
                       </button>
                     ) : null}
@@ -459,27 +471,66 @@ export default function TenderDetailPage() {
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <MetricCard label="Current status" value={tender.status} />
-                  <MetricCard label="Challenges" value={String(tender.appeals.length)} />
+                  <MetricCard label="Appeals" value={String(tender.appeals.length)} />
                   <MetricCard label="Documents" value={String(tender.documents.length)} />
                   <MetricCard label="Owner" value={getAssignedLabel(tender)} />
                 </div>
 
                 <div className="mt-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Update status</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {STATUSES.map(status => (
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Available actions</p>
+                  <div className="mt-3 grid gap-2">
+                    {directTenderActions.length === 0 && !lossAction && !canCreateContract && !tender.contract ? (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                        No further pursuit actions are available from this state.
+                      </div>
+                    ) : null}
+
+                    {directTenderActions.map(action => (
                       <button
-                        key={status}
-                        disabled={statusUpdating || tender.status === status}
-                        onClick={() => updateStatus(status)}
-                        className={`rounded-xl border px-3 py-2 text-sm font-medium ${
-                          tender.status === status ? 'border-transparent text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                        }`}
-                        style={tender.status === status ? { backgroundColor: '#185FA5' } : {}}
+                        key={action.nextStatus}
+                        disabled={statusUpdating}
+                        onClick={() => updateStatus(action.nextStatus)}
+                        className="app-button-secondary w-full disabled:opacity-60"
                       >
-                        {status}
+                        {action.label}
                       </button>
                     ))}
+
+                    {lossAction ? (
+                      <Link
+                        href={appealIntakeHref}
+                        className="app-button-danger"
+                      >
+                        {lossAction.label}
+                      </Link>
+                    ) : null}
+
+                    {canCreateContract ? (
+                      <Link
+                        href={createContractHref}
+                        className="app-button-primary"
+                      >
+                        Convert to Contract
+                      </Link>
+                    ) : null}
+
+                    {tender.contract ? (
+                      <Link
+                        href={`/contracts/${tender.contract.id}`}
+                        className="app-button-secondary"
+                      >
+                        Open Contract
+                      </Link>
+                    ) : null}
+
+                    {tender.status === TENDER_STATUSES.LOST && tender.appeals.length > 0 ? (
+                      <Link
+                        href={`/appeals/${tender.appeals[0].id}`}
+                        className="app-button-secondary"
+                      >
+                        Open Appeal
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -533,7 +584,7 @@ export default function TenderDetailPage() {
                     placeholder="Add a checklist item..."
                     className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
                   />
-                  <button type="submit" disabled={addingItem} className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" style={{ backgroundColor: '#185FA5' }}>
+                  <button type="submit" disabled={addingItem} className="app-button-primary disabled:opacity-60">
                     Add
                   </button>
                 </form>
@@ -566,7 +617,7 @@ function DocumentUploadCard({ uploading, label, description, accept, onChange })
         <p className="text-sm font-semibold text-slate-800">{uploading ? 'Uploading document...' : label}</p>
         <p className="mt-1 text-sm text-slate-500">{description}</p>
       </div>
-      <label className="inline-flex cursor-pointer items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: '#185FA5' }}>
+      <label className="app-button-primary cursor-pointer">
         {uploading ? 'Uploading...' : 'Upload'}
         <input type="file" accept={accept} className="hidden" onChange={onChange} disabled={uploading} />
       </label>
@@ -595,10 +646,10 @@ function DocumentList({ documents, emptyTitle, emptyBody, onDelete }) {
             <p className="mt-1 text-xs text-slate-500">Uploaded {formatDate(doc.uploadedAt)}</p>
           </div>
           <div className="flex gap-2">
-            <a href={doc.filepath.startsWith('http') ? doc.filepath : `/${doc.filepath}`} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            <a href={doc.filepath.startsWith('http') ? doc.filepath : `/${doc.filepath}`} target="_blank" rel="noopener noreferrer" className="app-button-secondary">
               Open
             </a>
-            <button onClick={() => onDelete(doc.id)} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
+            <button onClick={() => onDelete(doc.id)} className="app-button-danger">
               Remove
             </button>
           </div>

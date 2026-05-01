@@ -93,6 +93,8 @@ export async function GET(request) {
 
   if (status && status !== 'All') {
     where.status = normalizeOpportunityStatus(status)
+  } else {
+    where.dislikedAt = null
   }
 
   if (search) {
@@ -191,6 +193,10 @@ export async function POST(request) {
       contactEmail: toNullableString(body.contactEmail),
       fitScore,
       status: normalizedStatus,
+      likedAt: normalizedStatus === 'Liked' ? new Date() : null,
+      dislikedAt: normalizedStatus === 'Disliked' ? new Date() : null,
+      dislikedByUserId: normalizedStatus === 'Disliked' ? session.userId : null,
+      pursuedAt: normalizedStatus === 'Pursued' ? new Date() : null,
       notes: toNullableString(body.notes),
       parsedRequirements: Array.isArray(body.parsedRequirements) ? body.parsedRequirements : null,
       parsedAppointments: Array.isArray(body.parsedAppointments) ? body.parsedAppointments : null,

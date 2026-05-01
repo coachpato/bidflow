@@ -6,6 +6,7 @@ import { isPublicRegistrationEnabled } from '@/lib/env'
 import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
 import { verifyGoogleIdToken, isGoogleAuthEnabled } from '@/lib/google-auth'
 import { normalizeServiceSector } from '@/lib/service-sectors'
+import { buildAuthUserPayload } from '@/lib/auth-response'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -16,6 +17,138 @@ function normalizeString(value) {
 function normalizeList(value) {
   if (!Array.isArray(value)) return []
   return value.map(item => normalizeString(item)).filter(Boolean)
+}
+
+function getRoleRank(role) {
+  if (role === 'admin') return 3
+  if (role === 'manager') return 2
+  return 1
+}
+
+function pickHigherRole(currentRole, inviteRole) {
+  return getRoleRank(inviteRole) > getRoleRank(currentRole) ? inviteRole : currentRole
+}
+
+function buildOrganizationContextFromMembership(user, membership) {
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+    membership,
+    organization: membership.organization,
+    firmProfile: membership.organization.firmProfile,
+  }
+}
+
+async function resolveInvite(token) {
+  if (!token) return null
+
+  const invite = await prisma.teamInvite.findUnique({
+    where: { token },
+    include: {
+      organization: {
+        include: {
+          firmProfile: true,
+        },
+      },
+    },
+  })
+
+  if (!invite || invite.status !== 'pending') {
+    throw new Error('This invitation is no longer active.')
+  }
+
+  if (invite.expiresAt.getTime() < Date.now()) {
+    throw new Error('This invitation has expired.')
+  }
+
+  return invite
+}
+
+async function acceptInvite({ invite, user }) {
+  const normalizedInviteEmail = invite.email.trim().toLowerCase()
+  const normalizedUserEmail = user.email.trim().toLowerCase()
+
+  if (normalizedInviteEmail !== normalizedUserEmail) {
+    throw new Error('This invitation was sent to a different email address.')
+  }
+
+  const membership = await prisma.$transaction(async tx => {
+    const nextRole = pickHigherRole(user.role, invite.role)
+
+    if (nextRole !== user.role) {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          role: nextRole,
+        },
+      })
+    }
+
+    const existingMembership = await tx.membership.findFirst({
+      where: {
+        organizationId: invite.organizationId,
+        userId: user.id,
+      },
+      include: {
+        organization: {
+          include: {
+            firmProfile: true,
+          },
+        },
+      },
+    })
+
+    const ensuredMembership = existingMembership
+      ? await tx.membership.update({
+          where: { id: existingMembership.id },
+          data: {
+            role: invite.role,
+          },
+          include: {
+            organization: {
+              include: {
+                firmProfile: true,
+              },
+            },
+          },
+        })
+      : await tx.membership.create({
+          data: {
+            organizationId: invite.organizationId,
+            userId: user.id,
+            role: invite.role,
+          },
+          include: {
+            organization: {
+              include: {
+                firmProfile: true,
+              },
+            },
+          },
+        })
+
+    await tx.teamInvite.update({
+      where: { id: invite.id },
+      data: {
+        status: 'accepted',
+        acceptedAt: new Date(),
+      },
+    })
+
+    return ensuredMembership
+  })
+
+  return buildOrganizationContextFromMembership(
+    {
+      ...user,
+      role: pickHigherRole(user.role, invite.role),
+    },
+    membership
+  )
 }
 
 function getRegistrationValidationError({ organizationName, serviceSector, practiceAreas, targetWorkTypes }) {
@@ -61,19 +194,7 @@ async function findUserForGoogleSignIn(profile) {
 function buildResponsePayload(user, organizationContext) {
   return {
     success: true,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl || null,
-      organization: {
-        id: organizationContext.organization.id,
-        name: organizationContext.organization.name,
-        role: organizationContext.membership.role,
-      },
-      serviceSector: organizationContext.firmProfile?.serviceSector || null,
-    },
+    user: buildAuthUserPayload(user, organizationContext),
   }
 }
 
@@ -93,6 +214,7 @@ export async function POST(request) {
       targetWorkTypes,
       targetProvinces,
       preferredEntities,
+      inviteToken,
     } = await request.json()
 
     if (intent !== 'login' && intent !== 'register') {
@@ -112,6 +234,7 @@ export async function POST(request) {
     const normalizedTargetWorkTypes = normalizeList(targetWorkTypes)
     const normalizedTargetProvinces = normalizeList(targetProvinces)
     const normalizedPreferredEntities = normalizeList(preferredEntities)
+    const invite = await resolveInvite(inviteToken)
 
     let user = await findUserForGoogleSignIn(profile)
 
@@ -119,11 +242,38 @@ export async function POST(request) {
       return Response.json({ error: 'This email is already linked to a different Google account.' }, { status: 409 })
     }
 
-    if (!user && intent === 'login') {
+    if (!user && intent === 'login' && !invite) {
       return Response.json({ error: 'No Bid360 account exists for this Google email yet. Start on Create account.' }, { status: 404 })
     }
 
-    if (!user && intent === 'register') {
+    if (!user && invite) {
+      const generatedPassword = randomBytes(24).toString('hex')
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10)
+
+      user = await prisma.user.create({
+        data: {
+          name: normalizedName || profile.name,
+          email: profile.email,
+          password: hashedPassword,
+          role: invite.role,
+          googleSubject: profile.googleSubject,
+          avatarUrl: profile.avatarUrl,
+        },
+        include: {
+          memberships: {
+            orderBy: { id: 'asc' },
+            take: 1,
+            include: {
+              organization: {
+                include: {
+                  firmProfile: true,
+                },
+              },
+            },
+          },
+        },
+      })
+    } else if (!user && intent === 'register') {
       const validationError = getRegistrationValidationError({
         organizationName: normalizedOrganizationName,
         serviceSector: normalizedServiceSector,
@@ -225,20 +375,22 @@ export async function POST(request) {
       })
     }
 
-    const organizationContext = await ensureOrganizationContextForUser(user, intent === 'register' ? {
-      organizationName: normalizedOrganizationName,
-      serviceSector: normalizedServiceSector,
-      practiceAreas: normalizedPracticeAreas,
-      targetWorkTypes: normalizedTargetWorkTypes,
-      targetProvinces: normalizedTargetProvinces,
-      preferredEntities: normalizedPreferredEntities,
-    } : {})
+    const organizationContext = invite
+      ? await acceptInvite({ invite, user })
+      : await ensureOrganizationContextForUser(user, intent === 'register' ? {
+          organizationName: normalizedOrganizationName,
+          serviceSector: normalizedServiceSector,
+          practiceAreas: normalizedPracticeAreas,
+          targetWorkTypes: normalizedTargetWorkTypes,
+          targetProvinces: normalizedTargetProvinces,
+          preferredEntities: normalizedPreferredEntities,
+        } : {})
 
     const session = await getSession()
     session.userId = user.id
     session.name = user.name
     session.email = user.email
-    session.role = user.role
+    session.role = organizationContext.user.role
     applyOrganizationToSession(session, organizationContext)
     await session.save()
 

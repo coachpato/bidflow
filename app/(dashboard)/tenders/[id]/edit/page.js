@@ -17,7 +17,7 @@ export default function EditTenderPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch(`/api/tenders/${id}`)
+    fetch(`/api/pursuits/${id}`)
       .then(r => r.json())
       .then(data => {
         setForm({
@@ -55,7 +55,7 @@ export default function EditTenderPage() {
     setError('')
     setSaving(true)
 
-    const res = await fetch(`/api/tenders/${id}`, {
+    const res = await fetch(`/api/pursuits/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -69,15 +69,15 @@ export default function EditTenderPage() {
       return
     }
 
-    router.push(`/tenders/${id}`)
+    router.push(`/pursuits/${id}`)
   }
 
   return (
     <div className="space-y-6">
       <Header
-        title="Edit tender"
-        eyebrow="Tender maintenance"
-        description="Refresh the tender record so deadlines, contacts, and ownership remain trustworthy for the whole team."
+        title="Edit pursuit"
+        eyebrow="Pursuit maintenance"
+        description="Refresh the pursuit record so deadlines, contacts, and ownership remain trustworthy for the whole team."
         meta={form ? [
           { label: 'Stage', value: form.status || 'New' },
           { label: 'Entity', value: form.entity || 'Not set' },
@@ -86,23 +86,23 @@ export default function EditTenderPage() {
       />
 
       <div className="app-page space-y-6">
-        <Link href={`/tenders/${id}`} className="app-button-secondary">
-          Back to tender
+        <Link href={`/pursuits/${id}`} className="app-button-secondary">
+          Back to pursuit
         </Link>
 
         {loading || !form ? (
           <div className="app-surface rounded-[30px] px-6 py-16 text-center text-slate-500">
-            Loading tender...
+            Loading pursuit...
           </div>
         ) : (
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
-              <p className="app-kicker">Tender details</p>
+              <p className="app-kicker">Pursuit details</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
                 Update the record
               </h2>
               <p className="mt-2 text-sm leading-7 text-slate-500">
-                Keep the tender context current so workspaces, reminders, and follow-through stay aligned.
+                Keep the pursuit context current so workspaces, reminders, and follow-through stay aligned.
               </p>
             </div>
 
@@ -115,7 +115,7 @@ export default function EditTenderPage() {
             <form onSubmit={handleSubmit} className="mt-5 space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Tender title</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Pursuit title</label>
                   <input name="title" required value={form.title} onChange={handleChange} className="app-input" />
                 </div>
                 <div>
@@ -155,7 +155,7 @@ export default function EditTenderPage() {
                     label="Owner"
                     value={form.assignedUserId}
                     onChange={handleAssignedUserChange}
-                    helperText="Update the person responsible for this tender."
+                    helperText="Update the person responsible for this pursuit."
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -172,7 +172,7 @@ export default function EditTenderPage() {
                 <button type="submit" disabled={saving} className="app-button-primary disabled:translate-y-0 disabled:opacity-60">
                   {saving ? 'Saving...' : 'Save changes'}
                 </button>
-                <Link href={`/tenders/${id}`} className="app-button-secondary">
+                <Link href={`/pursuits/${id}`} className="app-button-secondary">
                   Cancel
                 </Link>
               </div>

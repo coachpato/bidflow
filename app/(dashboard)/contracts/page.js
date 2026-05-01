@@ -71,7 +71,7 @@ export default function ContractsPage() {
       appointment.instructionStatus === 'No Instruction'
     ).length
     const active = appointments.filter(appointment =>
-      appointment.appointmentStatus === 'Active' || appointment.instructionStatus === 'Instruction Received'
+      appointment.appointmentStatus === 'Appointed' && appointment.instructionStatus !== 'Work Complete'
     ).length
     const followUpsDue = appointments.filter(appointment => {
       const remaining = daysUntil(appointment.nextFollowUpAt)
@@ -89,13 +89,13 @@ export default function ContractsPage() {
   return (
     <div className="space-y-6">
       <Header
-        title="Appointments"
-        eyebrow="Post-award"
-        primaryAction={{ href: '/appointments/new', label: 'New appointment' }}
+        title="Contracts"
+        eyebrow="Won work"
+        primaryAction={{ href: '/contracts/new', label: 'New contract' }}
         meta={[
           { label: 'In view', value: `${summary.total}` },
           { label: 'Active', value: `${summary.active}` },
-          { label: 'Dormant', value: `${summary.dormant}` },
+          { label: 'Awaiting instruction', value: `${summary.dormant}` },
           { label: 'Follow-ups due', value: `${summary.followUpsDue}` },
         ]}
       />
@@ -103,13 +103,13 @@ export default function ContractsPage() {
       <div className="app-page">
         {loading ? (
           <section className="app-surface rounded-[24px] px-6 py-16 text-center text-slate-500">
-            Loading appointments...
+            Loading contracts...
           </section>
         ) : appointments.length === 0 ? (
           <section className="app-surface rounded-[24px] px-6 py-16 text-center">
-            <p className="text-sm font-semibold text-slate-800">No appointments yet.</p>
-            <Link href="/appointments/new" className="app-button-primary mt-5">
-              Create appointment
+            <p className="text-sm font-semibold text-slate-800">No contracts yet.</p>
+            <Link href="/contracts/new" className="app-button-primary mt-5">
+              Create contract
             </Link>
           </section>
         ) : (
@@ -123,7 +123,7 @@ export default function ContractsPage() {
                   : 'text-slate-900'
 
               return (
-                <Link key={appointment.id} href={`/appointments/${appointment.id}`} className="app-surface rounded-[24px] p-5">
+                <Link key={appointment.id} href={`/contracts/${appointment.id}`} className="app-surface rounded-[24px] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h2 className="truncate text-xl font-semibold text-slate-950">{appointment.title}</h2>
@@ -131,7 +131,7 @@ export default function ContractsPage() {
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
-                      <StatusBadge status={appointment.appointmentStatus || 'Appointed'} />
+                      <StatusBadge status={appointment.appointmentStatus || 'Pending'} />
                       <StatusBadge status={appointment.instructionStatus || 'No Instruction'} />
                     </div>
                   </div>
@@ -139,7 +139,7 @@ export default function ContractsPage() {
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     <Metric label="Allocated to" value={getAssignedLabel(appointment)} />
                     <Metric label="Value" value={formatMoney(appointment.value)} />
-                    <Metric label="Appointment date" value={formatDate(appointment.appointmentDate)} />
+                    <Metric label="Award date" value={formatDate(appointment.appointmentDate)} />
                     <Metric label="End date" value={formatDate(appointment.endDate)} tone={endTone} />
                     <Metric label="Follow-up" value={getDormantLabel(appointment)} />
                     <Metric label="Milestones" value={`${appointment._count?.milestones ?? 0}`} />

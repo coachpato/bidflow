@@ -1,7 +1,7 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { ROLES, ROLE_NAMES } from '@/lib/status-machine'
+import { ROLES, ROLE_NAMES, TENDER_STATUSES } from '@/lib/status-machine'
 import { getUserRoleFromSession } from '@/lib/roles'
 import {
   dashboardCacheTag,
@@ -101,6 +101,9 @@ export async function POST(request, { params }) {
       briefingDate: true,
       contactPerson: true,
       contactEmail: true,
+      status: true,
+      assignedTo: true,
+      assignedUserId: true,
       notes: true,
       documents: {
         select: {
@@ -145,43 +148,55 @@ export async function POST(request, { params }) {
     )
   }
 
+  if (tender.status !== TENDER_STATUSES.AWARDED) {
+    return Response.json(
+      {
+        error: 'Record the pursuit as Awarded before converting it to a contract.',
+        code: 'PURSUIT_NOT_AWARDED',
+      },
+      { status: 400 }
+    )
+  }
+
   const body = await request.json()
 
   // Resolve assignment
   const assignment = await resolveAssignedFields(body)
 
   try {
-    // Create contract with transaction-like behavior
-    const contract = await prisma.contract.create({
-      data: {
-        organizationId,
-        title: tender.title,
-        client: tender.entity,
-        appointmentStatus: body.appointmentStatus || 'Appointed',
-        instructionStatus: body.instructionStatus || 'No Instruction',
-        appointmentDate: toNullableDate(body.appointmentDate),
-        firstInstructionDate: toNullableDate(body.firstInstructionDate),
-        startDate: toNullableDate(body.startDate),
-        endDate: toNullableDate(body.endDate),
-        renewalDate: toNullableDate(body.renewalDate),
-        value: toNullableNumber(body.value),
-        notes: body.notes ? body.notes : `Converted from tender: ${tender.reference || tender.title}`,
-        tenderId: tender.id,
-        assignedUserId: assignment.assignedUserId,
-        assignedTo: assignment.assignedTo,
-        // Copy documents from tender
-        documents: {
-          create: tender.documents.map((doc) => ({
-            filename: doc.filename,
-            filepath: doc.filepath,
-            documentType: 'SOURCE',
-          })),
+    const contract = await prisma.$transaction(async tx => {
+      const createdContract = await tx.contract.create({
+        data: {
+          organizationId,
+          title: tender.title,
+          client: tender.entity,
+          appointmentStatus: body.appointmentStatus || 'Appointed',
+          instructionStatus: body.instructionStatus || 'No Instruction',
+          appointmentDate: toNullableDate(body.appointmentDate),
+          firstInstructionDate: toNullableDate(body.firstInstructionDate),
+          startDate: toNullableDate(body.startDate),
+          endDate: toNullableDate(body.endDate),
+          renewalDate: toNullableDate(body.renewalDate),
+          value: toNullableNumber(body.value),
+          notes: body.notes ? body.notes : `Converted from tender: ${tender.reference || tender.title}`,
+          tenderId: tender.id,
+          assignedUserId: assignment.assignedUserId,
+          assignedTo: assignment.assignedTo,
+          documents: {
+            create: tender.documents.map((doc) => ({
+              filename: doc.filename,
+              filepath: doc.filepath,
+              documentType: 'SOURCE',
+            })),
+          },
         },
-      },
-      include: {
-        assignedUser: { select: { id: true, name: true, email: true } },
-        _count: { select: { documents: true, milestones: true } },
-      },
+        include: {
+          assignedUser: { select: { id: true, name: true, email: true } },
+          _count: { select: { documents: true, milestones: true } },
+        },
+      })
+
+      return createdContract
     })
 
     // Log the conversion activity with user role

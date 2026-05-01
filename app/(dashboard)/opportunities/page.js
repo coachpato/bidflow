@@ -3,10 +3,8 @@ import OpportunitiesClient from './OpportunitiesClient'
 const VALID_FILTERS = new Set([
   'All',
   'New',
-  'Watch',
-  'Pursue',
-  'Ignore',
-  'Converted',
+  'Liked',
+  'Pursued',
 ])
 
 function getSingleValue(value) {

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useId } from 'react'
 
 export default function Input({
   label,
@@ -13,7 +13,8 @@ export default function Input({
   'aria-label': ariaLabel = null,
   ...props
 }) {
-  const id = props.id || `input-${Math.random().toString(36).substr(2, 9)}`
+  const generatedId = useId()
+  const id = props.id || `input-${generatedId}`
   const errorId = `${id}-error`
   const hintId = `${id}-hint`
 

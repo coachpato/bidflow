@@ -17,6 +17,7 @@ import {
   tendersListCacheTag,
 } from '@/lib/cache-tags'
 import { findAssignedUser, notifyTenderAssignees } from '@/lib/tender-assignment'
+import { notifyHighValueTenderStatusChange } from '@/lib/tender-status-email'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
 import { getCachedTenderDetail } from '@/lib/tender-read-model'
@@ -109,6 +110,8 @@ export async function PATCH(request, { params }) {
       contactPerson: true,
       contactEmail: true,
       status: true,
+      deadlineReminderSentAt: true,
+      outcomeRecordedAt: true,
       assignedTo: true,
       assignedUserId: true,
       notes: true,
@@ -152,10 +155,14 @@ export async function PATCH(request, { params }) {
       entity: body.entity ?? existing.entity,
       description: body.description ?? existing.description,
       deadline: toDateOrExisting(body.deadline, existing.deadline),
+      deadlineReminderSentAt: body.deadline !== undefined ? null : existing.deadlineReminderSentAt,
       briefingDate: toDateOrExisting(body.briefingDate, existing.briefingDate),
       contactPerson: body.contactPerson ?? existing.contactPerson,
       contactEmail: body.contactEmail ?? existing.contactEmail,
       status: body.status ?? existing.status,
+      outcomeRecordedAt: body.status && body.status !== existing.status && ['Awarded', 'Lost'].includes(body.status)
+        ? new Date()
+        : existing.outcomeRecordedAt,
       assignedTo: assignment.assignedTo,
       assignedUserId: assignment.assignedUserId,
       notes: body.notes ?? existing.notes,
@@ -194,6 +201,19 @@ export async function PATCH(request, { params }) {
       reason: body.statusChangeReason,
       organizationId,
     })
+
+    try {
+      await notifyHighValueTenderStatusChange({
+        tender: updated,
+        fromStatus: existing.status,
+        toStatus: body.status,
+        changedBy: session,
+        reason: body.statusChangeReason,
+        organizationId,
+      })
+    } catch (error) {
+      console.error('Error sending tender status email notification:', error)
+    }
   } else {
     void logActivity(`Updated tender: ${updated.title}`, {
       userId: session.userId,

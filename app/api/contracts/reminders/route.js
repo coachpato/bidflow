@@ -151,13 +151,13 @@ export async function GET(request) {
     if (linkedUsers.length > 0) {
       await prisma.notification.createMany({
         data: linkedUsers.map(user => ({
-          title: 'Appointment milestone due',
-          message: `Milestone "${milestone.title}" for appointment "${milestone.contract.title}" is due soon.`,
+          title: 'Contract milestone due',
+          message: `Milestone "${milestone.title}" for contract "${milestone.contract.title}" is due soon.`,
           type: 'warning',
           userId: user.id,
           organizationId: milestone.contract.organizationId,
-          linkUrl: `/appointments/${milestone.contract.id}`,
-          linkLabel: 'Open appointment',
+          linkUrl: `/contracts/${milestone.contract.id}`,
+          linkLabel: 'Open contract',
         })),
       })
     }

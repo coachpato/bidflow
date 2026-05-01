@@ -1,4 +1,4 @@
-# BidFlow RBAC: Restricted Transitions Summary
+# Bid360 RBAC: Restricted Transitions Summary
 
 ## Quick Reference - What's Now Protected
 

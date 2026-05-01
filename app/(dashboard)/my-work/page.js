@@ -77,10 +77,10 @@ export default async function MyWorkPage() {
         title="My Work"
         eyebrow="Assigned to you"
         primaryAction={{ href: '/inbox', label: 'Open inbox' }}
-        secondaryAction={{ href: '/tenders', label: 'All tenders' }}
+        secondaryAction={{ href: '/pursuits', label: 'All pursuits' }}
         meta={[
-          { label: 'Tenders', value: `${tenders.length}` },
-          { label: 'Appointments', value: `${contracts.length}` },
+          { label: 'Pursuits', value: `${tenders.length}` },
+          { label: 'Contracts', value: `${contracts.length}` },
           { label: 'Due soon', value: `${dueSoonTenders}` },
           { label: 'Inbox unread', value: `${unreadNotifications}` },
         ]}
@@ -88,26 +88,26 @@ export default async function MyWorkPage() {
 
       <div className="app-page space-y-6">
         <section className="grid gap-4 lg:grid-cols-3">
-          <SummaryCard label="Assigned tenders" value={`${tenders.length}`} />
-          <SummaryCard label="Assigned appointments" value={`${contracts.length}`} />
-          <SummaryCard label="Expiring appointments" value={`${expiringContracts}`} />
+          <SummaryCard label="Assigned pursuits" value={`${tenders.length}`} />
+          <SummaryCard label="Assigned contracts" value={`${contracts.length}`} />
+          <SummaryCard label="Contracts ending soon" value={`${expiringContracts}`} />
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <section className="app-surface rounded-[24px] p-5 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <p className="app-kicker">Tenders</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Your tender queue</h2>
+                <p className="app-kicker">Pursuits</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Your pursuit queue</h2>
               </div>
-              <Link href="/tenders" className="app-button-secondary">All tenders</Link>
+              <Link href="/pursuits" className="app-button-secondary">All pursuits</Link>
             </div>
 
             {tenders.length === 0 ? (
               <EmptyState
-                title="No tenders are assigned to you."
-                actionHref="/tenders"
-                actionLabel="Browse tenders"
+                title="No pursuits are assigned to you."
+                actionHref="/pursuits"
+                actionLabel="Browse pursuits"
               />
             ) : (
               <div className="space-y-3">
@@ -117,7 +117,7 @@ export default async function MyWorkPage() {
                   return (
                     <Link
                       key={tender.id}
-                      href={`/tenders/${tender.id}`}
+                      href={`/pursuits/${tender.id}`}
                       className="block rounded-[20px] border border-slate-200 bg-white/80 p-4 hover:border-[rgba(13,103,181,0.26)]"
                     >
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -145,17 +145,17 @@ export default async function MyWorkPage() {
           <section className="app-surface rounded-[24px] p-5 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <p className="app-kicker">Appointments</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Your appointment watchlist</h2>
+                <p className="app-kicker">Contracts</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Your contract watchlist</h2>
               </div>
-              <Link href="/appointments" className="app-button-secondary">All appointments</Link>
+              <Link href="/contracts" className="app-button-secondary">All contracts</Link>
             </div>
 
             {contracts.length === 0 ? (
               <EmptyState
-                title="No appointments are assigned to you."
-                actionHref="/appointments"
-                actionLabel="Browse appointments"
+                title="No contracts are assigned to you."
+                actionHref="/contracts"
+                actionLabel="Browse contracts"
               />
             ) : (
               <div className="space-y-3">
@@ -165,7 +165,7 @@ export default async function MyWorkPage() {
                   return (
                     <Link
                       key={contract.id}
-                      href={`/appointments/${contract.id}`}
+                      href={`/contracts/${contract.id}`}
                       className="block rounded-[20px] border border-slate-200 bg-white/80 p-4 hover:border-amber-200"
                     >
                       <p className="text-sm font-semibold text-slate-900">{contract.title}</p>

@@ -1,7 +1,7 @@
 # Role-Based Access Control (RBAC) Implementation
 
 ## Overview
-BidFlow now enforces role-based permissions on status transitions to ensure only authorized users can approve and advance work items.
+Bid360 now enforces role-based permissions on status transitions to ensure only authorized users can approve and advance work items.
 
 ## Role Hierarchy
 - **STAFF** (Level 0): Basic users who can initiate reviews and receive instructions

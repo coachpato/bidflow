@@ -4,6 +4,7 @@ import { logActivity } from '@/lib/activity'
 import { dashboardCacheTag, expireCacheTags, tenderDetailCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { buildTenderChecklistItems } from '@/lib/tender-defaults'
 import { getSessionOrganizationId } from '@/lib/organization'
+import { findAssignedUser, notifyTenderAssignees } from '@/lib/tender-assignment'
 
 function formatMoney(value) {
   if (value === null || value === undefined) return null
@@ -63,12 +64,40 @@ function buildOpportunityChecklistItems(opportunity) {
   return customItems
 }
 
+function parseAssignedUserId(value) {
+  if (value === undefined) return undefined
+  if (value === null || value === '') return null
+
+  const parsed = parseInt(value, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+async function resolveAssignedFields(body, session) {
+  const assignedUserId = parseAssignedUserId(body.assignedUserId)
+
+  if (assignedUserId) {
+    const assignedUser = await findAssignedUser(assignedUserId)
+    if (assignedUser) {
+      return {
+        assignedUserId: assignedUser.id,
+        assignedTo: assignedUser.name || assignedUser.email,
+      }
+    }
+  }
+
+  return {
+    assignedUserId: session.userId,
+    assignedTo: body.assignedTo?.trim() || session.name || session.email || null,
+  }
+}
+
 export async function POST(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const organizationId = getSessionOrganizationId(session)
   if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
 
+  const body = await request.json().catch(() => ({}))
   const { id } = await params
   const opportunityId = parseInt(id, 10)
 
@@ -95,6 +124,16 @@ export async function POST(request, { params }) {
     })
   }
 
+  if (opportunity.dislikedAt || opportunity.status === 'Disliked') {
+    return Response.json({ error: 'Disliked opportunities cannot be converted to pursuits.' }, { status: 400 })
+  }
+
+  if (!body.deadline && !opportunity.deadline) {
+    return Response.json({ error: 'A submission deadline is required before this opportunity can become a pursuit.' }, { status: 400 })
+  }
+
+  const assignment = await resolveAssignedFields(body, session)
+
   const checklistItems = buildTenderChecklistItems(buildOpportunityChecklistItems(opportunity))
   const tenderDocuments = opportunity.documents.map(document => ({
     filename: document.filename,
@@ -104,20 +143,24 @@ export async function POST(request, { params }) {
   const convertedOpportunity = await prisma.opportunity.update({
     where: { id: opportunity.id },
     data: {
-      status: 'Converted',
+      status: 'Pursued',
+      pursuedAt: new Date(),
+      likedAt: opportunity.likedAt || new Date(),
+      dislikedAt: null,
+      dislikedByUserId: null,
       tender: {
         create: {
           title: opportunity.title,
           reference: opportunity.reference,
           entity: opportunity.entity,
           description: opportunity.summary,
-          deadline: opportunity.deadline,
+          deadline: body.deadline ? new Date(body.deadline) : opportunity.deadline,
           briefingDate: opportunity.briefingDate,
           contactPerson: opportunity.contactPerson,
           contactEmail: opportunity.contactEmail,
           status: 'New',
-          assignedTo: session.name || session.email || null,
-          assignedUserId: session.userId,
+          assignedTo: assignment.assignedTo,
+          assignedUserId: assignment.assignedUserId,
           notes: buildTenderNotes(opportunity),
           organizationId,
           userId: session.userId,
@@ -148,10 +191,25 @@ export async function POST(request, { params }) {
     return Response.json({ error: 'Could not create the pursuit.' }, { status: 500 })
   }
 
+  const createdTender = await prisma.tender.findUnique({
+    where: { id: tenderId },
+    include: {
+      assignedUser: { select: { id: true, name: true, email: true } },
+    },
+  })
+
   void logActivity(`Converted opportunity to pursuit: ${opportunity.title}`, {
     userId: session.userId,
     tenderId,
   })
+  if (createdTender) {
+    await notifyTenderAssignees({
+      tender: createdTender,
+      assignedUserId: createdTender.assignedUserId,
+      assignedTo: createdTender.assignedTo,
+      actorName: session.name,
+    })
+  }
   await expireCacheTags(
     dashboardCacheTag(organizationId),
     tendersListCacheTag(organizationId),

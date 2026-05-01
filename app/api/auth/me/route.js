@@ -4,6 +4,7 @@ import {
   ensureOrganizationContext,
   getSessionOrganizationId,
 } from '@/lib/organization'
+import { buildAuthUserPayload } from '@/lib/auth-response'
 
 // Returns the currently logged-in user info (used by client components)
 export async function GET() {
@@ -15,18 +16,27 @@ export async function GET() {
   const organizationId = getSessionOrganizationId(session)
 
   if (organizationId && session.organizationName && session.organizationRole) {
-    return Response.json({
+    const organizationContext = {
       user: {
+        role: session.role,
+      },
+      organization: {
+        id: organizationId,
+        name: session.organizationName,
+      },
+      membership: {
+        role: session.organizationRole,
+      },
+      firmProfile: null,
+    }
+
+    return Response.json({
+      user: buildAuthUserPayload({
         id: session.userId,
         name: session.name,
         email: session.email,
         role: session.role,
-        organization: {
-          id: organizationId,
-          name: session.organizationName,
-          role: session.organizationRole,
-        },
-      },
+      }, organizationContext),
     })
   }
 
@@ -35,16 +45,11 @@ export async function GET() {
   await session.save()
 
   return Response.json({
-    user: {
+    user: buildAuthUserPayload({
       id: session.userId,
       name: session.name,
       email: session.email,
       role: session.role,
-      organization: {
-        id: organizationContext.organization.id,
-        name: organizationContext.organization.name,
-        role: organizationContext.membership.role,
-      },
-    },
+    }, organizationContext),
   })
 }

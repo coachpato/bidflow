@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session'
 import { isPublicRegistrationEnabled } from '@/lib/env'
 import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
 import { normalizeServiceSector } from '@/lib/service-sectors'
+import { buildAuthUserPayload } from '@/lib/auth-response'
 
 export async function POST(request) {
   try {
@@ -105,17 +106,7 @@ export async function POST(request) {
 
     return Response.json({
       success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-        organization: {
-          id: organizationContext.organization.id,
-          name: organizationContext.organization.name,
-          role: organizationContext.membership.role,
-        },
-        serviceSector: organizationContext.firmProfile?.serviceSector || null,
-      },
+      user: buildAuthUserPayload(user, organizationContext),
     })
   } catch (err) {
     console.error('Register error:', err)

@@ -67,7 +67,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
       if (submittedSearch) params.set('search', submittedSearch)
       if (statusFilter !== 'All') params.set('status', statusFilter)
 
-      const response = await fetch(`/api/tenders?${params.toString()}`)
+      const response = await fetch(`/api/pursuits?${params.toString()}`)
       const data = await response.json()
 
       if (!isMounted) return
@@ -116,7 +116,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
       <Header
         title="Pursuits"
         eyebrow="Pipeline"
-        primaryAction={{ href: '/tenders/new', label: 'New pursuit' }}
+        primaryAction={{ href: '/pursuits/new', label: 'New pursuit' }}
         meta={[
           { label: 'In view', value: `${summary.total}` },
           { label: 'Active', value: `${summary.active}` },
@@ -136,7 +136,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
                   <button
                     key={filter.value}
                     onClick={() => setStatusFilter(filter.value)}
-                    className={`rounded-full border px-3 py-2 text-xs font-semibold tracking-[0.08em] uppercase ${
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold tracking-[0.08em] uppercase ${
                       isActive
                         ? 'border-transparent bg-[var(--brand-600)] text-white'
                         : 'border-slate-200 bg-white/90 text-slate-600 hover:bg-slate-50'
@@ -171,7 +171,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
         ) : tenders.length === 0 ? (
           <section className="app-surface rounded-[24px] px-6 py-16 text-center">
             <p className="text-sm font-semibold text-slate-800">No pursuits found.</p>
-            <Link href="/tenders/new" className="app-button-primary mt-5">
+            <Link href="/pursuits/new" className="app-button-primary mt-5">
               Create pursuit
             </Link>
           </section>
@@ -182,7 +182,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
                 const daysRemaining = getDaysRemaining(tender.deadline)
 
                 return (
-                  <Link key={tender.id} href={`/tenders/${tender.id}`} className="app-surface rounded-[24px] p-5">
+                  <Link key={tender.id} href={`/pursuits/${tender.id}`} className="app-surface rounded-[24px] p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h2 className="truncate text-lg font-semibold text-slate-950">{tender.title}</h2>
@@ -223,7 +223,7 @@ export default function TendersClient({ initialSearch, initialStatus }) {
                     return (
                       <tr key={tender.id} className="bg-white/70 hover:bg-white">
                         <td className="px-5 py-4">
-                          <Link href={`/tenders/${tender.id}`} className="font-semibold text-slate-900 hover:text-[var(--brand-500)]">
+                          <Link href={`/pursuits/${tender.id}`} className="font-semibold text-slate-900 hover:text-[var(--brand-500)]">
                             {tender.title}
                           </Link>
                           <p className="mt-1 text-xs text-slate-500">{tender.entity}</p>

@@ -8,11 +8,11 @@ export const dynamic = 'force-dynamic'
 const HIGHLIGHTS = [
   {
     title: 'Start with the right sector',
-    body: 'Set up Bid360 for the built environment, legal, or accounting from day one.',
+    body: 'Set up Bid360 for built environment, legal services, finance, or green energy from day one.',
   },
   {
     title: 'Run the full loop',
-    body: 'Discover, pursue, back up submissions, then manage awards or challenges.',
+    body: 'Discover, pursue, back up submissions, then manage awards or appeals.',
   },
   {
     title: 'Keep handovers clean',
@@ -36,12 +36,12 @@ export default async function RegisterPage() {
             ? 'Join with a new workspace for your team'
             : 'Online self-registration is currently disabled for this workspace.'
       }
-      supportingLabel={isBootstrapMode ? 'Workspace setup' : canSelfRegister ? 'Built environment, legal, accounting' : 'Bid360 access'}
+      supportingLabel={isBootstrapMode ? 'Workspace setup' : canSelfRegister ? 'Built environment, legal, finance, energy' : 'Bid360 access'}
       supportingDescription={
         isBootstrapMode
-          ? 'Create the first admin account and choose whether the workspace is for the built environment, legal, or accounting.'
+          ? 'Create the first admin account and define the firm sectors that will drive the opportunity radar.'
           : canSelfRegister
-            ? 'Create a new Bid360 workspace for your built-environment, legal, or accounting team.'
+            ? 'Create a new Bid360 workspace for your built-environment, legal, financial-services, or green-energy team.'
             : 'Ask your administrator to create your account or temporarily enable public registration.'
       }
       highlights={HIGHLIGHTS}
@@ -49,11 +49,9 @@ export default async function RegisterPage() {
       {canSelfRegister ? (
         <RegisterForm isBootstrapMode={isBootstrapMode} />
       ) : (
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Online self-registration is currently disabled for this workspace.
-          </div>
-          <p className="text-sm leading-7 text-slate-600">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 px-5 py-5">
+          <p className="text-sm font-semibold text-amber-900">Registration is currently closed</p>
+          <p className="mt-2 text-sm leading-6 text-amber-800">
             Ask your administrator to create your account or temporarily enable public registration.
           </p>
         </div>

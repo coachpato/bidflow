@@ -21,25 +21,25 @@ function daysLeft(value) {
 }
 
 export default function AppealsPage() {
-  const [challenges, setChallenges] = useState([])
+  const [appeals, setAppeals] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let isMounted = true
 
-    async function fetchChallenges() {
+    async function fetchAppeals() {
       const response = await fetch('/api/appeals')
       const data = await response.json()
 
       if (!isMounted) return
 
-      setChallenges(Array.isArray(data) ? data : [])
+      setAppeals(Array.isArray(data) ? data : [])
       setLoading(false)
     }
 
-    fetchChallenges().catch(() => {
+    fetchAppeals().catch(() => {
       if (!isMounted) return
-      setChallenges([])
+      setAppeals([])
       setLoading(false)
     })
 
@@ -49,30 +49,30 @@ export default function AppealsPage() {
   }, [])
 
   const summary = useMemo(() => {
-    const open = challenges.filter(challenge => ['Pending', 'Submitted'].includes(challenge.status)).length
-    const urgent = challenges.filter(challenge => {
-      const remaining = daysLeft(challenge.deadline)
+    const open = appeals.filter(appeal => ['Pending', 'Submitted'].includes(appeal.status)).length
+    const urgent = appeals.filter(appeal => {
+      const remaining = daysLeft(appeal.deadline)
       return remaining != null && remaining >= 0 && remaining <= 7
     }).length
-    const overdue = challenges.filter(challenge => {
-      const remaining = daysLeft(challenge.deadline)
+    const overdue = appeals.filter(appeal => {
+      const remaining = daysLeft(appeal.deadline)
       return remaining != null && remaining < 0
     }).length
 
     return {
-      total: challenges.length,
+      total: appeals.length,
       open,
       urgent,
       overdue,
     }
-  }, [challenges])
+  }, [appeals])
 
   return (
     <div className="space-y-6">
       <Header
-        title="Challenges"
-        eyebrow="Disqualification desk"
-        primaryAction={{ href: '/challenges/new', label: 'New challenge' }}
+        title="Appeals"
+        eyebrow="Loss recovery"
+        primaryAction={{ href: '/appeals/new', label: 'New appeal' }}
         meta={[
           { label: 'In view', value: `${summary.total}` },
           { label: 'Open', value: `${summary.open}` },
@@ -84,19 +84,19 @@ export default function AppealsPage() {
       <div className="app-page">
         {loading ? (
           <section className="app-surface rounded-[24px] px-6 py-16 text-center text-slate-500">
-            Loading challenges...
+            Loading appeals...
           </section>
-        ) : challenges.length === 0 ? (
+        ) : appeals.length === 0 ? (
           <section className="app-surface rounded-[24px] px-6 py-16 text-center">
-            <p className="text-sm font-semibold text-slate-800">No challenges yet.</p>
-            <Link href="/challenges/new" className="app-button-primary mt-5">
-              Create challenge
+            <p className="text-sm font-semibold text-slate-800">No appeals yet.</p>
+            <Link href="/appeals/new" className="app-button-primary mt-5">
+              Create appeal
             </Link>
           </section>
         ) : (
           <section className="space-y-4">
-            {challenges.map(challenge => {
-              const remaining = daysLeft(challenge.deadline)
+            {appeals.map(appeal => {
+              const remaining = daysLeft(appeal.deadline)
               const deadlineTone =
                 remaining == null
                   ? 'text-slate-600'
@@ -107,16 +107,16 @@ export default function AppealsPage() {
                       : 'text-slate-700'
 
               return (
-                <Link key={challenge.id} href={`/challenges/${challenge.id}`} className="app-surface block rounded-[24px] p-5">
+                <Link key={appeal.id} href={`/appeals/${appeal.id}`} className="app-surface block rounded-[24px] p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-semibold text-slate-950">{challenge.reason}</h2>
-                        <StatusBadge status={challenge.challengeType || 'Administrative Appeal'} />
+                        <h2 className="text-lg font-semibold text-slate-950">{appeal.reason}</h2>
+                        <StatusBadge status={appeal.challengeType || 'Administrative Appeal'} />
                       </div>
-                      {challenge.tender ? (
+                      {appeal.tender ? (
                         <p className="mt-2 text-sm text-slate-500">
-                          {challenge.tender.entity} | {challenge.tender.title}
+                          {appeal.tender.entity} | {appeal.tender.title}
                         </p>
                       ) : (
                         <p className="mt-2 text-sm text-slate-500">No linked pursuit</p>
@@ -133,15 +133,15 @@ export default function AppealsPage() {
                               ? 'Due today'
                               : `${remaining}d left`}
                       </div>
-                      <StatusBadge status={challenge.status} />
+                      <StatusBadge status={appeal.status} />
                     </div>
                   </div>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                    <Metric label="Deadline" value={formatDate(challenge.deadline)} tone={deadlineTone} />
-                    <Metric label="Status" value={challenge.status || 'Pending'} />
-                    <Metric label="Documents" value={`${challenge._count?.documents ?? 0}`} />
-                    <Metric label="Draft" value={challenge.template ? 'Ready' : 'Not started'} />
+                    <Metric label="Deadline" value={formatDate(appeal.deadline)} tone={deadlineTone} />
+                    <Metric label="Status" value={appeal.status || 'Pending'} />
+                    <Metric label="Documents" value={`${appeal._count?.documents ?? 0}`} />
+                    <Metric label="Draft" value={appeal.template ? 'Ready' : 'Not started'} />
                   </div>
                 </Link>
               )

@@ -21,7 +21,7 @@ export async function DELETE(_request, { params }) {
     select: { id: true },
   })
 
-  if (!appeal) return Response.json({ error: 'Challenge not found.' }, { status: 404 })
+  if (!appeal) return Response.json({ error: 'Appeal not found.' }, { status: 404 })
 
   const document = await prisma.appealDocument.findFirst({
     where: {
@@ -47,7 +47,7 @@ export async function DELETE(_request, { params }) {
     where: { id: documentId },
   })
 
-  await logActivity(`Removed challenge ${document.documentType.toLowerCase()} document: ${document.filename}`, {
+  await logActivity(`Removed appeal ${document.documentType.toLowerCase()} document: ${document.filename}`, {
     userId: session.userId,
     appealId,
   })

@@ -16,11 +16,11 @@ export default function Button({
   'aria-label': ariaLabel = null,
   ...props
 }) {
-  const baseClass = 'app-button inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all'
+  const baseClass = 'app-button'
 
   const variantClass = {
-    primary: 'app-button-primary',
-    secondary: 'app-button-secondary',
+    primary: 'app-button-primary text-white hover:text-white',
+    secondary: 'app-button-secondary text-slate-900 hover:text-slate-900',
     danger: 'app-button-danger',
     success: 'app-button-success',
     ghost: 'app-button-ghost',
@@ -28,7 +28,7 @@ export default function Button({
 
   const sizeClass = {
     sm: 'app-button-sm',
-    md: 'px-4 py-2',
+    md: '',
     lg: 'app-button-lg',
   }[size]
 

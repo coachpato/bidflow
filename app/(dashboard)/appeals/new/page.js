@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 
+// Disable static pre-rendering for this page since it uses client-side context
+export const dynamic = 'force-dynamic'
+
 const CHALLENGE_TYPES = ['Administrative Appeal', 'Bid Protest', 'Review']
 const STATUSES = ['Pending', 'Submitted', 'Won', 'Lost']
 
@@ -35,6 +38,8 @@ Yours faithfully,
 function NewAppealForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const linkedTenderId = searchParams.get('tenderId') || ''
+  const markTenderLost = searchParams.get('markTenderLost') === '1' || searchParams.get('markTenderLost') === 'true'
 
   const [form, setForm] = useState({
     reason: '',
@@ -47,49 +52,73 @@ function NewAppealForm() {
     nextStep: '',
     notes: '',
     template: '',
-    tenderId: searchParams.get('tenderId') || '',
+    tenderId: linkedTenderId,
   })
+  const [regretLetter, setRegretLetter] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+
+    if (markTenderLost && !regretLetter) {
+      setError('Upload the regret letter before opening the appeal intake.')
+      return
+    }
+
     setLoading(true)
+
+    const payload = new FormData()
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        payload.append(key, value)
+      }
+    })
+
+    if (markTenderLost) {
+      payload.append('markTenderLost', 'true')
+    }
+
+    if (regretLetter) {
+      payload.append('file', regretLetter)
+    }
 
     const response = await fetch('/api/appeals', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: payload,
     })
 
     const data = await response.json()
     setLoading(false)
 
     if (!response.ok) {
-      setError(data.error || 'Could not create challenge.')
+      setError(data.error || 'Could not create appeal.')
       return
     }
 
-    router.push(`/challenges/${data.id}`)
+    router.push(`/appeals/${data.id}`)
   }
 
   return (
     <div className="space-y-6">
       <Header
-        title="Create challenge"
-        eyebrow="Challenge setup"
-        description="Capture the exclusion facts, deadline, and first draft while the procurement trail is still fresh."
+        title={markTenderLost ? 'Record pursuit loss' : 'Create appeal'}
+        eyebrow={markTenderLost ? 'Appeal intake' : 'Appeal intake'}
+        description={markTenderLost
+          ? 'Capture the loss facts, upload the regret letter, and open the appeal/service-intake record while the procurement trail is still fresh.'
+          : 'Capture the loss facts, deadline, and first draft while the procurement trail is still fresh.'}
         meta={[
           { label: 'Linked pursuit', value: form.tenderId ? 'Attached' : 'Optional' },
           { label: 'Type', value: form.challengeType },
           { label: 'Status', value: form.status },
+          { label: 'Regret letter', value: markTenderLost ? 'Required' : 'Optional' },
         ]}
       />
 
       <div className="app-page space-y-6">
-        <Link href="/challenges" className="app-button-secondary">
-          Back to challenges
+        <Link href="/appeals" className="app-button-secondary">
+          Back to appeals
         </Link>
 
         {error ? (
@@ -101,13 +130,13 @@ function NewAppealForm() {
         <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
-              <p className="app-kicker">Challenge record</p>
+              <p className="app-kicker">{markTenderLost ? 'Loss intake' : 'Appeal record'}</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Matter details</h2>
             </div>
 
             <div className="mt-5 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge summary</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Appeal summary</label>
                 <input
                   required
                   value={form.reason}
@@ -119,7 +148,7 @@ function NewAppealForm() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge type</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appeal type</label>
                   <select value={form.challengeType} onChange={event => setForm({ ...form, challengeType: event.target.value })} className="app-select">
                     {CHALLENGE_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
@@ -139,7 +168,7 @@ function NewAppealForm() {
                   <input type="date" value={form.exclusionDate} onChange={event => setForm({ ...form, exclusionDate: event.target.value })} className="app-input" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge deadline</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appeal deadline</label>
                   <input type="date" value={form.deadline} onChange={event => setForm({ ...form, deadline: event.target.value })} className="app-input" />
                 </div>
               </div>
@@ -164,10 +193,31 @@ function NewAppealForm() {
                 <textarea rows={4} value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} className="app-textarea" />
               </div>
 
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">Regret letter</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  {markTenderLost
+                    ? 'The linked pursuit will only be marked as lost once the regret letter is uploaded with this intake.'
+                    : 'Upload the regret letter or other initial outcome notice now if you already have it.'}
+                </p>
+                <label className="app-button-secondary mt-4 inline-flex cursor-pointer">
+                  {regretLetter ? 'Replace regret letter' : 'Upload regret letter'}
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    className="hidden"
+                    onChange={event => setRegretLetter(event.target.files?.[0] || null)}
+                  />
+                </label>
+                <p className="mt-3 text-sm text-slate-600">
+                  {regretLetter ? regretLetter.name : markTenderLost ? 'No regret letter uploaded yet.' : 'Optional at creation.'}
+                </p>
+              </div>
+
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Starter draft</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Use the template as a starting point, then replace placeholders with the actual tender reference, facts, and requested relief.
+                  Use the template as a starting point, then replace placeholders with the actual pursuit reference, facts, and requested relief.
                 </p>
                 <button
                   type="button"
@@ -183,7 +233,7 @@ function NewAppealForm() {
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
               <p className="app-kicker">Draft correspondence</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Working challenge text</h2>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Working appeal text</h2>
             </div>
 
             <div className="mt-5 space-y-4">
@@ -191,7 +241,7 @@ function NewAppealForm() {
                 rows={22}
                 value={form.template}
                 onChange={event => setForm({ ...form, template: event.target.value })}
-                placeholder="Write or paste your challenge draft here..."
+                placeholder="Write or paste your appeal draft here..."
                 className="app-textarea app-data"
               />
               <p className="text-xs text-slate-500">
@@ -201,9 +251,9 @@ function NewAppealForm() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <button type="submit" disabled={loading} className="app-button-primary disabled:translate-y-0 disabled:opacity-60">
-                {loading ? 'Saving...' : 'Create challenge'}
+                {loading ? 'Saving...' : markTenderLost ? 'Open appeal intake' : 'Create appeal'}
               </button>
-              <Link href="/challenges" className="app-button-secondary">
+              <Link href="/appeals" className="app-button-secondary">
                 Cancel
               </Link>
             </div>

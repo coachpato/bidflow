@@ -305,24 +305,24 @@ textarea {
 
 /* Button Base Styles */
 button,
-.app-button {
+.app-button,
+:where(.app-button-primary, .app-button-secondary, .app-button-danger, .app-button-ghost, .app-button-success) {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 1rem;
-  padding: 0.75rem 1.25rem;
-  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition:
     background-color 200ms ease,
     color 200ms ease,
     border-color 200ms ease,
     box-shadow 200ms ease,
-    transform 180ms ease,
     opacity 180ms ease;
   white-space: nowrap;
   user-select: none;
@@ -337,43 +337,74 @@ button:disabled,
 
 /* Focus State - Accessibility */
 button:focus-visible,
-.app-button:focus-visible {
-  outline: 2px solid var(--brand-500);
-  outline-offset: 2px;
+.app-button:focus-visible,
+:where(.app-button-primary, .app-button-secondary, .app-button-danger, .app-button-ghost, .app-button-success):focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.28);
+  outline-offset: 3px;
 }
 
 /* PRIMARY BUTTON */
-.app-button-primary {
-  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
-  color: white;
-  box-shadow: 0 8px 16px rgba(24, 49, 74, 0.2);
+.app-button-primary,
+a.app-button-primary,
+button.app-button-primary,
+label.app-button-primary {
+  background-color: #0f172a;
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff !important;
+  box-shadow: none;
+  text-decoration: none;
 }
 
-.app-button-primary:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 32px rgba(24, 49, 74, 0.3);
+.app-button-primary:hover:not(:disabled),
+a.app-button-primary:hover,
+button.app-button-primary:hover:not(:disabled),
+label.app-button-primary:hover {
+  background-color: #1e293b;
+  background: #1e293b;
+  border-color: #1e293b;
+  color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
+  text-decoration: none;
 }
 
 .app-button-primary:active:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 16px rgba(24, 49, 74, 0.2);
+  background-color: #0f172a;
+  background: #0f172a;
+  border-color: #0f172a;
+  box-shadow: none;
 }
 
 /* SECONDARY BUTTON */
-.app-button-secondary {
-  border: 1.5px solid var(--line);
-  background: var(--surface);
-  color: var(--foreground);
+.app-button-secondary,
+a.app-button-secondary,
+button.app-button-secondary,
+label.app-button-secondary {
+  background-color: #ffffff;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #0f172a !important;
+  box-shadow: none;
+  text-decoration: none;
 }
 
-.app-button-secondary:hover:not(:disabled) {
-  background: var(--background-muted);
-  border-color: var(--brand-500);
-  transform: translateY(-1px);
+.app-button-secondary:hover:not(:disabled),
+a.app-button-secondary:hover,
+button.app-button-secondary:hover:not(:disabled),
+label.app-button-secondary:hover {
+  background-color: #f8fafc;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  text-decoration: none;
 }
 
 .app-button-secondary:active:not(:disabled) {
-  transform: translateY(0);
+  background-color: #ffffff;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  box-shadow: none;
 }
 
 /* DANGER BUTTON */
@@ -422,13 +453,13 @@ button:focus-visible,
 .app-button-sm {
   padding: 0.5rem 0.875rem;
   font-size: 0.875rem;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
 }
 
 .app-button-lg {
-  padding: 0.875rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 1.25rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
 }
 
 /* LOADING STATE */

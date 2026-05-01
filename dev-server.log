@@ -1,0 +1,25 @@
+
+> bid360@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.8.177:3000
+- Environments: .env.local
+✓ Ready in 482ms
+
+ GET /landing 200 in 762ms (next.js: 113ms, proxy.ts: 179ms, application-code: 471ms)
+ GET /landing 200 in 131ms (next.js: 10ms, proxy.ts: 8ms, application-code: 113ms)
+ GET /login 200 in 203ms (next.js: 47ms, proxy.ts: 6ms, application-code: 149ms)
+ GET /register 200 in 2.1s (next.js: 48ms, proxy.ts: 6ms, application-code: 2.1s)
+ GET /landing 200 in 598ms (next.js: 10ms, proxy.ts: 11ms, application-code: 577ms)
+ GET /login 200 in 458ms (next.js: 49ms, proxy.ts: 96ms, application-code: 314ms)
+ GET /register 200 in 834ms (next.js: 115ms, proxy.ts: 81ms, application-code: 638ms)
+ GET / 307 in 265ms (next.js: 69ms, proxy.ts: 11ms, application-code: 185ms)
+ GET /dashboard 200 in 6.2s (next.js: 60ms, proxy.ts: 16ms, application-code: 6.2s)
+ GET /api/notifications 200 in 643ms (next.js: 173ms, proxy.ts: 12ms, application-code: 459ms)
+ POST /api/auth/logout 200 in 1185ms (next.js: 1137ms, proxy.ts: 30ms, application-code: 18ms)
+ GET /login 200 in 101ms (next.js: 24ms, proxy.ts: 18ms, application-code: 59ms)
+ GET / 200 in 405ms (next.js: 23ms, proxy.ts: 65ms, application-code: 317ms)
+ GET /landing 200 in 1604ms (next.js: 143ms, proxy.ts: 21ms, application-code: 1439ms)
+ GET /landing 200 in 845ms (next.js: 86ms, proxy.ts: 157ms, application-code: 602ms)

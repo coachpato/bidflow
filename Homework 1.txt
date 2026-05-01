@@ -1,0 +1,32 @@
+Homework 1
+
+- I want the app to at least work to a certain degree
+- Google login needs to work even though its a demo
+- domain needs to be mine
+- need to after creating account, the scrapper works
+- I need the scrapper to be accurate which will be based on the options a user selects in its sector
+- I want to see settings under each user
+- team members is not for a demo
+- the only team member is the account creator
+- I want the users to be able to contact the developers for suggestions and bugs
+- I want this to be communicated properly on the landing page not oversell or use dashboards that are not in the app
+- I want email automation for reminders to work
+- I want email for registration to work 
+- I want users to enjoy reminders from day one
+- I want the crawler which I think is the start of the show to load all the time
+- under settings I want a person to add or remove things they select when they login
+- I want this to be done all free for demo. No paid option. 
+- I want everything that will cost money to be postponed to not demo mode. 
+- I want peorpl to see value and production quality from the demo
+- want the UI of the enter app to look professional 
+- the functionality for me is not all the fancy things. It is ability to see tenders you want, save them, get reminded of them, save appointment letters. Ask for help from lawyers when you don't get them. track work you get from this contracts. and the cycle begins. 
+- privacy and popia policy is important for demo since I will get peoples details
+- security of peoples data is important from the beginig demo stage.
+- Nothing complex on demo, just an app that does what it promises. 
+- cell phone UI not that important to be honest for me at demo I may be wrong
+- gmail login must use the doman I bought
+- the create account must have e-mail noticifaction for user
+- im not accepting payment at demo
+- I want demo users to be able to see the painpoint of searching for tenders and keeping important dates and everything with your tenders  at one place being lifted from demo stage. free or minimal payment from me as the developer.
+
+

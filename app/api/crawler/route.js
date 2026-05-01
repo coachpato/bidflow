@@ -2,6 +2,7 @@ import { logActivity } from '@/lib/activity'
 import { crawlETenders, downloadPDF, getPDFLinksFromTender, getTenderDetails } from '@/lib/crawler/etenders-crawler'
 import { analyzeTenderForSector } from '@/lib/crawler/keyword-matcher'
 import { extractTextFromPDF } from '@/lib/crawler/pdf-extractor'
+import { sendOpportunityAlert } from '@/lib/bid360-notifications'
 import { getAppUrl, sendEmail } from '@/lib/email'
 import { ensureOrganizationContext } from '@/lib/organization'
 import {
@@ -505,15 +506,10 @@ export async function GET(request) {
       const organization = organizations.find(item => item.id === organizationResult.organizationId)
       if (!organization || organizationResult.opportunities.length === 0) continue
 
-      await sendDailyDigestEmail({
-        organization,
-        sourceRun,
-        opportunities: organizationResult.opportunities,
-      })
-      await createDigestNotification({
+      await sendOpportunityAlert({
         organizationId: organization.id,
-        sourceRunId: sourceRun.id,
-        count: organizationResult.opportunities.length,
+        opportunities: organizationResult.opportunities,
+        sourceKey: `opportunity-alert:${sourceRun.id}:${organization.id}`,
       })
       results.digestsSent += 1
     }

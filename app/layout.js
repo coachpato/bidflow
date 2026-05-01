@@ -24,6 +24,9 @@ const inconsolata = Inconsolata({
 export const metadata = {
   title: 'Bid360 - Tender Management for South Africa',
   description: "Bid360 for the built environment, legal and accounting firms behind South Africa's biggest projects.",
+}
+
+export const viewport = {
   colorScheme: 'light dark',
 }
 

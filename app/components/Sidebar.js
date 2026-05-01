@@ -42,9 +42,9 @@ export const NAV_ITEMS = [
     ),
   },
   {
-    label: 'Appointments',
-    href: '/appointments',
-    aliases: ['/contracts'],
+    label: 'Contracts',
+    href: '/contracts',
+    aliases: ['/appointments'],
     accent: '#37624e',
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,9 +54,9 @@ export const NAV_ITEMS = [
     ),
   },
   {
-    label: 'Challenges',
-    href: '/challenges',
-    aliases: ['/appeals'],
+    label: 'Appeals',
+    href: '/appeals',
+    aliases: ['/challenges'],
     accent: '#a56b1f',
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +89,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 rounded-[20px] border px-4 py-3 text-sm font-medium transition-all ${
+                className={`group flex items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
                   isActive
                     ? 'border-white/10 bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                     : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/5 hover:text-slate-100'
@@ -117,7 +117,7 @@ export default function Sidebar() {
             Operator note
           </p>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            Keep the loop disciplined: review opportunities, run pursuits, store final submissions, then manage awards or challenges.
+            Keep the loop disciplined: review opportunities, run pursuits, deliver contracts, and route losses into appeals.
           </p>
         </div>
         <p className="px-2 text-xs text-slate-500">Bid360 workspace</p>

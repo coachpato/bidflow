@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 export default function Modal({
   isOpen = false,
@@ -15,8 +15,9 @@ export default function Modal({
   'aria-describedby': ariaDescribedBy = null,
 }) {
   const dialogRef = useRef(null)
-  const titleId = useRef(`modal-title-${Math.random().toString(36).substr(2, 9)}`).current
-  const contentId = useRef(`modal-content-${Math.random().toString(36).substr(2, 9)}`).current
+  const generatedId = useId()
+  const titleId = `modal-title-${generatedId}`
+  const contentId = `modal-content-${generatedId}`
 
   useEffect(() => {
     if (!dialogRef.current) return

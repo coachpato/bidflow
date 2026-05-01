@@ -1,0 +1,178 @@
+{
+  "generatedAt": "2026-04-28T18:32:17.617Z",
+  "totalFiles": 104,
+  "byWorkflow": {
+    "auth": {
+      "pages": [
+        "app/(auth)/login/page.js",
+        "app/(auth)/register/page.js"
+      ],
+      "layouts": [
+        "app/(auth)/layout.js"
+      ],
+      "apis": [
+        "app/api/auth/google/route.js",
+        "app/api/auth/login/route.js",
+        "app/api/auth/logout/route.js",
+        "app/api/auth/me/route.js",
+        "app/api/auth/register/route.js"
+      ],
+      "other": []
+    },
+    "cross_cutting": {
+      "pages": [
+        "app/(dashboard)/activity/page.js",
+        "app/(dashboard)/dashboard/page.js",
+        "app/(dashboard)/inbox/page.js",
+        "app/(dashboard)/notifications/page.js",
+        "app/(dashboard)/vault/page.js"
+      ],
+      "layouts": [],
+      "apis": [
+        "app/api/notifications/route.js",
+        "app/api/notifications/[id]/route.js",
+        "app/api/vault/route.js",
+        "app/api/vault/[id]/route.js",
+        "app/api/webhooks/endpoints/route.js",
+        "app/api/webhooks/endpoints/[id]/route.js",
+        "app/api/webhooks/process/route.js"
+      ],
+      "other": []
+    },
+    "appeals": {
+      "pages": [
+        "app/(dashboard)/appeals/new/page.js",
+        "app/(dashboard)/appeals/page.js",
+        "app/(dashboard)/appeals/[id]/page.js",
+        "app/(dashboard)/challenges/new/page.js",
+        "app/(dashboard)/challenges/page.js",
+        "app/(dashboard)/challenges/[id]/page.js"
+      ],
+      "layouts": [
+        "app/(dashboard)/appeals/layout.js"
+      ],
+      "apis": [
+        "app/api/appeals/reminders/route.js",
+        "app/api/appeals/route.js",
+        "app/api/appeals/[id]/documents/route.js",
+        "app/api/appeals/[id]/documents/[docId]/route.js",
+        "app/api/appeals/[id]/route.js"
+      ],
+      "other": []
+    },
+    "contracts": {
+      "pages": [
+        "app/(dashboard)/appointments/new/page.js",
+        "app/(dashboard)/appointments/page.js",
+        "app/(dashboard)/appointments/[id]/page.js",
+        "app/(dashboard)/contracts/new/page.js",
+        "app/(dashboard)/contracts/page.js",
+        "app/(dashboard)/contracts/[id]/page.js"
+      ],
+      "layouts": [
+        "app/(dashboard)/appointments/layout.js"
+      ],
+      "apis": [
+        "app/api/contracts/reminders/route.js",
+        "app/api/contracts/route.js",
+        "app/api/contracts/[id]/documents/route.js",
+        "app/api/contracts/[id]/documents/[docId]/route.js",
+        "app/api/contracts/[id]/milestones/route.js",
+        "app/api/contracts/[id]/milestones/[milestoneId]/route.js",
+        "app/api/contracts/[id]/route.js",
+        "app/api/contracts/[id]/status-history/route.js"
+      ],
+      "other": []
+    },
+    "firm_settings": {
+      "pages": [
+        "app/(dashboard)/firm/page.js",
+        "app/(dashboard)/settings/page.js"
+      ],
+      "layouts": [],
+      "apis": [
+        "app/api/firm/experience/route.js",
+        "app/api/firm/experience/[id]/route.js",
+        "app/api/firm/personnel/route.js",
+        "app/api/firm/personnel/[id]/route.js",
+        "app/api/firm/route.js",
+        "app/api/settings/invites/route.js"
+      ],
+      "other": []
+    },
+    "unclassified": {
+      "pages": [
+        "app/(dashboard)/launch-interest/page.js",
+        "app/(dashboard)/my-work/page.js",
+        "app/landing/page.js",
+        "app/page.js"
+      ],
+      "layouts": [
+        "app/(dashboard)/layout.js",
+        "app/layout.js"
+      ],
+      "apis": [
+        "app/api/crawler/route.js",
+        "app/api/email/test/route.js",
+        "app/api/pilot-leads/route.js",
+        "app/api/test-dashboard/route.js",
+        "app/api/test-db/route.js",
+        "app/api/upload/route.js",
+        "app/api/users/route.js"
+      ],
+      "other": []
+    },
+    "opportunities": {
+      "pages": [
+        "app/(dashboard)/opportunities/new/page.js",
+        "app/(dashboard)/opportunities/page.js",
+        "app/(dashboard)/opportunities/[id]/page.js"
+      ],
+      "layouts": [],
+      "apis": [
+        "app/api/opportunities/mock-feed/route.js",
+        "app/api/opportunities/route.js",
+        "app/api/opportunities/[id]/convert/route.js",
+        "app/api/opportunities/[id]/documents/route.js",
+        "app/api/opportunities/[id]/documents/[docId]/route.js",
+        "app/api/opportunities/[id]/route.js"
+      ],
+      "other": []
+    },
+    "pursuits_tenders": {
+      "pages": [
+        "app/(dashboard)/pursuits/new/page.js",
+        "app/(dashboard)/pursuits/page.js",
+        "app/(dashboard)/pursuits/[id]/edit/page.js",
+        "app/(dashboard)/pursuits/[id]/page.js",
+        "app/(dashboard)/tenders/new/page.js",
+        "app/(dashboard)/tenders/page.js",
+        "app/(dashboard)/tenders/[id]/edit/page.js",
+        "app/(dashboard)/tenders/[id]/page.js"
+      ],
+      "layouts": [],
+      "apis": [
+        "app/api/pursuits/reminders/route.js",
+        "app/api/pursuits/route.js",
+        "app/api/pursuits/[id]/checklist/route.js",
+        "app/api/pursuits/[id]/checklist/[itemId]/route.js",
+        "app/api/pursuits/[id]/convert-to-contract/route.js",
+        "app/api/pursuits/[id]/documents/route.js",
+        "app/api/pursuits/[id]/documents/[docId]/route.js",
+        "app/api/pursuits/[id]/route.js",
+        "app/api/pursuits/[id]/status-history/route.js",
+        "app/api/pursuits/[id]/submission-pack/route.js",
+        "app/api/tenders/route.js",
+        "app/api/tenders/[id]/checklist/route.js",
+        "app/api/tenders/[id]/checklist/[itemId]/route.js",
+        "app/api/tenders/[id]/convert-to-contract/route.js",
+        "app/api/tenders/[id]/documents/route.js",
+        "app/api/tenders/[id]/documents/[docId]/route.js",
+        "app/api/tenders/[id]/route.js",
+        "app/api/tenders/[id]/status-history/route.js",
+        "app/api/tenders/[id]/submission-pack/route.js"
+      ],
+      "other": []
+    }
+  }
+}

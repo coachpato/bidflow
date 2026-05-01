@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
+import UserSelect from '@/app/components/UserSelect'
 
-const EDITABLE_STATUSES = ['New', 'Watch', 'Pursue', 'Ignore']
+const EDITABLE_STATUSES = ['New', 'Liked']
 
 function formatDate(value) {
   if (!value) return 'Not set'
@@ -126,6 +127,14 @@ function toFormState(opportunity) {
   }
 }
 
+function toPursuitSetupState(opportunity) {
+  return {
+    assignedUserId: opportunity?.tender?.assignedUserId ? String(opportunity.tender.assignedUserId) : '',
+    assignedTo: opportunity?.tender?.assignedUser?.name || opportunity?.tender?.assignedTo || '',
+    deadline: toDateTimeLocalValue(opportunity?.deadline),
+  }
+}
+
 function buildPayload(form) {
   return {
     title: form.title,
@@ -156,11 +165,14 @@ function OpportunityDetailLayout({
   daysRemaining,
   documentsCount,
   form,
+  onPursuitOwnerChange,
   opportunity,
+  pursuitSetup,
   removeDocument,
   saveOpportunity,
   saving,
   setForm,
+  setPursuitSetup,
   uploading,
   uploadError,
   handleFileUpload,
@@ -207,7 +219,7 @@ function OpportunityDetailLayout({
                   disabled={converting}
                   className="app-button-primary disabled:translate-y-0 disabled:opacity-60"
                 >
-                  {converting ? 'Converting...' : 'Convert to pursuit'}
+                  {converting ? 'Converting...' : 'Convert to Pursuit'}
                 </button>
               )}
           </div>
@@ -248,7 +260,7 @@ function OpportunityDetailLayout({
                   href={form.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-white"
+                  className="app-button-secondary"
                 >
                   Open source
                 </a>
@@ -274,7 +286,7 @@ function OpportunityDetailLayout({
               />
               <HeroMetric
                 label="Pursuit handoff"
-                value={opportunity.tender ? 'Converted' : 'Pending'}
+                value={opportunity.tender ? 'Pursued' : 'Pending'}
                 subvalue={opportunity.tender ? opportunity.tender.title : 'Still at review stage'}
               />
             </div>
@@ -324,7 +336,7 @@ function OpportunityDetailLayout({
                     onChange={event => setForm(current => ({ ...current, status: event.target.value }))}
                     className="app-select"
                   >
-                    {(opportunity.tender ? [...EDITABLE_STATUSES, 'Converted'] : EDITABLE_STATUSES).map(status => (
+                    {(opportunity.tender ? [...EDITABLE_STATUSES, 'Pursued'] : EDITABLE_STATUSES).map(status => (
                       <option key={status} value={status}>{status}</option>
                     ))}
                   </select>
@@ -512,11 +524,11 @@ function OpportunityDetailLayout({
                             href={document.filepath}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                            className="app-button-secondary"
                           >
                             Open
                           </a>
-                          <button onClick={() => removeDocument(document.id)} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
+                          <button onClick={() => removeDocument(document.id)} className="app-button-danger">
                             Remove
                           </button>
                         </div>
@@ -588,6 +600,34 @@ function OpportunityDetailLayout({
                   <MetricCard label="Captured items" value={String(form.parsedRequirements.length)} />
                 </div>
 
+                {!opportunity.tender ? (
+                  <div className="mt-5 space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Pursuit handoff</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                        Choose the owner and confirm the submission deadline before this moves into the live pursuit pipeline.
+                      </p>
+                    </div>
+
+                    <UserSelect
+                      label="Pursuit owner"
+                      value={pursuitSetup.assignedUserId}
+                      onChange={onPursuitOwnerChange}
+                      helperText="This owner becomes responsible for the new pursuit."
+                      allowUnassigned={false}
+                    />
+
+                    <Field label="Submission deadline">
+                      <input
+                        type="datetime-local"
+                        value={pursuitSetup.deadline}
+                        onChange={event => setPursuitSetup(current => ({ ...current, deadline: event.target.value }))}
+                        className="app-input"
+                      />
+                    </Field>
+                  </div>
+                ) : null}
+
                 <div className="mt-5 space-y-3">
                   <button onClick={saveOpportunity} disabled={saving} className="app-button-secondary w-full disabled:opacity-60">
                     {saving ? 'Saving...' : 'Save opportunity'}
@@ -598,7 +638,7 @@ function OpportunityDetailLayout({
                     </Link>
                   ) : (
                     <button onClick={convertToTender} disabled={converting} className="app-button-primary w-full disabled:translate-y-0 disabled:opacity-60">
-                      {converting ? 'Converting...' : 'Convert to pursuit'}
+                      {converting ? 'Converting...' : 'Convert to Pursuit'}
                     </button>
                   )}
                 </div>
@@ -659,6 +699,11 @@ export default function OpportunityDetailPage() {
   const router = useRouter()
   const [opportunity, setOpportunity] = useState(null)
   const [form, setForm] = useState(null)
+  const [pursuitSetup, setPursuitSetup] = useState({
+    assignedUserId: '',
+    assignedTo: '',
+    deadline: '',
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -677,6 +722,7 @@ export default function OpportunityDetailPage() {
     const data = await response.json()
     setOpportunity(data)
     setForm(toFormState(data))
+    setPursuitSetup(toPursuitSetupState(data))
     setLoading(false)
   }, [id, router])
 
@@ -749,7 +795,25 @@ export default function OpportunityDetailPage() {
     await fetchOpportunity()
   }
 
+  function handlePursuitOwnerChange(assignedUserId, assignedUser) {
+    setPursuitSetup(current => ({
+      ...current,
+      assignedUserId,
+      assignedTo: assignedUser?.name || assignedUser?.email || '',
+    }))
+  }
+
   async function convertToTender() {
+    if (!pursuitSetup.assignedUserId) {
+      setActionError('Choose the firm-wide owner before converting this opportunity to a pursuit.')
+      return
+    }
+
+    if (!pursuitSetup.deadline) {
+      setActionError('Set the submission deadline before converting this opportunity to a pursuit.')
+      return
+    }
+
     if (!confirm('Convert this opportunity into a pursuit? The pursuit will inherit the current details and source documents.')) {
       return
     }
@@ -762,6 +826,8 @@ export default function OpportunityDetailPage() {
 
     const response = await fetch(`/api/opportunities/${id}/convert`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pursuitSetup),
     })
     const data = await response.json()
     setConverting(false)
@@ -806,10 +872,10 @@ export default function OpportunityDetailPage() {
           title: 'Review and decide',
           body: 'Check the dates, notes, and fit score, then decide whether this should move into the pursuit pipeline.',
         }
-        : form.status === 'Pursue'
+        : form.status === 'Liked'
           ? {
               title: 'Convert to pursuit',
-              body: 'The opportunity is ready to become active bid work with checklist items and dates.',
+              body: 'The opportunity is ready to become active bid work with a named owner and a confirmed submission deadline.',
             }
           : {
               title: 'Keep the decision sharp',
@@ -824,11 +890,14 @@ export default function OpportunityDetailPage() {
       daysRemaining={daysRemaining}
       documentsCount={documentsCount}
       form={form}
+      onPursuitOwnerChange={handlePursuitOwnerChange}
       opportunity={opportunity}
+      pursuitSetup={pursuitSetup}
       removeDocument={removeDocument}
       saveOpportunity={saveOpportunity}
       saving={saving}
       setForm={setForm}
+      setPursuitSetup={setPursuitSetup}
       uploading={uploading}
       uploadError={uploadError}
       handleFileUpload={handleFileUpload}

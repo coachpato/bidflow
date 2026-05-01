@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import {
   getContractAppointmentNextStatuses,
   getContractInstructionNextStatuses,
@@ -20,9 +20,8 @@ export function ContractAppointmentStatusSelector({
   showHelperText = true,
 }) {
   const nextStatuses = getContractAppointmentNextStatuses(currentStatus)
-  const [roleHints, setRoleHints] = useState({})
 
-  useEffect(() => {
+  const roleHints = useMemo(() => {
     const hints = {}
     nextStatuses.forEach(status => {
       const canTransition = userRole !== undefined
@@ -38,7 +37,7 @@ export function ContractAppointmentStatusSelector({
         hints[status] = requiredRole
       }
     })
-    setRoleHints(hints)
+    return hints
   }, [currentStatus, userRole, nextStatuses])
 
   return (
@@ -87,9 +86,8 @@ export function ContractInstructionStatusSelector({
   showHelperText = true,
 }) {
   const nextStatuses = getContractInstructionNextStatuses(currentStatus)
-  const [roleHints, setRoleHints] = useState({})
 
-  useEffect(() => {
+  const roleHints = useMemo(() => {
     const hints = {}
     nextStatuses.forEach(status => {
       const canTransition = userRole !== undefined
@@ -105,7 +103,7 @@ export function ContractInstructionStatusSelector({
         hints[status] = requiredRole
       }
     })
-    setRoleHints(hints)
+    return hints
   }, [currentStatus, userRole, nextStatuses])
 
   return (

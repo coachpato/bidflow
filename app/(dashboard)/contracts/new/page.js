@@ -6,8 +6,8 @@ import Link from 'next/link'
 import Header from '@/app/components/Header'
 import UserSelect from '@/app/components/UserSelect'
 
-const APPOINTMENT_STATUSES = ['Appointed', 'Dormant', 'Active', 'Completed', 'Closed']
-const INSTRUCTION_STATUSES = ['No Instruction', 'Instruction Received']
+const APPOINTMENT_STATUSES = ['Pending', 'Appointed', 'Not Appointed']
+const INSTRUCTION_STATUSES = ['No Instruction', 'Instruction Received', 'Work Complete']
 
 function NewContractForm() {
   const router = useRouter()
@@ -18,7 +18,7 @@ function NewContractForm() {
     client: searchParams.get('client') || '',
     assignedUserId: searchParams.get('assignedUserId') || '',
     assignedTo: searchParams.get('assignedTo') || '',
-    appointmentStatus: 'Appointed',
+    appointmentStatus: searchParams.get('tenderId') ? 'Appointed' : 'Pending',
     instructionStatus: 'No Instruction',
     appointmentDate: '',
     startDate: '',
@@ -63,19 +63,19 @@ function NewContractForm() {
     setLoading(false)
 
     if (!response.ok) {
-      setError(data.error || 'Could not create appointment.')
+      setError(data.error || 'Could not create contract.')
       return
     }
 
-    router.push(`/appointments/${data.id}`)
+    router.push(`/contracts/${data.id}`)
   }
 
   return (
     <div className="space-y-6">
       <Header
-        title="Create appointment"
-        eyebrow="Appointment setup"
-        description="Capture the post-award record as soon as a firm is appointed so follow-ups, instructions, and milestones do not drift."
+        title="Create contract"
+        eyebrow="Contract setup"
+        description="Capture the won-work record as soon as a pursuit is awarded so follow-ups, instructions, and milestones do not drift."
         meta={[
           { label: 'Linked pursuit', value: form.tenderId ? 'Attached' : 'Optional' },
           { label: 'Status', value: form.appointmentStatus },
@@ -85,16 +85,16 @@ function NewContractForm() {
       />
 
       <div className="app-page space-y-6">
-        <Link href="/appointments" className="app-button-secondary">
-          Back to appointments
+        <Link href="/contracts" className="app-button-secondary">
+          Back to contracts
         </Link>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
-              <p className="app-kicker">Appointment record</p>
+              <p className="app-kicker">Contract record</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                Appointment details
+                Contract details
               </h2>
             </div>
 
@@ -107,7 +107,7 @@ function NewContractForm() {
             <form onSubmit={handleSubmit} className="mt-5 space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appointment title</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Contract title</label>
                   <input name="title" required value={form.title} onChange={handleChange} className="app-input" />
                 </div>
 
@@ -121,12 +121,12 @@ function NewContractForm() {
                     label="Allocated to"
                     value={form.assignedUserId}
                     onChange={handleAssignedUserChange}
-                    helperText="Choose the teammate who will follow up on this appointment."
+                    helperText="Choose the teammate who will own this contract."
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appointment status</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Contract status</label>
                   <select name="appointmentStatus" value={form.appointmentStatus} onChange={handleChange} className="app-select">
                     {APPOINTMENT_STATUSES.map(status => (
                       <option key={status} value={status}>{status}</option>
@@ -144,7 +144,7 @@ function NewContractForm() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appointment date</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Award date</label>
                   <input type="date" name="appointmentDate" value={form.appointmentDate} onChange={handleChange} className="app-input" />
                 </div>
 
@@ -184,7 +184,7 @@ function NewContractForm() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appointment value (ZAR)</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Contract value (ZAR)</label>
                   <input type="number" name="value" value={form.value} onChange={handleChange} className="app-input" />
                 </div>
 
@@ -201,9 +201,9 @@ function NewContractForm() {
 
               <div className="flex flex-wrap gap-3 pt-2">
                 <button type="submit" disabled={loading} className="app-button-primary disabled:translate-y-0 disabled:opacity-60">
-                  {loading ? 'Saving...' : 'Create appointment'}
+                  {loading ? 'Saving...' : 'Create contract'}
                 </button>
-                <Link href="/appointments" className="app-button-secondary">
+                <Link href="/contracts" className="app-button-secondary">
                   Cancel
                 </Link>
               </div>
@@ -219,13 +219,13 @@ function NewContractForm() {
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Track dormant awards</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  If you have been appointed but not yet instructed, set a next follow-up date immediately so the appointment stays active in the desk.
+                  If you have been appointed but not yet instructed, set a next follow-up date immediately so the contract stays active in the desk.
                 </p>
               </div>
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Keep the pursuit link</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Linking the appointment back to the pursuit preserves the full trail from opportunity to work.
+                  Linking the contract back to the pursuit preserves the full trail from opportunity to work.
                 </p>
               </div>
             </div>

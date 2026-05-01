@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
+import { buildAuthUserPayload } from '@/lib/auth-response'
 
 export async function POST(request) {
   try {
@@ -65,16 +66,7 @@ export async function POST(request) {
 
     return Response.json({
       success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-        organization: {
-          id: organizationContext.organization.id,
-          name: organizationContext.organization.name,
-          role: organizationContext.membership.role,
-        },
-      },
+      user: buildAuthUserPayload(user, organizationContext),
     })
   } catch (err) {
     console.error('Login error:', err)

@@ -1,4 +1,4 @@
-# BidFlow Deployment Guide
+# Bid360 Deployment Guide
 
 ## Recommended stack
 

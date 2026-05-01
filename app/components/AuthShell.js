@@ -14,29 +14,29 @@ export default function AuthShell({
       <div className="absolute inset-0 -z-10 opacity-40 bg-[radial-gradient(circle_at_top_left,_rgba(24,49,74,0.12),_transparent_35%)]" />
       <div className="absolute inset-0 -z-10 opacity-40 bg-[radial-gradient(circle_at_bottom_right,_rgba(160,123,57,0.14),_transparent_28%)]" />
 
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl overflow-hidden rounded-3xl border border-var(--line) bg-var(--surface) shadow-var(--shadow-lg) backdrop-blur xl:grid-cols-[1fr_0.88fr]">
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl overflow-hidden rounded-3xl border border-var(--line) bg-var(--surface) shadow-var(--shadow-lg) backdrop-blur xl:grid-cols-[40%_60%]">
         {/* Left Side - Desktop Only */}
         <section className="relative hidden overflow-hidden border-r border-var(--line) bg-gradient-to-br from-[var(--brand-700)] via-[var(--brand-600)] to-[var(--brand-500)] p-10 text-white xl:flex xl:flex-col">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(160,123,57,0.18),_transparent_24%)]" />
-          <div className="relative z-10 flex h-full flex-col justify-between">
-            <div className="space-y-10">
+          <div className="relative z-10 flex h-full flex-col justify-center gap-10">
+            <div className="space-y-8">
               <AppLogo href="/" caption="" />
 
-              <div className="max-w-md space-y-6">
+              <div className="max-w-md space-y-4">
                 <p className="app-kicker text-white/70">{supportingLabel}</p>
                 <h1 className="app-display text-4xl font-bold leading-tight">{title}</h1>
                 <p className="text-base leading-7 text-white/80">{supportingDescription}</p>
               </div>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {highlights.map(item => (
                 <div
                   key={item.title}
-                  className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur-sm hover:bg-white/15 transition"
+                  className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 backdrop-blur-sm transition"
                 >
-                  <p className="text-sm font-semibold leading-snug">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-white/70">{item.body}</p>
+                  <p className="text-sm font-semibold leading-snug text-white">{item.title}</p>
+                  <p className="mt-1.5 text-sm leading-6 text-white/70">{item.body}</p>
                 </div>
               ))}
             </div>

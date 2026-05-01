@@ -8,7 +8,7 @@ import StatusBadge from '@/app/components/StatusBadge'
 
 const CHALLENGE_TYPES = ['Administrative Appeal', 'Bid Protest', 'Review']
 const STATUSES = ['Pending', 'Submitted', 'Won', 'Lost']
-const DOCUMENT_TYPES = ['Evidence', 'Letter', 'Notice', 'Outcome', 'Other']
+const DOCUMENT_TYPES = ['Evidence', 'Letter', 'Notice', 'Outcome', 'Regret Letter', 'Other']
 
 function formatDate(value) {
   if (!value) return 'Not set'
@@ -41,7 +41,7 @@ function seedForm(data) {
 export default function AppealDetailPage() {
   const { id } = useParams()
   const router = useRouter()
-  const [challenge, setChallenge] = useState(null)
+  const [appeal, setAppeal] = useState(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -50,20 +50,20 @@ export default function AppealDetailPage() {
   const [uploadError, setUploadError] = useState('')
   const [deletingDocumentId, setDeletingDocumentId] = useState(null)
 
-  async function fetchChallenge() {
+  async function fetchAppeal() {
     const res = await fetch(`/api/appeals/${id}`)
     if (!res.ok) {
-      router.push('/challenges')
+      router.push('/appeals')
       return
     }
 
     const data = await res.json()
-    setChallenge(data)
+    setAppeal(data)
     setForm(seedForm(data))
   }
 
   useEffect(() => {
-    fetchChallenge()
+    fetchAppeal()
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave(event) {
@@ -82,13 +82,13 @@ export default function AppealDetailPage() {
     })
     setSaving(false)
     setEditing(false)
-    fetchChallenge()
+    fetchAppeal()
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this challenge? This cannot be undone.')) return
+    if (!confirm('Delete this appeal? This cannot be undone.')) return
     await fetch(`/api/appeals/${id}`, { method: 'DELETE' })
-    router.push('/challenges')
+    router.push('/appeals')
   }
 
   async function handleFileUpload(event) {
@@ -115,7 +115,7 @@ export default function AppealDetailPage() {
         return
       }
 
-      await fetchChallenge()
+      await fetchAppeal()
     } catch {
       setUploadError('Document upload failed. Please try again.')
     } finally {
@@ -125,44 +125,44 @@ export default function AppealDetailPage() {
   }
 
   async function deleteDocument(docId) {
-    if (!confirm('Remove this challenge document?')) return
+    if (!confirm('Remove this appeal document?')) return
     setDeletingDocumentId(docId)
 
     try {
       await fetch(`/api/appeals/${id}/documents/${docId}`, { method: 'DELETE' })
-      await fetchChallenge()
+      await fetchAppeal()
     } finally {
       setDeletingDocumentId(null)
     }
   }
 
-  const daysLeft = challenge?.deadline
-    ? Math.ceil((new Date(challenge.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+  const daysLeft = appeal?.deadline
+    ? Math.ceil((new Date(appeal.deadline) - new Date()) / (1000 * 60 * 60 * 24))
     : null
-  const evidenceChecklist = parseChecklist(challenge?.evidenceChecklist)
+  const evidenceChecklist = parseChecklist(appeal?.evidenceChecklist)
 
   return (
     <div className="space-y-6">
       <Header
-        title={challenge?.reason || 'Challenge workspace'}
-        eyebrow="Challenge detail"
-        description="Keep the exclusion facts, deadline, evidence, and draft correspondence together while the challenge is active."
-        meta={challenge ? [
-          { label: 'Type', value: challenge.challengeType || 'Administrative Appeal' },
-          { label: 'Status', value: challenge.status || 'Pending' },
-          { label: 'Deadline', value: formatDate(challenge.deadline) },
-          { label: 'Linked pursuit', value: challenge.tender?.title || 'Not linked' },
+        title={appeal?.reason || 'Appeal workspace'}
+        eyebrow="Appeal detail"
+        description="Keep the exclusion facts, deadline, evidence, and draft correspondence together while the appeal is active."
+        meta={appeal ? [
+          { label: 'Type', value: appeal.challengeType || 'Administrative Appeal' },
+          { label: 'Status', value: appeal.status || 'Pending' },
+          { label: 'Deadline', value: formatDate(appeal.deadline) },
+          { label: 'Linked pursuit', value: appeal.tender?.title || 'Not linked' },
         ] : []}
       />
 
       <div className="app-page space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/challenges" className="app-button-secondary">
-            Back to challenges
+          <Link href="/appeals" className="app-button-secondary">
+            Back to appeals
           </Link>
           <div className="flex flex-wrap gap-3">
             <button onClick={() => setEditing(!editing)} className="app-button-secondary">
-              {editing ? 'Cancel edit' : 'Edit challenge'}
+              {editing ? 'Cancel edit' : 'Edit appeal'}
             </button>
             <button onClick={handleDelete} className="app-button-danger">
               Delete
@@ -175,32 +175,32 @@ export default function AppealDetailPage() {
             <p className="app-kicker">{daysLeft <= 0 ? 'Deadline passed' : 'Urgent timeline'}</p>
             <p className={`mt-2 text-lg font-semibold ${daysLeft <= 0 ? 'text-red-800' : 'text-amber-800'}`}>
               {daysLeft <= 0
-                ? 'This challenge is now past deadline.'
-                : `This challenge deadline is in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`}
+                ? 'This appeal is now past deadline.'
+                : `This appeal deadline is in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`}
             </p>
           </div>
         ) : null}
 
-        {!challenge ? (
+        {!appeal ? (
           <div className="app-surface rounded-[30px] px-6 py-16 text-center text-slate-500">
-            Loading challenge...
+            Loading appeal...
           </div>
         ) : editing ? (
           <section className="app-surface rounded-[30px] p-5 sm:p-6">
             <div className="border-b border-slate-100 pb-5">
-              <p className="app-kicker">Edit challenge</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Challenge details</h2>
+              <p className="app-kicker">Edit appeal</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Appeal details</h2>
             </div>
 
             <form onSubmit={handleSave} className="mt-5 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge summary</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Appeal summary</label>
                 <input value={form.reason} onChange={event => setForm({ ...form, reason: event.target.value })} className="app-input" />
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Challenge type</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Appeal type</label>
                   <select value={form.challengeType} onChange={event => setForm({ ...form, challengeType: event.target.value })} className="app-select">
                     {CHALLENGE_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
@@ -274,33 +274,33 @@ export default function AppealDetailPage() {
               <section className="app-surface rounded-[30px] p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
                   <div>
-                    <p className="app-kicker">Challenge summary</p>
+                    <p className="app-kicker">Appeal summary</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Case context</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <StatusBadge status={challenge.challengeType || 'Administrative Appeal'} />
-                    <StatusBadge status={challenge.status || 'Pending'} />
+                    <StatusBadge status={appeal.challengeType || 'Administrative Appeal'} />
+                    <StatusBadge status={appeal.status || 'Pending'} />
                   </div>
                 </div>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <InfoCard label="Deadline" value={formatDate(challenge.deadline)} />
-                  <InfoCard label="Exclusion date" value={formatDate(challenge.exclusionDate)} />
-                  <InfoCard label="Submitted at" value={formatDate(challenge.submittedAt)} />
-                  <InfoCard label="Resolved at" value={formatDate(challenge.resolvedAt)} />
+                  <InfoCard label="Deadline" value={formatDate(appeal.deadline)} />
+                  <InfoCard label="Exclusion date" value={formatDate(appeal.exclusionDate)} />
+                  <InfoCard label="Submitted at" value={formatDate(appeal.submittedAt)} />
+                  <InfoCard label="Resolved at" value={formatDate(appeal.resolvedAt)} />
                 </div>
 
-                {challenge.exclusionReason ? (
-                  <NoteCard label="Exclusion reason given" value={challenge.exclusionReason} />
+                {appeal.exclusionReason ? (
+                  <NoteCard label="Exclusion reason given" value={appeal.exclusionReason} />
                 ) : null}
-                {challenge.requestedRelief ? (
-                  <NoteCard label="Requested relief" value={challenge.requestedRelief} />
+                {appeal.requestedRelief ? (
+                  <NoteCard label="Requested relief" value={appeal.requestedRelief} />
                 ) : null}
-                {challenge.nextStep ? (
-                  <NoteCard label="Next step" value={challenge.nextStep} />
+                {appeal.nextStep ? (
+                  <NoteCard label="Next step" value={appeal.nextStep} />
                 ) : null}
-                {challenge.notes ? (
-                  <NoteCard label="Internal notes" value={challenge.notes} />
+                {appeal.notes ? (
+                  <NoteCard label="Internal notes" value={appeal.notes} />
                 ) : null}
               </section>
 
@@ -308,17 +308,17 @@ export default function AppealDetailPage() {
                 <div className="app-surface rounded-[30px] p-5 sm:p-6">
                   <p className="app-kicker">Linked pursuit</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Origin matter</h2>
-                  {challenge.tender ? (
+                  {appeal.tender ? (
                     <div className="mt-5 rounded-[24px] bg-slate-50 p-5">
-                      <p className="text-sm font-semibold text-slate-900">{challenge.tender.title}</p>
-                      <p className="mt-2 text-sm text-slate-500">{challenge.tender.entity}</p>
-                      <Link href={`/pursuits/${challenge.tender.id}`} className="app-button-secondary mt-5">
+                      <p className="text-sm font-semibold text-slate-900">{appeal.tender.title}</p>
+                      <p className="mt-2 text-sm text-slate-500">{appeal.tender.entity}</p>
+                      <Link href={`/pursuits/${appeal.tender.id}`} className="app-button-secondary mt-5">
                         Open pursuit
                       </Link>
                     </div>
                   ) : (
                     <div className="mt-5 rounded-[24px] bg-slate-50 p-5 text-sm leading-7 text-slate-500">
-                      This challenge is not linked to a pursuit yet.
+                      This appeal is not linked to a pursuit yet.
                     </div>
                   )}
                 </div>
@@ -343,19 +343,19 @@ export default function AppealDetailPage() {
               </section>
             </div>
 
-            {challenge.template ? (
+            {appeal.template ? (
               <section className="app-surface rounded-[30px] p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="app-kicker">Draft correspondence</p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Challenge draft</h2>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Appeal draft</h2>
                   </div>
-                  <button onClick={() => navigator.clipboard.writeText(challenge.template)} className="app-button-secondary">
+                  <button onClick={() => navigator.clipboard.writeText(appeal.template)} className="app-button-secondary">
                     Copy draft
                   </button>
                 </div>
                 <pre className="app-data mt-5 max-h-96 overflow-auto rounded-[24px] bg-slate-50 p-5 text-sm leading-7 whitespace-pre-wrap text-slate-700">
-                  {challenge.template}
+                  {appeal.template}
                 </pre>
               </section>
             ) : null}
@@ -363,7 +363,7 @@ export default function AppealDetailPage() {
             <section className="app-surface rounded-[30px] p-5 sm:p-6">
               <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="app-kicker">Challenge documents</p>
+                  <p className="app-kicker">Appeal documents</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Evidence and correspondence</h2>
                 </div>
 
@@ -391,9 +391,9 @@ export default function AppealDetailPage() {
                 </div>
               ) : null}
 
-              {challenge.documents?.length ? (
+              {appeal.documents?.length ? (
                 <div className="mt-5 space-y-3">
-                  {challenge.documents.map(document => (
+                  {appeal.documents.map(document => (
                     <div key={document.id} className="flex flex-col gap-4 rounded-[24px] border border-slate-200 bg-white/80 p-4 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-3">
@@ -424,7 +424,7 @@ export default function AppealDetailPage() {
                 </div>
               ) : (
                 <div className="mt-5 rounded-[24px] bg-slate-50 px-5 py-10 text-center">
-                  <p className="text-sm font-semibold text-slate-800">No challenge documents yet.</p>
+                  <p className="text-sm font-semibold text-slate-800">No appeal documents yet.</p>
                 </div>
               )}
             </section>

@@ -291,13 +291,13 @@ export default function ComplianceVaultManager({ initialDocuments }) {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneStyles(statusInfo.tone)}`}>
                       {statusInfo.label}
                     </span>
-                    <a href={document.filepath} target="_blank" rel="noreferrer" className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <a href={document.filepath} target="_blank" rel="noreferrer" className="app-button-secondary app-button-sm">
                       Open
                     </a>
-                    <button type="button" onClick={() => setEditingId(current => current === document.id ? null : document.id)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <button type="button" onClick={() => setEditingId(current => current === document.id ? null : document.id)} className="app-button-secondary app-button-sm">
                       {isEditing ? 'Close' : 'Edit'}
                     </button>
-                    <button type="button" onClick={() => handleDelete(document.id)} disabled={deletingId === document.id} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <button type="button" onClick={() => handleDelete(document.id)} disabled={deletingId === document.id} className="app-button-danger app-button-sm">
                       {deletingId === document.id ? 'Removing...' : 'Remove'}
                     </button>
                   </div>

@@ -2,7 +2,7 @@
 ROLE-BASED ACCESS CONTROL (RBAC) IMPLEMENTATION SUMMARY
 ================================================================================
 
-PROJECT: BidFlow - Workflow State Management Enhancement
+PROJECT: Bid360 - Workflow State Management Enhancement
 COMPLETED: April 21, 2026
 BUILD STATUS: ✅ PASSING (0 errors, 0 warnings)
 

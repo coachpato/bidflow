@@ -4,7 +4,7 @@ import { logActivity } from '@/lib/activity'
 import { ensureOrganizationContext } from '@/lib/organization'
 import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 
-const VALID_DOCUMENT_TYPES = new Set(['Evidence', 'Letter', 'Notice', 'Outcome', 'Other'])
+const VALID_DOCUMENT_TYPES = new Set(['Evidence', 'Letter', 'Notice', 'Outcome', 'Regret Letter', 'Other'])
 
 export async function GET(_request, { params }) {
   const session = await getSession()
@@ -22,7 +22,7 @@ export async function GET(_request, { params }) {
     select: { id: true },
   })
 
-  if (!appeal) return Response.json({ error: 'Challenge not found.' }, { status: 404 })
+  if (!appeal) return Response.json({ error: 'Appeal not found.' }, { status: 404 })
 
   const documents = await prisma.appealDocument.findMany({
     where: { appealId },
@@ -49,7 +49,7 @@ export async function POST(request, { params }) {
       select: { id: true, reason: true },
     })
 
-    if (!appeal) return Response.json({ error: 'Challenge not found.' }, { status: 404 })
+  if (!appeal) return Response.json({ error: 'Appeal not found.' }, { status: 404 })
 
     const formData = await request.formData()
     const file = formData.get('file')
@@ -92,7 +92,7 @@ export async function POST(request, { params }) {
       },
     })
 
-    await logActivity(`Uploaded challenge ${documentType.toLowerCase()} document: ${file.name}`, {
+    await logActivity(`Uploaded appeal ${documentType.toLowerCase()} document: ${file.name}`, {
       userId: session.userId,
       appealId,
     })

@@ -34,7 +34,7 @@ export default function TopNav() {
   }, [pathname])
 
   return (
-    <header className="sticky top-0 z-40 border-b border-var(--line) bg-var(--surface) backdrop-blur-md" role="banner">
+    <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)] backdrop-blur-md" role="banner">
       <div className="app-page py-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <AppLogo tone="dark" caption="" />
@@ -51,8 +51,8 @@ export default function TopNav() {
                   aria-current={isActive ? 'page' : undefined}
                   className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                     isActive
-                      ? 'border-transparent bg-var(--brand-600) text-white'
-                      : 'border-var(--line) bg-var(--background-muted) text-var(--foreground) hover:border-var(--brand-500)'
+                      ? 'border-transparent bg-[var(--brand-600)] text-white'
+                      : 'border-[var(--line)] bg-[var(--background-muted)] text-[var(--foreground)] hover:border-[var(--brand-500)]'
                   }`}
                 >
                   <span
@@ -73,15 +73,15 @@ export default function TopNav() {
               aria-current={isInboxActive ? 'page' : undefined}
               className={`relative inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                 isInboxActive
-                  ? 'border-transparent bg-var(--brand-600) text-white'
-                  : 'border-var(--line) bg-var(--background-muted) text-var(--foreground) hover:bg-var(--line)'
+                  ? 'border-transparent bg-[var(--brand-600)] text-white'
+                  : 'border-[var(--line)] bg-[var(--background-muted)] text-[var(--foreground)] hover:bg-[var(--line)]'
               }`}
             >
               Inbox
               {unreadCount > 0 && (
                 <span
                   className={`ml-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
-                    isInboxActive ? 'bg-white/20 text-white' : 'bg-var(--brand-600) text-white'
+                    isInboxActive ? 'bg-white/20 text-white' : 'bg-[var(--brand-600)] text-white'
                   }`}
                   aria-label={`${unreadCount} unread notifications`}
                 >
@@ -105,8 +105,8 @@ export default function TopNav() {
                 aria-current={isActive ? 'page' : undefined}
                 className={`inline-flex min-w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                   isActive
-                    ? 'border-transparent bg-var(--brand-600) text-white'
-                    : 'border-var(--line) bg-var(--background-muted) text-var(--foreground)'
+                    ? 'border-transparent bg-[var(--brand-600)] text-white'
+                    : 'border-[var(--line)] bg-[var(--background-muted)] text-[var(--foreground)]'
                 }`}
               >
                 <span
