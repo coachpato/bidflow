@@ -120,7 +120,7 @@ async function buildTenderSourcePack(tender) {
       if (!pdfBuffer) continue
 
       const pdfContent = await extractTextFromPDF(pdfBuffer)
-      const extractedText = pdfContent.text || ''
+      const extractedText = pdfContent?.text || ''
 
       if (extractedText) {
         extractedTextSnippets.push(extractedText)
