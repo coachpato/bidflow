@@ -11,7 +11,6 @@ export async function POST(request) {
       name,
       email,
       password,
-      role,
       organizationName,
       serviceSector,
       practiceAreas,
@@ -71,8 +70,8 @@ export async function POST(request) {
     // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Create the user (first user becomes admin automatically)
-    const assignedRole = userCount === 0 ? 'admin' : (role || 'member')
+    // Self-signups create a new workspace, so the founder is always an admin.
+    const assignedRole = 'admin'
 
     const user = await prisma.user.create({
       data: {
