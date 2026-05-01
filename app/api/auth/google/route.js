@@ -86,7 +86,6 @@ export async function POST(request) {
     const {
       credential,
       intent,
-      role,
       name,
       organizationName,
       serviceSector,
@@ -141,7 +140,7 @@ export async function POST(request) {
         return Response.json({ error: 'Registration is disabled. Please ask an admin to create your account.' }, { status: 403 })
       }
 
-      const assignedRole = userCount === 0 ? 'admin' : (role || 'member')
+      const assignedRole = 'admin'
       const generatedPassword = randomBytes(24).toString('hex')
       const hashedPassword = await bcrypt.hash(generatedPassword, 10)
 
