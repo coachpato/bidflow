@@ -352,10 +352,12 @@ button:focus-visible,
 }
 
 /* PRIMARY BUTTON */
-.app-button-primary {
+.app-button-primary,
+a.app-button-primary {
   background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
-  color: white;
+  color: white !important;
   box-shadow: 0 8px 16px rgba(24, 49, 74, 0.2);
+  text-decoration: none;
 }
 
 .app-button-primary:hover:not(:disabled) {
