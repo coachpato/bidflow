@@ -11,22 +11,26 @@ datasource db {
 }
 
 model User {
-  id                Int                  @id @default(autoincrement())
-  name              String
-  email             String               @unique
-  password          String
-  googleSubject     String?              @unique
-  avatarUrl         String?
-  role              String               @default("member")
-  createdAt         DateTime             @default(now())
-  memberships       Membership[]
-  tenders           Tender[]
-  assignedTenders   Tender[]             @relation("TenderAssignee")
-  assignedContracts Contract[]           @relation("ContractAssignee")
-  opportunities     Opportunity[]
-  activities        ActivityLog[]
-  notifications     Notification[]
-  complianceUploads ComplianceDocument[] @relation("ComplianceDocumentUploader")
+  id                      Int                     @id @default(autoincrement())
+  name                    String
+  email                   String                  @unique
+  password                String
+  googleSubject           String?                 @unique
+  avatarUrl               String?
+  role                    String                  @default("member")
+  createdAt               DateTime                @default(now())
+  memberships             Membership[]
+  tenders                 Tender[]
+  assignedTenders         Tender[]                @relation("TenderAssignee")
+  assignedContracts       Contract[]              @relation("ContractAssignee")
+  tenderStatusChanges     TenderStatusChange[]
+  contractStatusChanges   ContractStatusChange[]
+  opportunities           Opportunity[]
+  activities              ActivityLog[]
+  notifications           Notification[]
+  complianceUploads       ComplianceDocument[]    @relation("ComplianceDocumentUploader")
+  dislikedOpportunities   Opportunity[]           @relation("OpportunityDislikedBy")
+  sentTeamInvites         TeamInvite[]            @relation("TeamInvitesSent")
 
   @@map("user")
 }
@@ -48,6 +52,10 @@ model Organization {
   appeals             Appeal[]
   opportunityMatches  OpportunityMatch[]
   notifications       Notification[]
+  webhookEndpoints    WebhookEndpoint[]
+  webhookDeliveries   WebhookDelivery[]
+  teamInvites         TeamInvite[]
+  setupCompletedAt    DateTime?
 
   @@map("organization")
 }
@@ -69,6 +77,7 @@ model FirmProfile {
   id                   Int          @id @default(autoincrement())
   displayName          String
   serviceSector        String?
+  serviceSectors       String[]     @default([])
   legalName            String?
   registrationNumber   String?
   primaryContactName   String?
@@ -192,6 +201,9 @@ model Opportunity {
   fitScore           Int?
   status             String                @default("New")
   notes              String?
+  likedAt            DateTime?
+  dislikedAt         DateTime?
+  pursuedAt          DateTime?
   parsedRequirements Json?
   parsedAppointments Json?
   createdAt          DateTime              @default(now())
@@ -204,6 +216,8 @@ model Opportunity {
   sourceId           Int?
   sourceRun          SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
   sourceRunId        Int?
+  dislikedBy         User?                 @relation("OpportunityDislikedBy", fields: [dislikedByUserId], references: [id], onDelete: SetNull)
+  dislikedByUserId   Int?
   documents          OpportunityDocument[]
   matches            OpportunityMatch[]
   tender             Tender?
@@ -211,6 +225,7 @@ model Opportunity {
   @@unique([organizationId, dedupeKey])
   @@index([organizationId, status, deadline])
   @@index([organizationId, status, fitScore, deadline])
+  @@index([organizationId, dislikedAt, updatedAt])
   @@index([sourceId, publishedAt])
   @@map("opportunity")
 }
@@ -291,6 +306,8 @@ model Tender {
   status         String                @default("New")
   assignedTo     String?
   notes          String?
+  deadlineReminderSentAt DateTime?
+  outcomeRecordedAt DateTime?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -303,6 +320,7 @@ model Tender {
   assignedUserId Int?
   documents      TenderDocument[]
   checklistItems TenderChecklistItem[]
+  statusChanges  TenderStatusChange[]
   appeals        Appeal[]
   activities     ActivityLog[]
   contract       Contract?
@@ -340,6 +358,24 @@ model TenderChecklistItem {
   @@map("tenderChecklistItem")
 }
 
+model TenderStatusChange {
+  id        Int      @id @default(autoincrement())
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId  Int
+  fromStatus String
+  toStatus  String
+  reason    String?
+  metadata  Json?
+  changedAt DateTime @default(now())
+  changedBy User?    @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+  changedByUserId Int?
+  createdAt DateTime @default(now())
+
+  @@index([tenderId, changedAt])
+  @@index([changedByUserId, changedAt])
+  @@map("tenderStatusChange")
+}
+
 model Contract {
   id                        Int                @id @default(autoincrement())
   title                     String
@@ -371,6 +407,7 @@ model Contract {
   assignedUserId            Int?
   documents                 ContractDocument[]
   milestones                ContractMilestone[]
+  statusChanges             ContractStatusChange[]
   activities                ActivityLog[]
 
   @@index([organizationId, appointmentStatus, instructionStatus])
@@ -405,6 +442,25 @@ model ContractMilestone {
 
   @@index([contractId, dueDate])
   @@map("contractMilestone")
+}
+
+model ContractStatusChange {
+  id              Int      @id @default(autoincrement())
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractId      Int
+  fieldName       String   // "appointmentStatus" | "instructionStatus"
+  oldValue        String
+  newValue        String
+  reason          String?
+  metadata        Json?
+  changedAt       DateTime @default(now())
+  changedBy       User?    @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+  changedByUserId Int?
+  createdAt       DateTime @default(now())
+
+  @@index([contractId, changedAt])
+  @@index([changedByUserId, changedAt])
+  @@map("contractStatusChange")
 }
 
 model Appeal {
@@ -467,6 +523,26 @@ model Notification {
   @@map("notification")
 }
 
+model TeamInvite {
+  id             Int          @id @default(autoincrement())
+  email          String
+  name           String?
+  role           String       @default("member")
+  token          String       @unique
+  status         String       @default("pending")
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  invitedAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
+  invitedBy      User?        @relation("TeamInvitesSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  invitedByUserId Int?
+
+  @@index([organizationId, status, expiresAt])
+  @@index([organizationId, email])
+  @@map("teamInvite")
+}
+
 model ActivityLog {
   id         Int       @id @default(autoincrement())
   action     String
@@ -481,4 +557,40 @@ model ActivityLog {
   appealId   Int?
 
   @@map("activityLog")
+}
+
+model WebhookDelivery {
+  id              Int      @id @default(autoincrement())
+  webhookId       String   @unique // Idempotency key
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  Int
+  event           String   // e.g., "tender.status_changed"
+  webhookUrl      String
+  payload         Json     // Full webhook payload
+  status          String   @default("pending") // "pending" | "delivered" | "failed"
+  attempts        Int      @default(0)
+  deliveredAt     DateTime?
+  failureReason   String?
+  nextRetryAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId, status, nextRetryAt])
+  @@index([webhookId])
+  @@map("webhookDelivery")
+}
+
+model WebhookEndpoint {
+  id              Int      @id @default(autoincrement())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  Int
+  url             String
+  events          String[] // Events this endpoint subscribes to
+  secret          String?  // For HMAC signing
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId, isActive])
+  @@map("webhookEndpoint")
 }
