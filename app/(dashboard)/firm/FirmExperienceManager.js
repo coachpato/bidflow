@@ -157,7 +157,7 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
                 type="button"
                 onClick={() => handleDelete(item.id)}
                 disabled={deletingId === item.id}
-                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                className="app-button-danger app-button-sm"
               >
                 {deletingId === item.id ? 'Removing...' : 'Remove'}
               </button>

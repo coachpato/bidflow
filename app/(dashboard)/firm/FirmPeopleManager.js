@@ -146,7 +146,7 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
                 type="button"
                 onClick={() => handleDelete(person.id)}
                 disabled={deletingId === person.id}
-                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                className="app-button-danger app-button-sm"
               >
                 {deletingId === person.id ? 'Removing...' : 'Remove'}
               </button>

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { requireAuth } from '@/lib/session'
 import { ensureOrganizationContext } from '@/lib/organization'
 import { getServiceSectorLabel } from '@/lib/service-sectors'
+import { redirect } from 'next/navigation'
 import FirmProfileForm from './FirmProfileForm'
 import FirmPeopleManager from './FirmPeopleManager'
 import FirmExperienceManager from './FirmExperienceManager'
@@ -22,6 +23,9 @@ function formatCurrency(value) {
 
 export default async function FirmPage() {
   const session = await requireAuth()
+  if (session.role === 'admin') {
+    redirect('/settings')
+  }
   const organizationContext = await ensureOrganizationContext(session.userId)
 
   const memberships = await prisma.membership.findMany({

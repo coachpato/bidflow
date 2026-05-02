@@ -14,7 +14,9 @@ function joinList(values) {
 export default function FirmProfileForm({ initialProfile }) {
   const [form, setForm] = useState({
     displayName: initialProfile.displayName || '',
-    serviceSector: initialProfile.serviceSector || '',
+    serviceSectors: Array.isArray(initialProfile.serviceSectors) && initialProfile.serviceSectors.length > 0
+      ? initialProfile.serviceSectors
+      : (initialProfile.serviceSector ? [initialProfile.serviceSector] : []),
     legalName: initialProfile.legalName || '',
     registrationNumber: initialProfile.registrationNumber || '',
     primaryContactName: initialProfile.primaryContactName || '',
@@ -42,13 +44,23 @@ export default function FirmProfileForm({ initialProfile }) {
     ['website', 'Website'],
   ]), [])
 
-  const discoveryConfig = useMemo(() => getServiceSectorDiscoveryConfig(form.serviceSector), [form.serviceSector])
-  const workspaceCopy = useMemo(() => getServiceSectorWorkspaceCopy(form.serviceSector), [form.serviceSector])
+  const primarySector = form.serviceSectors[0] || ''
+  const discoveryConfig = useMemo(() => getServiceSectorDiscoveryConfig(primarySector), [primarySector])
+  const workspaceCopy = useMemo(() => getServiceSectorWorkspaceCopy(primarySector), [primarySector])
 
   function updateField(name, value) {
     setForm(current => ({
       ...current,
       [name]: value,
+    }))
+  }
+
+  function toggleSector(sector) {
+    setForm(current => ({
+      ...current,
+      serviceSectors: current.serviceSectors.includes(sector)
+        ? current.serviceSectors.filter(item => item !== sector)
+        : [...current.serviceSectors, sector],
     }))
   }
 
@@ -61,7 +73,10 @@ export default function FirmProfileForm({ initialProfile }) {
       const response = await fetch('/api/firm', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          serviceSector: form.serviceSectors[0] || null,
+        }),
       })
 
       const payload = await response.json()
@@ -88,21 +103,33 @@ export default function FirmProfileForm({ initialProfile }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-slate-700">Sector</span>
-          <select
-            value={form.serviceSector}
-            onChange={event => updateField('serviceSector', event.target.value)}
-            className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
-          >
-            <option value="">Select sector</option>
-            {SERVICE_SECTOR_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="space-y-2 md:col-span-2">
+          <span className="text-sm font-semibold text-slate-700">Sector focus</span>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {SERVICE_SECTOR_OPTIONS.map(option => {
+              const isActive = form.serviceSectors.includes(option.value)
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => toggleSector(option.value)}
+                  className={`rounded-[18px] border px-4 py-4 text-left transition ${
+                    isActive
+                      ? 'border-[var(--brand-500)] bg-[rgba(14,110,129,0.08)] text-slate-900'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-[var(--brand-400)]'
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{option.label}</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">{option.description}</p>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-xs text-slate-500">
+            Select every sector this firm should pursue. The first selected sector becomes the primary radar profile.
+          </p>
+        </div>
 
         {fields.map(([name, label]) => (
           <label key={name} className="space-y-2">
