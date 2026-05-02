@@ -12,6 +12,7 @@ export default function TopNav() {
   const pathname = usePathname()
   const [unreadCount, setUnreadCount] = useState(0)
   const isInboxActive = pathname === '/inbox' || pathname === '/notifications'
+  const isSettingsActive = pathname === '/settings'
 
   useEffect(() => {
     let isMounted = true
@@ -88,6 +89,17 @@ export default function TopNav() {
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
+            </Link>
+            <Link
+              href="/settings"
+              aria-current={isSettingsActive ? 'page' : undefined}
+              className={`relative inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                isSettingsActive
+                  ? 'border-transparent bg-var(--brand-600) text-white'
+                  : 'border-var(--line) bg-var(--background-muted) text-var(--foreground) hover:bg-var(--line)'
+              }`}
+            >
+              Settings
             </Link>
             <LogoutButton />
           </div>
