@@ -305,7 +305,10 @@ textarea {
 
 /* Button Base Styles */
 button,
-.app-button {
+.app-button,
+.app-button-primary,
+.app-button-secondary,
+.app-button-danger {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -329,7 +332,10 @@ button,
 }
 
 button:disabled,
-.app-button:disabled {
+.app-button:disabled,
+.app-button-primary:disabled,
+.app-button-secondary:disabled,
+.app-button-danger:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
@@ -337,7 +343,10 @@ button:disabled,
 
 /* Focus State - Accessibility */
 button:focus-visible,
-.app-button:focus-visible {
+.app-button:focus-visible,
+.app-button-primary:focus-visible,
+.app-button-secondary:focus-visible,
+.app-button-danger:focus-visible {
   outline: 2px solid var(--brand-500);
   outline-offset: 2px;
 }
