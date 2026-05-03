@@ -127,6 +127,33 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
   }
 
   async function updateOpportunityStatus(opportunityId, status) {
+    if (status === 'Pursue') {
+      const confirmed = confirm('Convert this opportunity to a pursuit? This will move it from Opportunities to your Pursuits list.')
+      if (!confirmed) return
+
+      setUpdatingId(opportunityId)
+      try {
+        const response = await fetch(`/api/opportunities/${opportunityId}/convert`, {
+          method: 'POST',
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not convert opportunity.')
+        }
+
+        setOpportunities(current =>
+          current.filter(opportunity => opportunity.id !== opportunityId)
+        )
+      } catch (error) {
+        console.error(error)
+        alert(error.message || 'Could not convert opportunity.')
+      } finally {
+        setUpdatingId(null)
+      }
+      return
+    }
+
     setUpdatingId(opportunityId)
 
     try {
