@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
-import { getSession } from '@/lib/session'
 import { isPublicRegistrationEnabled } from '@/lib/env'
-import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
+import { ensureOrganizationContextForUser } from '@/lib/organization'
+import { createVerificationExpiry, createVerificationToken, sendVerificationEmail } from '@/lib/email-verification'
 import { normalizeServiceSector } from '@/lib/service-sectors'
 
 export async function POST(request) {
@@ -72,6 +72,8 @@ export async function POST(request) {
 
     // Self-signups create a new workspace, so the founder is always an admin.
     const assignedRole = 'admin'
+    const verificationToken = createVerificationToken()
+    const verificationTokenExpiresAt = createVerificationExpiry()
 
     const user = await prisma.user.create({
       data: {
@@ -79,10 +81,13 @@ export async function POST(request) {
         email: normalizedEmail,
         password: hashedPassword,
         role: assignedRole,
+        emailVerified: null,
+        verificationToken,
+        verificationTokenExpiresAt,
       },
     })
 
-    const organizationContext = await ensureOrganizationContextForUser({
+    await ensureOrganizationContextForUser({
       ...user,
       memberships: [],
     }, {
@@ -94,28 +99,20 @@ export async function POST(request) {
       preferredEntities: normalizedPreferredEntities,
     })
 
-    // Log them in immediately after registering
-    const session = await getSession()
-    session.userId = user.id
-    session.name = user.name
-    session.email = user.email
-    session.role = user.role
-    applyOrganizationToSession(session, organizationContext)
-    await session.save()
+    try {
+      await sendVerificationEmail({
+        email: user.email,
+        name: user.name,
+        token: verificationToken,
+      })
+    } catch (error) {
+      console.error('Verification email failed:', error)
+    }
 
     return Response.json({
       success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-        organization: {
-          id: organizationContext.organization.id,
-          name: organizationContext.organization.name,
-          role: organizationContext.membership.role,
-        },
-        serviceSector: organizationContext.firmProfile?.serviceSector || null,
-      },
+      requiresVerification: true,
+      email: user.email,
     })
   } catch (err) {
     console.error('Register error:', err)

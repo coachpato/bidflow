@@ -143,7 +143,8 @@ export default function RegisterForm({ isBootstrapMode = false }) {
       return
     }
 
-    router.push('/dashboard')
+    const email = data.email || form.email.trim().toLowerCase()
+    router.push(`/check-email?email=${encodeURIComponent(email)}`)
   }
 
   function handleGoogleValidation() {

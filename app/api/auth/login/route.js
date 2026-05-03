@@ -52,6 +52,14 @@ export async function POST(request) {
       return Response.json({ error }, { status: 401 })
     }
 
+    if (!user.emailVerified) {
+      return Response.json({
+        error: 'Email not verified.',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: user.email,
+      }, { status: 403 })
+    }
+
     const organizationContext = await ensureOrganizationContextForUser(user)
 
     // Save session

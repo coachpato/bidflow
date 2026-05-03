@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AuthShell from '@/app/components/AuthShell'
 import GoogleAuthButton from '@/app/components/GoogleAuthButton'
+import VerificationResendForm from '@/app/components/VerificationResendForm'
 
 const HIGHLIGHTS = [
   {
@@ -25,11 +26,13 @@ export default function LoginPage() {
   const router = useRouter()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setUnverifiedEmail('')
     setLoading(true)
 
     const res = await fetch('/api/auth/login', {
@@ -42,7 +45,12 @@ export default function LoginPage() {
     setLoading(false)
 
     if (!res.ok) {
-      setError(data.error)
+      if (data.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(data.email || form.email)
+        setError('Email not verified. Please verify your email before signing in.')
+      } else {
+        setError(data.error)
+      }
       return
     }
 
@@ -64,9 +72,14 @@ export default function LoginPage() {
       {error && (
         <div className="mb-6 rounded-lg border border-var(--danger-500)/20 bg-var(--danger-500)/8 px-4 py-3 text-sm text-var(--danger-600) flex gap-3 items-start animate-slideInUp" role="alert">
           <span className="text-lg mt-0.5">⚠️</span>
-          <div>
+          <div className="flex-1">
             <p className="font-semibold mb-1">Sign in failed</p>
             <p>{error}</p>
+            {unverifiedEmail ? (
+              <div className="mt-4 rounded-2xl border border-var(--line) bg-var(--surface) p-4 text-var(--foreground)">
+                <VerificationResendForm initialEmail={unverifiedEmail} compact />
+              </div>
+            ) : null}
           </div>
         </div>
       )}

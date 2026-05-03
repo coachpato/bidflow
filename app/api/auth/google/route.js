@@ -152,6 +152,9 @@ export async function POST(request) {
           role: assignedRole,
           googleSubject: profile.googleSubject,
           avatarUrl: profile.avatarUrl,
+          emailVerified: new Date(),
+          verificationToken: null,
+          verificationTokenExpiresAt: null,
         },
         include: {
           memberships: {
@@ -199,7 +202,8 @@ export async function POST(request) {
     const shouldUpdateGoogleFields =
       !user.googleSubject ||
       (!user.avatarUrl && Boolean(profile.avatarUrl)) ||
-      user.name !== nextUserName
+      user.name !== nextUserName ||
+      !user.emailVerified
 
     if (shouldUpdateGoogleFields) {
       user = await prisma.user.update({
@@ -208,6 +212,9 @@ export async function POST(request) {
           googleSubject: user.googleSubject || profile.googleSubject,
           avatarUrl: profile.avatarUrl || user.avatarUrl,
           name: nextUserName,
+          emailVerified: user.emailVerified || new Date(),
+          verificationToken: null,
+          verificationTokenExpiresAt: null,
         },
         include: {
           memberships: {
