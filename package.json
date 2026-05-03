@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/run-with-db-env.js \"prisma generate && next build\"",
+    "build": "node scripts/run-with-db-env.js \"node scripts/run-vercel-migrations.js && prisma generate && next build\"",
     "db:migrate:deploy": "node scripts/run-with-db-env.js \"prisma migrate deploy\"",
     "db:migrate:status": "node scripts/run-with-db-env.js \"prisma migrate status\"",
     "db:validate": "node scripts/run-with-db-env.js \"npx prisma validate\"",

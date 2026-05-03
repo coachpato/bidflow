@@ -18,6 +18,9 @@ model User {
   googleSubject           String?                 @unique
   avatarUrl               String?
   role                    String                  @default("member")
+  emailVerified           DateTime?
+  verificationToken       String?                 @unique
+  verificationTokenExpiresAt DateTime?
   createdAt               DateTime                @default(now())
   memberships             Membership[]
   tenders                 Tender[]
