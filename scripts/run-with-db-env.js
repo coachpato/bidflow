@@ -47,7 +47,10 @@ function parseUrl(value) {
 }
 
 function commandNeedsDirectConnection(commandValue) {
-  return /\bprisma\s+(migrate|db\s+(pull|push|execute|seed)|introspect)\b/i.test(commandValue)
+  return (
+    /\bprisma\s+(migrate|db\s+(pull|push|execute|seed)|introspect)\b/i.test(commandValue) ||
+    /\brun-vercel-migrations\.js\b/i.test(commandValue)
+  )
 }
 
 function buildSupabaseSessionPoolerUrl(databaseUrl) {
@@ -87,7 +90,7 @@ const fileEnv = {
 const env = { ...fileEnv, ...process.env }
 
 env.DATABASE_URL ||= env.POSTGRES_PRISMA_URL || env.POSTGRES_URL
-env.DIRECT_URL ||= env.POSTGRES_URL_NON_POOLING || env.POSTGRES_URL
+env.DIRECT_URL ||= env.POSTGRES_URL_NON_POOLING || env.POSTGRES_URL || env.DATABASE_URL
 
 if (shouldUseSupabaseSessionFallback(env, command)) {
   const sessionPoolerUrl = buildSupabaseSessionPoolerUrl(env.DATABASE_URL)
