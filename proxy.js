@@ -3,11 +3,15 @@ import { NextResponse } from 'next/server'
 const PUBLIC_PATHS = [
   '/login',
   '/register',
+  '/check-email',
+  '/verify-email',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',
   '/api/auth/register',
   '/api/auth/google',
+  '/api/auth/verify-email',
+  '/api/auth/resend-verification',
   '/api/crawler',
 ]
 
