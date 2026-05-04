@@ -17,6 +17,12 @@ const SOURCE_KEY = 'etenders-gov-za'
 const SOURCE_NAME = 'eTenders.gov.za'
 const SOURCE_BASE_URL = 'https://www.etenders.gov.za'
 const OPPORTUNITIES_URL = 'https://www.etenders.gov.za/Home/opportunities?id=1'
+const DEADLINE_MS = 240_000
+const STUCK_RUN_THRESHOLD_MS = 30 * 60 * 1000
+const STUCK_RUN_TIMEOUT_MESSAGE = 'Run did not complete within Vercel function limit; auto-marked timeout by next run.'
+const PROGRESS_UPDATE_INTERVAL = 10
+
+export const maxDuration = 300
 
 function toNullableDate(value) {
   if (!value) return null
@@ -28,6 +34,44 @@ function isAuthorizedCron(request) {
   const secret = process.env.CRON_SECRET
   if (!secret) return false
   return request.headers.get('authorization') === `Bearer ${secret}`
+}
+
+function getTenderResumeCursor(tender) {
+  return tender.reference || tender.url || tender.title || null
+}
+
+async function cleanupStuckRuns() {
+  const cutoff = new Date(Date.now() - STUCK_RUN_THRESHOLD_MS)
+  const result = await prisma.sourceRun.updateMany({
+    where: {
+      status: 'running',
+      startedAt: { lt: cutoff },
+    },
+    data: {
+      status: 'timeout',
+      completedAt: new Date(),
+      completionMode: 'timeout',
+      errorMessage: STUCK_RUN_TIMEOUT_MESSAGE,
+    },
+  })
+
+  console.log(`Cleaned up ${result.count} stuck runs from previous invocations.`)
+  return result.count
+}
+
+async function findPreviousSourceRun(sourceId, currentRunId) {
+  return prisma.sourceRun.findFirst({
+    where: {
+      sourceId,
+      id: { not: currentRunId },
+    },
+    orderBy: { startedAt: 'desc' },
+    select: {
+      id: true,
+      completionMode: true,
+      lastProcessedTenderRef: true,
+    },
+  })
 }
 
 async function uploadPDFToSupabase(fileName, pdfBuffer, opportunityId) {
@@ -404,17 +448,45 @@ export async function GET(request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const startMs = Date.now()
+  await cleanupStuckRuns()
+
   const source = await ensureSourceRecord()
   const sourceRun = await prisma.sourceRun.create({
     data: {
       sourceId: source.id,
       status: 'running',
+      tendersProcessedCount: 0,
+      lastProcessedTenderRef: null,
+      completionMode: null,
+      errorMessage: null,
     },
   })
 
   try {
+    const previousSourceRun = await findPreviousSourceRun(source.id, sourceRun.id)
+    const resumeCursor = previousSourceRun?.completionMode === 'partial-deadline'
+      ? previousSourceRun.lastProcessedTenderRef
+      : null
     const organizations = await loadOrganizationsForRadar()
     const tenders = await crawlETenders()
+    let tenderStartIndex = 0
+    let skippedForResume = 0
+    let deadlineReached = false
+    let tendersProcessedCount = 0
+    let lastProcessedTenderRef = null
+
+    if (resumeCursor) {
+      const cursorIndex = tenders.findIndex(tender => getTenderResumeCursor(tender) === resumeCursor)
+      if (cursorIndex >= 0) {
+        tenderStartIndex = cursorIndex + 1
+        skippedForResume = tenderStartIndex
+      } else {
+        console.log(`Previous resume cursor "${resumeCursor}" was not found in the current scan. Starting fresh.`)
+      }
+    }
+
+    console.log(`Crawler starting. Run id=${sourceRun.id}. ${resumeCursor && tenderStartIndex > 0 ? `Resuming from cursor=${resumeCursor}.` : 'Fresh scan.'}`)
 
     const results = {
       source: source.name,
@@ -427,7 +499,22 @@ export async function GET(request) {
       errors: [],
     }
 
-    for (const tender of tenders) {
+    async function saveProgress() {
+      await prisma.sourceRun.update({
+        where: { id: sourceRun.id },
+        data: {
+          tendersProcessedCount,
+          lastProcessedTenderRef,
+        },
+      })
+    }
+
+    for (const tender of tenders.slice(tenderStartIndex)) {
+      if (Date.now() - startMs > DEADLINE_MS) {
+        deadlineReached = true
+        break
+      }
+
       try {
         const sourcePack = await buildTenderSourcePack(tender)
         const sectorAnalysisCache = new Map()
@@ -499,7 +586,61 @@ export async function GET(request) {
           error: error.message,
         })
       }
+
+      tendersProcessedCount += 1
+      lastProcessedTenderRef = getTenderResumeCursor(tender)
+
+      if (tendersProcessedCount % PROGRESS_UPDATE_INTERVAL === 0) {
+        await saveProgress()
+      }
     }
+
+    if (tendersProcessedCount > 0) {
+      await saveProgress()
+    }
+
+    const elapsedSeconds = Math.round((Date.now() - startMs) / 1000)
+    console.log(`Processed ${tendersProcessedCount} tenders in ${elapsedSeconds} seconds.`)
+
+    if (deadlineReached) {
+      await prisma.sourceRun.update({
+        where: { id: sourceRun.id },
+        data: {
+          status: 'partial',
+          completedAt: new Date(),
+          totalFound: results.totalFound,
+          matchedCount: results.matchedCount,
+          newCount: results.newOpportunitiesCreated,
+          errorCount: results.errors.length,
+          tendersProcessedCount,
+          lastProcessedTenderRef,
+          completionMode: 'partial-deadline',
+          errorMessage: null,
+          summary: {
+            organizationsEvaluated: results.organizationsEvaluated,
+            digestsSent: 0,
+            organizationsWithMatches: Object.keys(results.opportunitiesByOrganization).length,
+            skippedForResume,
+            deadlineMs: DEADLINE_MS,
+          },
+        },
+      })
+
+      console.log('Exiting at deadline. Cursor saved. Next run will resume.')
+      console.log('Crawler exiting cleanly at deadline. Will resume from cursor on next cron run.')
+
+      return Response.json({
+        success: true,
+        partial: true,
+        timestamp: new Date().toISOString(),
+        cursor: lastProcessedTenderRef,
+        ...results,
+      })
+    }
+
+    const digestCandidates = Object.values(results.opportunitiesByOrganization)
+      .filter(organizationResult => organizationResult.opportunities.length > 0)
+    console.log(`Crawler completed. Sending ${digestCandidates.length} digest emails.`)
 
     for (const organizationResult of Object.values(results.opportunitiesByOrganization)) {
       const organization = organizations.find(item => item.id === organizationResult.organizationId)
@@ -527,10 +668,15 @@ export async function GET(request) {
         matchedCount: results.matchedCount,
         newCount: results.newOpportunitiesCreated,
         errorCount: results.errors.length,
+        tendersProcessedCount,
+        lastProcessedTenderRef: null,
+        completionMode: 'completed',
+        errorMessage: null,
         summary: {
           organizationsEvaluated: results.organizationsEvaluated,
           digestsSent: results.digestsSent,
           organizationsWithMatches: Object.keys(results.opportunitiesByOrganization).length,
+          skippedForResume,
         },
       },
     })
@@ -577,6 +723,8 @@ export async function GET(request) {
         status: 'failed',
         completedAt: new Date(),
         errorCount: 1,
+        completionMode: 'partial-error',
+        errorMessage: error.message,
         summary: {
           error: error.message,
         },
