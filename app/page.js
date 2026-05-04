@@ -36,53 +36,28 @@ export default async function RootPage() {
       <main className="relative">
         {/* Hero Section */}
         <section className="app-page py-16 sm:py-24 lg:py-32">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
-            <div className="space-y-8 animate-slideInUp">
-              <div className="inline-flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-var(--brand-500)" />
-                <span className="app-kicker">Built for South Africa's biggest projects</span>
-              </div>
-
-              <div className="space-y-6">
-                <h1 className="app-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                  Bid360<br />
-                  <span className="text-[var(--accent-500)]">for Tenders & Contracts</span>
-                </h1>
-                <p className="text-lg leading-relaxed max-w-xl text-[var(--foreground-secondary)]">
-                  Stop managing tenders in spreadsheets. Bid360 is the only workspace built for built environment, legal, and accounting firms behind South Africa's biggest projects.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-4 pt-4">
-                <Link href="/register" className="app-button-primary app-button-lg">
-                  Create workspace
-                </Link>
-                <a href="#features" className="app-button-secondary app-button-lg">
-                  Learn more
-                </a>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 pt-8 border-t border-[var(--line)]">
-                <StatItem number="500+" label="Tenders" />
-                <StatItem number="50+" label="Firms" />
-                <StatItem number="R1B+" label="Value tracked" />
-              </div>
+          <div className="max-w-4xl space-y-8">
+            <div className="inline-flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-[var(--brand-500)]" />
+              <span className="app-kicker">For South African professional services firms</span>
             </div>
 
-            <div className="relative hidden lg:block">
-              <div className="absolute inset-0 bg-gradient-to-r from-[var(--brand-500)]/10 to-[var(--accent-500)]/10 rounded-3xl blur-3xl" />
-              <div className="relative bg-white/80 backdrop-blur rounded-3xl border border-white/60 shadow-xl p-8 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-bold">Your Dashboard</h3>
-                  <span className="app-badge app-badge-success">Live</span>
-                </div>
-                <div className="space-y-4">
-                  <DashboardItem icon="📊" label="New opportunities" value="12 matches" />
-                  <DashboardItem icon="📋" label="Active pursuits" value="8 bids" />
-                  <DashboardItem icon="✅" label="Awarded" value="2 contracts" />
-                  <DashboardItem icon="⚖️" label="Challenges" value="1 deadline" />
-                </div>
-              </div>
+            <div className="space-y-6">
+              <h1 className="app-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                Win more tenders. Spend less time finding them.
+              </h1>
+              <p className="text-lg leading-relaxed max-w-2xl text-[var(--foreground-secondary)]">
+                Stop managing tenders in spreadsheets. Bid360 is the workspace that turns public tender feeds into your firm's bid pipeline — matched to your sector, tracked through to award.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Link href="/register" className="app-button-primary app-button-lg">
+                Get started
+              </Link>
+              <a href="#features" className="app-button-secondary app-button-lg">
+                Learn more
+              </a>
             </div>
           </div>
         </section>
@@ -91,45 +66,35 @@ export default async function RootPage() {
         <section id="features" className="border-t border-[var(--line)] py-16 sm:py-24 bg-white/30">
           <div className="app-page space-y-16">
             <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <span className="app-kicker">Features</span>
+              <span className="app-kicker">Capabilities</span>
               <h2 className="app-display text-4xl sm:text-5xl font-bold">
-                Built for your firm's workflow
+                What Bid360 does for your firm
               </h2>
               <p className="text-lg text-[var(--foreground-secondary)]">
-                Everything you need to discover, pursue, and track tenders and contracts in one place.
+                A complete workspace for tender discovery, pursuit, and contract tracking.
               </p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               <FeatureCard
-                icon="🎯"
-                title="Smart Tender Radar"
-                description="AI-powered matching finds the right tenders for your firm's sector, experience, and location."
+                title="Sector Radar"
+                description="Daily scans of public tender portals, filtered to opportunities that match your firm's sector, certifications, and experience."
               />
               <FeatureCard
-                icon="📈"
                 title="Disciplined Pursuits"
-                description="Run active bids with clear deadlines, document checklists, and team accountability."
+                description="Run active bids with clear deadlines, document checklists, and a structured workflow from interest to submission."
               />
               <FeatureCard
-                icon="📎"
                 title="Document Management"
-                description="Upload, organize, and manage tender documents, BEE certificates, and compliance files."
+                description="Upload and organize tender documents, certificates, and compliance files alongside the bids they belong to."
               />
               <FeatureCard
-                icon="🏆"
                 title="Award Tracking"
-                description="Keep awarded tenders visible as contracts. Track dates, appointments, and reminders."
+                description="Move awarded tenders into contract tracking. Watch appointment dates, milestones, and renewal reminders."
               />
               <FeatureCard
-                icon="⚖️"
                 title="Challenge Management"
-                description="Manage bid protests and appeals with clear timelines and communication trails."
-              />
-              <FeatureCard
-                icon="👥"
-                title="Team Collaboration"
-                description="Assign tenders, track progress, and communicate without leaving the workspace."
+                description="Manage bid protests and administrative appeals with structured timelines, evidence checklists, and clear deadlines."
               />
             </div>
           </div>
@@ -139,12 +104,12 @@ export default async function RootPage() {
         <section className="py-16 sm:py-24 border-t border-[var(--line)]">
           <div className="app-page space-y-16">
             <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <span className="app-kicker">Choose your sector</span>
+              <span className="app-kicker">Tailored for your industry</span>
               <h2 className="app-display text-4xl sm:text-5xl font-bold">
-                Tailored for your industry
+                Built for the firms behind the work
               </h2>
               <p className="text-lg text-[var(--foreground-secondary)]">
-                Bid360 is customized for the unique workflows of each sector.
+                Configured for the unique workflows of three professional services sectors.
               </p>
             </div>
 
@@ -152,17 +117,17 @@ export default async function RootPage() {
               <SectorCard
                 title="Built Environment"
                 description="For engineers, quantity surveyors, architects, and project managers."
-                features={['Engineering frameworks', 'Project experience', 'CIDB compliance']}
+                features={['Engineering frameworks', 'Project experience tracking', 'CIDB grading']}
               />
               <SectorCard
                 title="Legal"
-                description="For law firms and attorneys doing government and state work."
-                features={['Legal frameworks', 'B-BBEE compliance', 'SBD forms']}
+                description="For law firms and attorneys serving government and state-owned entities."
+                features={['Panel appointments', 'B-BBEE compliance', 'SBD documentation']}
               />
               <SectorCard
                 title="Accounting"
-                description="For audit, tax, and advisory firms serving public sector."
-                features={['Accounting frameworks', 'Audit experience', 'Tax compliance']}
+                description="For audit, tax, and advisory firms in the public sector."
+                features={['Audit panel work', 'Experience records', 'Tax compliance']}
               />
             </div>
           </div>
@@ -174,15 +139,15 @@ export default async function RootPage() {
             <div className="text-center space-y-4 max-w-2xl mx-auto">
               <span className="app-kicker">Getting started</span>
               <h2 className="app-display text-4xl sm:text-5xl font-bold">
-                Quick setup in minutes
+                Set up in minutes
               </h2>
             </div>
 
             <div className="grid gap-8 md:grid-cols-4">
-              <StepCard step="1" title="Create workspace" description="Sign up with your email and choose your sector." />
-              <StepCard step="2" title="Build your profile" description="Add firm details, certifications, and experience." />
-              <StepCard step="3" title="Start discovering" description="Connect your tenderer accounts and get matched." />
-              <StepCard step="4" title="Track & win" description="Manage pursuits, submissions, and awards." />
+              <StepCard step="1" title="Create your workspace" description="Sign up with your work email and confirm your firm's sector." />
+              <StepCard step="2" title="Build your firm profile" description="Add disciplines, certifications, and experience so matches are relevant to your work." />
+              <StepCard step="3" title="Receive matched opportunities" description="Bid360 scans public tender portals daily and emails you a digest of opportunities that fit your firm." />
+              <StepCard step="4" title="Pursue, track, and win" description="Run pursuits, manage documents, track awards, and handle challenges — all in one place." />
             </div>
           </div>
         </section>
@@ -198,17 +163,12 @@ export default async function RootPage() {
                     Ready to bid smarter?
                   </h2>
                   <p className="text-lg text-white/90">
-                    Join firms across South Africa that are winning more tenders with Bid360.
+                    Bid360 is in pilot. Sign up to use it with your firm.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-4">
-                  <Link href="/register" className="app-button-primary">
-                    Start free trial
-                  </Link>
-                  <Link href="/login" className="text-white hover:underline font-semibold">
-                    Sign in →
-                  </Link>
-                </div>
+                <Link href="/register" className="app-button-primary">
+                  Get started
+                </Link>
               </div>
             </div>
           </div>
@@ -218,76 +178,38 @@ export default async function RootPage() {
       {/* Footer */}
       <footer className="border-t border-[var(--line)] bg-white/40 py-12">
         <div className="app-page">
-          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-            <div className="space-y-4">
+          <div className="flex flex-col gap-8 border-b border-[var(--line)] pb-8 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-3">
               <h4 className="font-bold">Bid360</h4>
-              <p className="text-sm text-[var(--foreground-secondary)]">
-                Tender and contract management for South African firms.
+              <p className="max-w-md text-sm text-[var(--foreground-secondary)]">
+                Tender and contract management for South African professional services firms.
               </p>
             </div>
-            <div className="space-y-3">
-              <h4 className="font-bold text-sm uppercase tracking-wider">Product</h4>
-              <ul className="space-y-2 text-sm text-[var(--foreground-secondary)]">
-                <li><a href="#features" className="hover:text-[var(--brand-500)]">Features</a></li>
-                <li><a href="#features" className="hover:text-[var(--brand-500)]">Pricing</a></li>
-                <li><a href="#" className="hover:text-[var(--brand-500)]">Security</a></li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="font-bold text-sm uppercase tracking-wider">Company</h4>
-              <ul className="space-y-2 text-sm text-[var(--foreground-secondary)]">
-                <li><a href="#" className="hover:text-[var(--brand-500)]">About</a></li>
-                <li><a href="#" className="hover:text-[var(--brand-500)]">Blog</a></li>
-                <li><a href="#" className="hover:text-[var(--brand-500)]">Contact</a></li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="font-bold text-sm uppercase tracking-wider">Legal</h4>
-              <ul className="space-y-2 text-sm text-[var(--foreground-secondary)]">
-                <li><a href="#" className="hover:text-[var(--brand-500)]">Privacy</a></li>
-                <li><a href="#" className="hover:text-[var(--brand-500)]">Terms</a></li>
-                <li><a href="#" className="hover:text-[var(--brand-500)]">Cookies</a></li>
-              </ul>
-            </div>
+            <nav className="flex flex-wrap gap-4 text-sm font-semibold text-[var(--foreground-secondary)]">
+              <Link href="/privacy" className="hover:text-[var(--brand-500)]">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-[var(--brand-500)]">
+                Terms
+              </Link>
+              <a href="mailto:hello@bid360.co.za" className="hover:text-[var(--brand-500)]">
+                hello@bid360.co.za
+              </a>
+            </nav>
           </div>
-          <div className="border-t border-[var(--line)] pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-[var(--muted)]">
-            <p>&copy; 2026 Bid360. All rights reserved.</p>
-            <p>Built for firms behind South Africa's biggest projects.</p>
-          </div>
+          <p className="pt-8 text-sm text-[var(--muted)]">
+            © 2026 Talita Consulting Services (Pty) Ltd, trading as Bid360.
+          </p>
         </div>
       </footer>
     </div>
   )
 }
 
-// Component: Statistics
-function StatItem({ number, label }) {
-  return (
-    <div>
-      <p className="text-2xl sm:text-3xl font-bold text-[var(--brand-500)]">{number}</p>
-      <p className="text-sm text-[var(--muted)]">{label}</p>
-    </div>
-  )
-}
-
-// Component: Dashboard Preview Item
-function DashboardItem({ icon, label, value }) {
-  return (
-    <div className="flex items-center justify-between p-4 bg-white/50 rounded-lg">
-      <div>
-        <p className="text-sm text-[var(--muted)]">{label}</p>
-        <p className="font-semibold text-[var(--foreground)]">{value}</p>
-      </div>
-      <span className="text-2xl">{icon}</span>
-    </div>
-  )
-}
-
 // Component: Feature Card
-function FeatureCard({ icon, title, description }) {
+function FeatureCard({ title, description }) {
   return (
     <div className="app-card group">
-      <div className="text-4xl mb-4">{icon}</div>
       <h3 className="text-lg font-bold mb-2">{title}</h3>
       <p className="text-sm text-[var(--foreground-secondary)]">{description}</p>
     </div>
@@ -302,8 +224,7 @@ function SectorCard({ title, description, features }) {
       <p className="text-sm text-[var(--foreground-secondary)] mb-6">{description}</p>
       <ul className="space-y-2">
         {features.map((feature, i) => (
-          <li key={i} className="flex items-center gap-2 text-sm">
-            <span className="text-[var(--brand-500)]">✓</span>
+          <li key={i} className="text-sm text-[var(--foreground)]">
             {feature}
           </li>
         ))}
