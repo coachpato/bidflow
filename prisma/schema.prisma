@@ -11,29 +11,29 @@ datasource db {
 }
 
 model User {
-  id                      Int                     @id @default(autoincrement())
-  name                    String
-  email                   String                  @unique
-  password                String
-  googleSubject           String?                 @unique
-  avatarUrl               String?
-  role                    String                  @default("member")
-  emailVerified           DateTime?
-  verificationToken       String?                 @unique
+  id                         Int                    @id @default(autoincrement())
+  name                       String
+  email                      String                 @unique
+  password                   String
+  googleSubject              String?                @unique
+  avatarUrl                  String?
+  role                       String                 @default("member")
+  emailVerified              DateTime?
+  verificationToken          String?                @unique
   verificationTokenExpiresAt DateTime?
-  createdAt               DateTime                @default(now())
-  memberships             Membership[]
-  tenders                 Tender[]
-  assignedTenders         Tender[]                @relation("TenderAssignee")
-  assignedContracts       Contract[]              @relation("ContractAssignee")
-  tenderStatusChanges     TenderStatusChange[]
-  contractStatusChanges   ContractStatusChange[]
-  opportunities           Opportunity[]
-  activities              ActivityLog[]
-  notifications           Notification[]
-  complianceUploads       ComplianceDocument[]    @relation("ComplianceDocumentUploader")
-  dislikedOpportunities   Opportunity[]           @relation("OpportunityDislikedBy")
-  sentTeamInvites         TeamInvite[]            @relation("TeamInvitesSent")
+  createdAt                  DateTime               @default(now())
+  memberships                Membership[]
+  tenders                    Tender[]
+  assignedTenders            Tender[]               @relation("TenderAssignee")
+  assignedContracts          Contract[]             @relation("ContractAssignee")
+  tenderStatusChanges        TenderStatusChange[]
+  contractStatusChanges      ContractStatusChange[]
+  opportunities              Opportunity[]
+  activities                 ActivityLog[]
+  notifications              Notification[]
+  complianceUploads          ComplianceDocument[]   @relation("ComplianceDocumentUploader")
+  dislikedOpportunities      Opportunity[]          @relation("OpportunityDislikedBy")
+  sentTeamInvites            TeamInvite[]           @relation("TeamInvitesSent")
 
   @@map("user")
 }
@@ -234,51 +234,55 @@ model Opportunity {
 }
 
 model Source {
-  id           Int           @id @default(autoincrement())
-  key          String        @unique
-  name         String
-  type         String        @default("portal")
-  baseUrl      String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id            Int           @id @default(autoincrement())
+  key           String        @unique
+  name          String
+  type          String        @default("portal")
+  baseUrl       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   opportunities Opportunity[]
-  runs         SourceRun[]
+  runs          SourceRun[]
 
   @@map("source")
 }
 
 model SourceRun {
-  id           Int           @id @default(autoincrement())
-  status       String        @default("running")
-  startedAt    DateTime      @default(now())
-  completedAt  DateTime?
-  totalFound   Int           @default(0)
-  matchedCount Int           @default(0)
-  newCount     Int           @default(0)
-  errorCount   Int           @default(0)
-  summary      Json?
-  source       Source        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  sourceId     Int
-  opportunities Opportunity[]
+  id                     Int           @id @default(autoincrement())
+  status                 String        @default("running")
+  startedAt              DateTime      @default(now())
+  completedAt            DateTime?
+  totalFound             Int           @default(0)
+  matchedCount           Int           @default(0)
+  newCount               Int           @default(0)
+  errorCount             Int           @default(0)
+  tendersProcessedCount  Int           @default(0)
+  lastProcessedTenderRef String?
+  completionMode         String?
+  errorMessage           String?
+  summary                Json?
+  source                 Source        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId               Int
+  opportunities          Opportunity[]
 
   @@index([sourceId, startedAt])
   @@map("sourceRun")
 }
 
 model OpportunityMatch {
-  id             Int          @id @default(autoincrement())
-  verdict        String       @default("Matched")
-  fitScore       Int?
-  matchedKeywords String[]    @default([])
-  matchReasons   Json?
-  digestSentAt   DateTime?
-  reviewedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  opportunity    Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  opportunityId  Int
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId Int
+  id              Int          @id @default(autoincrement())
+  verdict         String       @default("Matched")
+  fitScore        Int?
+  matchedKeywords String[]     @default([])
+  matchReasons    Json?
+  digestSentAt    DateTime?
+  reviewedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  opportunity     Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId   Int
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  Int
 
   @@unique([opportunityId, organizationId])
   @@index([organizationId, fitScore, verdict])
@@ -297,36 +301,36 @@ model OpportunityDocument {
 }
 
 model Tender {
-  id             Int                   @id @default(autoincrement())
-  title          String
-  reference      String?
-  entity         String
-  description    String?
-  deadline       DateTime?
-  briefingDate   DateTime?
-  contactPerson  String?
-  contactEmail   String?
-  status         String                @default("New")
-  assignedTo     String?
-  notes          String?
+  id                     Int                   @id @default(autoincrement())
+  title                  String
+  reference              String?
+  entity                 String
+  description            String?
+  deadline               DateTime?
+  briefingDate           DateTime?
+  contactPerson          String?
+  contactEmail           String?
+  status                 String                @default("New")
+  assignedTo             String?
+  notes                  String?
   deadlineReminderSentAt DateTime?
-  outcomeRecordedAt DateTime?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId Int
-  createdBy      User?                 @relation(fields: [userId], references: [id])
-  userId         Int?
-  opportunity    Opportunity?          @relation(fields: [opportunityId], references: [id])
-  opportunityId  Int?                  @unique
-  assignedUser   User?                 @relation("TenderAssignee", fields: [assignedUserId], references: [id])
-  assignedUserId Int?
-  documents      TenderDocument[]
-  checklistItems TenderChecklistItem[]
-  statusChanges  TenderStatusChange[]
-  appeals        Appeal[]
-  activities     ActivityLog[]
-  contract       Contract?
+  outcomeRecordedAt      DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  organization           Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId         Int
+  createdBy              User?                 @relation(fields: [userId], references: [id])
+  userId                 Int?
+  opportunity            Opportunity?          @relation(fields: [opportunityId], references: [id])
+  opportunityId          Int?                  @unique
+  assignedUser           User?                 @relation("TenderAssignee", fields: [assignedUserId], references: [id])
+  assignedUserId         Int?
+  documents              TenderDocument[]
+  checklistItems         TenderChecklistItem[]
+  statusChanges          TenderStatusChange[]
+  appeals                Appeal[]
+  activities             ActivityLog[]
+  contract               Contract?
 
   @@index([organizationId, status, deadline])
   @@index([organizationId, assignedUserId, deadline])
@@ -334,13 +338,13 @@ model Tender {
 }
 
 model TenderDocument {
-  id         Int      @id @default(autoincrement())
-  filename   String
-  filepath   String // Stores full Supabase Storage URL in production
-  documentCategory String @default("SOURCE")
-  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  tenderId   Int
-  uploadedAt DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  filename         String
+  filepath         String // Stores full Supabase Storage URL in production
+  documentCategory String   @default("SOURCE")
+  tender           Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId         Int
+  uploadedAt       DateTime @default(now())
 
   @@index([tenderId, uploadedAt])
   @@index([tenderId, documentCategory, uploadedAt])
@@ -362,17 +366,17 @@ model TenderChecklistItem {
 }
 
 model TenderStatusChange {
-  id        Int      @id @default(autoincrement())
-  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  tenderId  Int
-  fromStatus String
-  toStatus  String
-  reason    String?
-  metadata  Json?
-  changedAt DateTime @default(now())
-  changedBy User?    @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+  id              Int      @id @default(autoincrement())
+  tender          Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId        Int
+  fromStatus      String
+  toStatus        String
+  reason          String?
+  metadata        Json?
+  changedAt       DateTime @default(now())
+  changedBy       User?    @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
   changedByUserId Int?
-  createdAt DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([tenderId, changedAt])
   @@index([changedByUserId, changedAt])
@@ -380,38 +384,38 @@ model TenderStatusChange {
 }
 
 model Contract {
-  id                        Int                @id @default(autoincrement())
-  title                     String
-  client                    String?
-  assignedTo                String?
-  appointmentStatus         String             @default("Appointed")
-  instructionStatus         String             @default("No Instruction")
-  appointmentDate           DateTime?
-  startDate                 DateTime?
-  endDate                   DateTime?
-  endDateReminderSentAt     DateTime?
-  renewalDate               DateTime?
-  renewalDateReminderSentAt DateTime?
-  cancelDate                DateTime?
-  firstInstructionDate      DateTime?
-  lastFollowUpAt            DateTime?
-  nextFollowUpAt            DateTime?
+  id                         Int                    @id @default(autoincrement())
+  title                      String
+  client                     String?
+  assignedTo                 String?
+  appointmentStatus          String                 @default("Appointed")
+  instructionStatus          String                 @default("No Instruction")
+  appointmentDate            DateTime?
+  startDate                  DateTime?
+  endDate                    DateTime?
+  endDateReminderSentAt      DateTime?
+  renewalDate                DateTime?
+  renewalDateReminderSentAt  DateTime?
+  cancelDate                 DateTime?
+  firstInstructionDate       DateTime?
+  lastFollowUpAt             DateTime?
+  nextFollowUpAt             DateTime?
   nextFollowUpReminderSentAt DateTime?
-  dormantReminderSentAt     DateTime?
-  value                     Float?
-  milestoneSummary          String?
-  notes                     String?
-  createdAt                 DateTime           @default(now())
-  organization              Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId            Int
-  tender                    Tender?            @relation(fields: [tenderId], references: [id])
-  tenderId                  Int?               @unique
-  assignedUser              User?              @relation("ContractAssignee", fields: [assignedUserId], references: [id])
-  assignedUserId            Int?
-  documents                 ContractDocument[]
-  milestones                ContractMilestone[]
-  statusChanges             ContractStatusChange[]
-  activities                ActivityLog[]
+  dormantReminderSentAt      DateTime?
+  value                      Float?
+  milestoneSummary           String?
+  notes                      String?
+  createdAt                  DateTime               @default(now())
+  organization               Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId             Int
+  tender                     Tender?                @relation(fields: [tenderId], references: [id])
+  tenderId                   Int?                   @unique
+  assignedUser               User?                  @relation("ContractAssignee", fields: [assignedUserId], references: [id])
+  assignedUserId             Int?
+  documents                  ContractDocument[]
+  milestones                 ContractMilestone[]
+  statusChanges              ContractStatusChange[]
+  activities                 ActivityLog[]
 
   @@index([organizationId, appointmentStatus, instructionStatus])
   @@index([organizationId, endDate])
@@ -432,16 +436,16 @@ model ContractDocument {
 }
 
 model ContractMilestone {
-  id              Int      @id @default(autoincrement())
-  title           String
-  dueDate         DateTime?
-  completedAt     DateTime?
-  reminderSentAt  DateTime?
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  contractId      Int
+  id             Int       @id @default(autoincrement())
+  title          String
+  dueDate        DateTime?
+  completedAt    DateTime?
+  reminderSentAt DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  contract       Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractId     Int
 
   @@index([contractId, dueDate])
   @@map("contractMilestone")
@@ -451,7 +455,7 @@ model ContractStatusChange {
   id              Int      @id @default(autoincrement())
   contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
   contractId      Int
-  fieldName       String   // "appointmentStatus" | "instructionStatus"
+  fieldName       String // "appointmentStatus" | "instructionStatus"
   oldValue        String
   newValue        String
   reason          String?
@@ -467,28 +471,28 @@ model ContractStatusChange {
 }
 
 model Appeal {
-  id         Int           @id @default(autoincrement())
-  reason     String
-  challengeType String     @default("Administrative Appeal")
-  exclusionReason String?
-  exclusionDate DateTime?
-  deadline   DateTime?
-  status     String        @default("Pending")
-  submittedAt DateTime?
-  resolvedAt DateTime?
+  id                     Int              @id @default(autoincrement())
+  reason                 String
+  challengeType          String           @default("Administrative Appeal")
+  exclusionReason        String?
+  exclusionDate          DateTime?
+  deadline               DateTime?
+  status                 String           @default("Pending")
+  submittedAt            DateTime?
+  resolvedAt             DateTime?
   deadlineReminderSentAt DateTime?
-  requestedRelief String?
-  nextStep   String?
-  evidenceChecklist Json?
-  notes      String?
-  template   String?
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId Int
-  createdAt  DateTime      @default(now())
-  tender     Tender?       @relation(fields: [tenderId], references: [id])
-  tenderId   Int?
-  documents  AppealDocument[]
-  activities ActivityLog[]
+  requestedRelief        String?
+  nextStep               String?
+  evidenceChecklist      Json?
+  notes                  String?
+  template               String?
+  organization           Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId         Int
+  createdAt              DateTime         @default(now())
+  tender                 Tender?          @relation(fields: [tenderId], references: [id])
+  tenderId               Int?
+  documents              AppealDocument[]
+  activities             ActivityLog[]
 
   @@index([organizationId, status, deadline])
   @@map("appeal")
@@ -527,18 +531,18 @@ model Notification {
 }
 
 model TeamInvite {
-  id             Int          @id @default(autoincrement())
-  email          String
-  name           String?
-  role           String       @default("member")
-  token          String       @unique
-  status         String       @default("pending")
-  expiresAt      DateTime
-  acceptedAt     DateTime?
-  invitedAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId Int
-  invitedBy      User?        @relation("TeamInvitesSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  id              Int          @id @default(autoincrement())
+  email           String
+  name            String?
+  role            String       @default("member")
+  token           String       @unique
+  status          String       @default("pending")
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  invitedAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  Int
+  invitedBy       User?        @relation("TeamInvitesSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
   invitedByUserId Int?
 
   @@index([organizationId, status, expiresAt])
@@ -563,20 +567,20 @@ model ActivityLog {
 }
 
 model WebhookDelivery {
-  id              Int      @id @default(autoincrement())
-  webhookId       String   @unique // Idempotency key
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId  Int
-  event           String   // e.g., "tender.status_changed"
-  webhookUrl      String
-  payload         Json     // Full webhook payload
-  status          String   @default("pending") // "pending" | "delivered" | "failed"
-  attempts        Int      @default(0)
-  deliveredAt     DateTime?
-  failureReason   String?
-  nextRetryAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int          @id @default(autoincrement())
+  webhookId      String       @unique // Idempotency key
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
+  event          String // e.g., "tender.status_changed"
+  webhookUrl     String
+  payload        Json // Full webhook payload
+  status         String       @default("pending") // "pending" | "delivered" | "failed"
+  attempts       Int          @default(0)
+  deliveredAt    DateTime?
+  failureReason  String?
+  nextRetryAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, status, nextRetryAt])
   @@index([webhookId])
@@ -584,15 +588,15 @@ model WebhookDelivery {
 }
 
 model WebhookEndpoint {
-  id              Int      @id @default(autoincrement())
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId  Int
-  url             String
-  events          String[] // Events this endpoint subscribes to
-  secret          String?  // For HMAC signing
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int          @id @default(autoincrement())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId Int
+  url            String
+  events         String[] // Events this endpoint subscribes to
+  secret         String? // For HMAC signing
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, isActive])
   @@map("webhookEndpoint")
