@@ -20,7 +20,7 @@ function normalizeList(value) {
 
 function getRegistrationValidationError({ organizationName, serviceSector, practiceAreas, targetWorkTypes }) {
   if (!organizationName || !serviceSector) {
-    return 'Organization name and sector are required to create a Bid360 workspace.'
+    return 'Organisation name and sector are required to create a Bid360 workspace.'
   }
 
   if (practiceAreas.length === 0) {

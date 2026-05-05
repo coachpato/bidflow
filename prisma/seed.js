@@ -124,7 +124,7 @@ async function main() {
   // Create a demo appeal
   const appeal = await prisma.appeal.create({
     data: {
-      reason: 'Incorrectly scored on B-BBEE criteria — Level 1 certificate not properly recognized',
+      reason: 'Incorrectly scored on B-BBEE criteria — Level 1 certificate not properly recognised',
       deadline: new Date('2024-12-05'),
       status: 'Pending',
       tenderId: tender2.id,

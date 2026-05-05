@@ -36,7 +36,7 @@ export async function GET() {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const organization = await prisma.organization.findUnique({
     where: { id: organizationId },
@@ -46,7 +46,7 @@ export async function GET() {
   })
 
   if (!organization) {
-    return Response.json({ error: 'Organization not found.' }, { status: 404 })
+    return Response.json({ error: 'Organisation not found.' }, { status: 404 })
   }
 
   return Response.json({
@@ -64,7 +64,7 @@ export async function PUT(request) {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
   const payload = await request.json()
 
   const displayName = normalizeString(payload.displayName)

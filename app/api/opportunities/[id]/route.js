@@ -83,7 +83,7 @@ export async function GET(request, { params }) {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
   const { id } = await params
   const opportunity = await prisma.opportunity.findFirst({
     where: {
@@ -105,7 +105,7 @@ export async function PATCH(request, { params }) {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
   const { id } = await params
   const opportunityId = parseInt(id, 10)
   const body = await request.json()
@@ -244,7 +244,7 @@ export async function DELETE(request, { params }) {
   if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
   const { id } = await params
   const opportunityId = parseInt(id, 10)
   const existing = await prisma.opportunity.findFirst({

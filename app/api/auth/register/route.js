@@ -37,7 +37,7 @@ export async function POST(request) {
 
     // Basic validation
     if (!normalizedName || !normalizedEmail || !password || !normalizedOrganizationName || !normalizedServiceSector) {
-      return Response.json({ error: 'Name, email, password, organization name, and sector are required.' }, { status: 400 })
+      return Response.json({ error: 'Name, email, password, organisation name, and sector are required.' }, { status: 400 })
     }
 
     if (normalizedPracticeAreas.length === 0) {

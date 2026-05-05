@@ -53,7 +53,7 @@ export async function GET() {
   if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const invites = await prisma.teamInvite.findMany({
     where: { organizationId },
@@ -69,7 +69,7 @@ export async function POST(request) {
   if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const body = await request.json()
   const email = normalizeEmail(body.email)

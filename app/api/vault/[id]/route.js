@@ -48,7 +48,7 @@ export async function PATCH(request, { params }) {
   if (Number.isNaN(documentId)) return Response.json({ error: 'Invalid document id.' }, { status: 400 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const document = await getAuthorizedDocument(documentId, organizationId)
   if (!document) return Response.json({ error: 'Document not found.' }, { status: 404 })
@@ -120,7 +120,7 @@ export async function DELETE(_request, { params }) {
   if (Number.isNaN(documentId)) return Response.json({ error: 'Invalid document id.' }, { status: 400 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const document = await getAuthorizedDocument(documentId, organizationId)
   if (!document) return Response.json({ error: 'Document not found.' }, { status: 404 })

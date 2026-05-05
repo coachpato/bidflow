@@ -76,7 +76,7 @@ export async function POST(request, { params }) {
   const organizationId = getSessionOrganizationId(session)
   if (!organizationId) {
     return Response.json(
-      { error: 'Organization context is missing.' },
+      { error: 'Organisation context is missing.' },
       { status: 400 }
     )
   }

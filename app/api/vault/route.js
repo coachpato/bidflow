@@ -36,7 +36,7 @@ export async function GET(request) {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   after(async () => {
     const syncedDocuments = await syncComplianceExpiryNotificationsIfNeededSafely(organizationId)
@@ -86,7 +86,7 @@ export async function POST(request) {
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
   const formData = await request.formData()
   const file = formData.get('file')
   const documentType = normalizeString(formData.get('documentType'))

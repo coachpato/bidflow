@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const { id } = await params
   const appeal = await prisma.appeal.findFirst({
@@ -43,7 +43,7 @@ export async function PATCH(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const { id } = await params
   const body = await request.json()
@@ -92,7 +92,7 @@ export async function DELETE(request, { params }) {
   const session = await getSession()
   if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const { id } = await params
   const appealId = parseInt(id, 10)

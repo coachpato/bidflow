@@ -39,7 +39,7 @@ export async function PATCH(request, { params }) {
   const experienceId = Number.parseInt(id, 10)
   if (Number.isNaN(experienceId)) return Response.json({ error: 'Invalid experience id.' }, { status: 400 })
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const experience = await getAuthorizedExperience(experienceId, organizationId)
   if (!experience) return Response.json({ error: 'Experience record not found.' }, { status: 404 })
@@ -77,7 +77,7 @@ export async function DELETE(_request, { params }) {
   const experienceId = Number.parseInt(id, 10)
   if (Number.isNaN(experienceId)) return Response.json({ error: 'Invalid experience id.' }, { status: 400 })
   const organizationId = getSessionOrganizationId(session)
-  if (!organizationId) return Response.json({ error: 'Organization context is missing.' }, { status: 400 })
+  if (!organizationId) return Response.json({ error: 'Organisation context is missing.' }, { status: 400 })
 
   const experience = await getAuthorizedExperience(experienceId, organizationId)
   if (!experience) return Response.json({ error: 'Experience record not found.' }, { status: 404 })
