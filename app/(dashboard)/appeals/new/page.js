@@ -167,7 +167,7 @@ function NewAppealForm() {
               <div className="rounded-[24px] bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">Starter draft</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Use the template as a starting point, then replace placeholders with the actual tender reference, facts, and requested relief.
+                  Bid360's legal team can assist with your challenge directly. Email hello@bid360.co.za to request a call. Prefer to draft it yourself? Use the template below as a starting point.
                 </p>
                 <button
                   type="button"

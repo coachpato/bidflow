@@ -86,7 +86,7 @@ export default async function RootPage() {
               />
               <FeatureCard
                 title="Document Management"
-                description="Upload and organize tender documents, certificates, and compliance files alongside the bids they belong to."
+                description="Upload and organise tender documents, appointment letters and SLA files alongside the bids they belong to."
               />
               <FeatureCard
                 title="Award Tracking"
@@ -117,17 +117,17 @@ export default async function RootPage() {
               <SectorCard
                 title="Built Environment"
                 description="For engineers, quantity surveyors, architects, and project managers."
-                features={['Engineering frameworks', 'Project experience tracking', 'CIDB grading']}
+                features={['Engineering frameworks, etc.']}
               />
               <SectorCard
                 title="Legal"
                 description="For law firms and attorneys serving government and state-owned entities."
-                features={['Panel appointments', 'B-BBEE compliance', 'SBD documentation']}
+                features={['Panel appointments, etc.']}
               />
               <SectorCard
                 title="Accounting"
                 description="For audit, tax, and advisory firms in the public sector."
-                features={['Audit panel work', 'Experience records', 'Tax compliance']}
+                features={['Audit panel work, etc.']}
               />
             </div>
           </div>
@@ -160,10 +160,10 @@ export default async function RootPage() {
               <div className="relative max-w-2xl space-y-8">
                 <div className="space-y-4">
                   <h2 className="text-4xl sm:text-5xl font-bold leading-tight">
-                    Ready to bid smarter?
+                    Built with the firms using it
                   </h2>
                   <p className="text-lg text-white/90">
-                    Bid360 is in pilot. Sign up to use it with your firm.
+                    Bid360 is in early access. The firms who join during this phase get the workspace free and a direct line to the team. Tell us what makes tender management difficult, and we'll build toward it.
                   </p>
                 </div>
                 <Link href="/register" className="app-button-primary">

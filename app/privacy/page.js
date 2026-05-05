@@ -13,7 +13,7 @@ const sections = [
       'Talita Consulting Services (Pty) Ltd, trading as Bid360, is the responsible party for the personal information collected through this service.',
       'Registered office: 54 Smith Avenue, Eden Glen, Edenvale, 1609, South Africa',
       'Contact email: hello@bid360.co.za',
-      'Information Officer: Buntu Pato',
+      'Information Officer: contactable at hello@bid360.co.za',
     ],
   },
   {
@@ -128,7 +128,6 @@ const sections = [
     title: '13. Contact us',
     body: [
       'For any privacy-related question or request, contact:',
-      'Information Officer — Bid360',
       'Talita Consulting Services (Pty) Ltd',
       '54 Smith Avenue, Eden Glen, Edenvale, 1609',
       'hello@bid360.co.za',
