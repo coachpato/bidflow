@@ -114,7 +114,7 @@ export default function FirmProfileForm({ initialProfile }) {
                   key={option.value}
                   type="button"
                   onClick={() => toggleSector(option.value)}
-                  className={`rounded-[18px] border px-4 py-4 text-left transition ${
+                  className={`app-card-button rounded-[18px] border px-4 py-4 text-left transition ${
                     isActive
                       ? 'border-[var(--brand-500)] bg-[rgba(14,110,129,0.08)] text-slate-900'
                       : 'border-slate-200 bg-white text-slate-700 hover:border-[var(--brand-400)]'

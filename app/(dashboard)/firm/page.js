@@ -52,7 +52,7 @@ export default async function FirmPage() {
   })
 
   const meta = [
-    { label: 'Organization', value: organizationContext.organization.name },
+    { label: 'Organisation', value: organizationContext.organization.name },
     { label: 'Sector', value: getServiceSectorLabel(organizationContext.firmProfile.serviceSector) },
     { label: 'Team members', value: `${memberships.length}` },
     { label: 'Practice areas', value: `${organizationContext.firmProfile.practiceAreas.length}` },

@@ -176,42 +176,36 @@ export default async function DashboardPage() {
       label: 'Opportunities',
       value: opportunitiesCount,
       href: '/opportunities',
-      icon: '🎯',
       description: 'Opportunities waiting review'
     },
     {
       label: 'Active pursuits',
       value: activePursuitsCount,
       href: '/pursuits?status=active',
-      icon: '🚀',
       description: 'In progress and tracking'
     },
     {
       label: 'Submitted',
       value: submittedPursuitsCount,
       href: '/pursuits?status=Submitted',
-      icon: '✓',
       description: 'Awaiting feedback'
     },
     {
       label: 'Appointments',
       value: appointmentsCount,
       href: '/appointments',
-      icon: '📅',
       description: 'Active contracts'
     },
     {
       label: 'Open challenges',
       value: openChallengesCount,
       href: '/challenges',
-      icon: '⚠️',
       description: 'Requiring action'
     },
     {
       label: 'Inbox unread',
       value: unreadInboxCount,
       href: '/inbox',
-      icon: '📬',
       description: 'Unread messages'
     },
   ]
@@ -256,9 +250,6 @@ export default async function DashboardPage() {
                       {stat.description}
                     </p>
                   </div>
-                  <span className="text-3xl opacity-20 group-hover:opacity-30 transition">
-                    {stat.icon}
-                  </span>
                 </div>
               </Link>
             ))}
@@ -283,7 +274,6 @@ export default async function DashboardPage() {
 
             {opportunitiesToReview.length === 0 ? (
               <EmptyState
-                icon="🎯"
                 title="No opportunities to review"
                 description="Check back soon for new opportunities matching your criteria."
                 actionText="Explore opportunities"
@@ -312,7 +302,7 @@ export default async function DashboardPage() {
                     </div>
                     {opportunity.deadline && (
                       <p className="mt-3 text-xs text-var(--foreground-secondary)">
-                        ⏰ Due {formatShortDate(opportunity.deadline)}
+                        Due {formatShortDate(opportunity.deadline)}
                       </p>
                     )}
                   </Link>
@@ -337,7 +327,6 @@ export default async function DashboardPage() {
 
             {pursuitsDueSoon.length === 0 ? (
               <EmptyState
-                icon="🚀"
                 title="No deadlines coming up"
                 description="No pursuit deadlines in the next 14 days."
                 actionText="Manage pursuits"
@@ -366,7 +355,7 @@ export default async function DashboardPage() {
                     </div>
                     {tender.deadline && (
                       <p className="mt-3 text-xs text-var(--foreground-secondary)">
-                        ⏰ Due {formatShortDate(tender.deadline)}
+                        Due {formatShortDate(tender.deadline)}
                       </p>
                     )}
                   </Link>
@@ -394,7 +383,6 @@ export default async function DashboardPage() {
 
             {appointmentReminders.length === 0 ? (
               <EmptyState
-                icon="📅"
                 title="No follow-ups due"
                 description="No appointment follow-ups in the next 30 days."
                 actionText="Manage appointments"
@@ -424,12 +412,12 @@ export default async function DashboardPage() {
                     <div className="mt-3 space-y-1">
                       {contract.nextFollowUpAt && (
                         <p className="text-xs text-var(--foreground-secondary)">
-                          📞 Follow up {formatShortDate(contract.nextFollowUpAt)}
+                          Follow up {formatShortDate(contract.nextFollowUpAt)}
                         </p>
                       )}
                       {contract.endDate && (
                         <p className="text-xs text-var(--foreground-secondary)">
-                          📌 Ends {formatShortDate(contract.endDate)}
+                          Ends {formatShortDate(contract.endDate)}
                         </p>
                       )}
                     </div>
@@ -455,7 +443,6 @@ export default async function DashboardPage() {
 
             {challengeDeadlines.length === 0 ? (
               <EmptyState
-                icon="✓"
                 title="No active challenges"
                 description="No challenge deadlines to manage right now."
                 actionText="View challenges"
@@ -485,7 +472,7 @@ export default async function DashboardPage() {
                     </div>
                     {challenge.deadline && (
                       <p className="mt-3 text-xs text-var(--foreground-secondary)">
-                        ⏰ Due {formatShortDate(challenge.deadline)}
+                        Due {formatShortDate(challenge.deadline)}
                       </p>
                     )}
                   </Link>

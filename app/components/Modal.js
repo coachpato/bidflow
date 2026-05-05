@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function Modal({
   isOpen = false,
@@ -81,7 +82,7 @@ export default function Modal({
               aria-label="Close modal"
               type="button"
             >
-              <span aria-hidden="true">✕</span>
+              <XMarkIcon className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         )}

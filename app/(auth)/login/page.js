@@ -18,7 +18,7 @@ const HIGHLIGHTS = [
   },
   {
     title: 'Made for your sector',
-    body: 'Customized for built environment, legal, and accounting firms.',
+    body: 'Customised for built environment, legal, and accounting firms.',
   },
 ]
 
@@ -71,7 +71,6 @@ export default function LoginPage() {
     >
       {error && (
         <div className="mb-6 rounded-lg border border-var(--danger-500)/20 bg-var(--danger-500)/8 px-4 py-3 text-sm text-var(--danger-600) flex gap-3 items-start animate-slideInUp" role="alert">
-          <span className="text-lg mt-0.5">⚠️</span>
           <div className="flex-1">
             <p className="font-semibold mb-1">Sign in failed</p>
             <p>{error}</p>

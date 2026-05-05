@@ -25,7 +25,7 @@ function parsePreferredEntities(value) {
 
 function getRegistrationValidationError(form, { requirePassword } = { requirePassword: false }) {
   if (!form.organizationName.trim()) {
-    return 'Organization name is required.'
+    return 'Organisation name is required.'
   }
 
   if (!form.serviceSector) {
@@ -176,14 +176,13 @@ export default function RegisterForm({ isBootstrapMode = false }) {
 
       {error && (
         <div className="mb-5 rounded-lg border border-var(--danger-500)/20 bg-var(--danger-500)/8 px-4 py-3 text-sm text-var(--danger-600) flex gap-3 items-start" role="alert">
-          <span className="text-lg mt-0.5">⚠️</span>
           <p>{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-semibold text-var(--foreground)">Organization name *</label>
+          <label className="mb-2 block text-sm font-semibold text-var(--foreground)">Organisation name *</label>
           <input
             type="text"
             required
@@ -203,14 +202,13 @@ export default function RegisterForm({ isBootstrapMode = false }) {
                 type="button"
                 onClick={() => handleSectorChange(option.value)}
                 className={`
-                  app-card p-4 transition-all
+                  app-card app-card-button p-4 transition-all
                   ${form.serviceSector === option.value
                     ? 'border-var(--brand-500) bg-var(--brand-500)/5 ring-2 ring-var(--brand-500)/20'
                     : 'hover:border-var(--brand-500)/50'
                   }
                 `}
               >
-                <div className="text-2xl mb-3">{getSectorIcon(option.value)}</div>
                 <h3 className="font-semibold text-var(--foreground) text-left">{option.label}</h3>
                 <p className="text-xs text-var(--muted) mt-2 text-left">
                   {option.description}
@@ -225,7 +223,7 @@ export default function RegisterForm({ isBootstrapMode = false }) {
             <p className="app-kicker">Opportunity radar</p>
             <h2 className="mt-2 text-lg font-semibold text-var(--foreground)">What should Bid360 find for you?</h2>
             <p className="mt-2 text-sm leading-6 text-var(--foreground-secondary)">
-              These answers help the scraper prioritize relevant opportunities for your workspace.
+              These answers help our radar prioritise relevant opportunities for your workspace.
             </p>
           </div>
 
@@ -371,15 +369,6 @@ export default function RegisterForm({ isBootstrapMode = false }) {
       </div>
     </>
   )
-}
-
-function getSectorIcon(sector) {
-  const icons = {
-    BUILT_ENVIRONMENT: '🏗️',
-    LEGAL: '⚖️',
-    ACCOUNTING: '📊',
-  }
-  return icons[sector] || '📋'
 }
 
 function SelectionGroup({ label, helper, options, selected, onToggle }) {

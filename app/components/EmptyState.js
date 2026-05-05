@@ -3,7 +3,7 @@
 import Link from 'next/link'
 
 export default function EmptyState({
-  icon = '📋',
+  icon = null,
   title,
   description,
   action,
@@ -13,7 +13,7 @@ export default function EmptyState({
   return (
     <div className="app-page py-16 sm:py-24">
       <div className="flex flex-col items-center justify-center space-y-6 text-center">
-        <div className="text-6xl sm:text-7xl">{icon}</div>
+        {icon ? <div className="text-6xl sm:text-7xl">{icon}</div> : null}
         <div className="space-y-2 max-w-md">
           <h2 className="text-2xl sm:text-3xl font-bold text-var(--foreground)">
             {title}

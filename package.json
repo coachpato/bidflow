@@ -28,6 +28,7 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@prisma/client": "5.22.0",
     "@supabase/supabase-js": "^2.102.1",
     "axios": "^1.15.0",

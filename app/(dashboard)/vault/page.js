@@ -51,7 +51,7 @@ export default async function VaultPage() {
         meta={[
           { label: 'Documents', value: `${documents.length}` },
           { label: 'Expiring soon', value: `${expiringSoon}` },
-          { label: 'Organization', value: organizationContext.organization.name },
+          { label: 'Organisation', value: organizationContext.organization.name },
         ]}
         primaryAction={{ href: '/firm', label: 'Open firm workspace' }}
         secondaryAction={{ href: '/dashboard', label: 'Back to dashboard' }}

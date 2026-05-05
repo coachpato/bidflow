@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback } from 'react'
+import { CheckIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 const ToastContext = createContext()
 
@@ -86,11 +87,10 @@ function Toast({ id, message, type, onRemove }) {
     info: 'bg-var(--info-500)',
   }[type]
 
-  const icon = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ',
+  const Icon = {
+    success: CheckIcon,
+    error: XMarkIcon,
+    warning: ExclamationTriangleIcon,
   }[type]
 
   const ariaLabel = {
@@ -110,7 +110,7 @@ function Toast({ id, message, type, onRemove }) {
       role="alert"
       aria-label={ariaLabel}
     >
-      <span className="text-lg" aria-hidden="true">{icon}</span>
+      {Icon ? <Icon className="h-5 w-5 flex-shrink-0 text-white/90" aria-hidden="true" /> : null}
       <p className="flex-1">{message}</p>
       <button
         onClick={() => onRemove(id)}
@@ -118,7 +118,7 @@ function Toast({ id, message, type, onRemove }) {
         aria-label={`Close ${ariaLabel.toLowerCase()}`}
         type="button"
       >
-        <span aria-hidden="true">✕</span>
+        <XMarkIcon className="h-4 w-4 text-white/90" aria-hidden="true" />
       </button>
     </div>
   )

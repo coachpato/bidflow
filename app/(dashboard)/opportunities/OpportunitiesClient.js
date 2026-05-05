@@ -309,15 +309,16 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
             </div>
 
             <section className="app-surface hidden overflow-hidden rounded-[24px] md:block">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-[76rem] w-full table-fixed text-sm">
                 <thead className="border-b border-slate-200 bg-[rgba(248,246,242,0.95)]">
                   <tr className="text-left">
-                    <th className="px-5 py-4 font-semibold text-slate-500">Opportunity</th>
-                    <th className="px-5 py-4 font-semibold text-slate-500">Why it matched</th>
-                    <th className="px-5 py-4 font-semibold text-slate-500">Deadline</th>
-                    <th className="px-5 py-4 font-semibold text-slate-500">Fit</th>
-                    <th className="px-5 py-4 font-semibold text-slate-500">Status</th>
-                    <th className="px-5 py-4 font-semibold text-slate-500">Actions</th>
+                    <th className="w-[26rem] px-5 py-4 font-semibold text-slate-500">Opportunity</th>
+                    <th className="w-[20rem] px-5 py-4 font-semibold text-slate-500">Why it matched</th>
+                    <th className="w-[9rem] px-5 py-4 font-semibold text-slate-500">Deadline</th>
+                    <th className="w-[8rem] px-5 py-4 font-semibold text-slate-500">Fit</th>
+                    <th className="w-[9rem] px-5 py-4 font-semibold text-slate-500">Status</th>
+                    <th className="w-[14rem] px-5 py-4 font-semibold text-slate-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -326,17 +327,17 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                     const reasons = getMatchReasons(opportunity)
 
                     return (
-                      <tr key={opportunity.id} className="bg-white/70 hover:bg-white">
-                        <td className="px-5 py-4">
-                          <Link href={`/opportunities/${opportunity.id}`} className="font-semibold text-slate-900 hover:text-[var(--brand-500)]">
+                      <tr key={opportunity.id} className="bg-white/70 align-top hover:bg-white">
+                        <td className="px-5 py-4 align-top">
+                          <Link href={`/opportunities/${opportunity.id}`} className="block break-words font-semibold text-slate-900 hover:text-[var(--brand-500)]">
                             {opportunity.title}
                           </Link>
-                          <p className="mt-1 text-xs text-slate-500">{opportunity.entity}</p>
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className="mt-1 break-words text-xs text-slate-500">{opportunity.entity}</p>
+                          <p className="mt-1 break-words text-xs text-slate-400">
                             {opportunity.reference || 'No ref'} | {opportunity.source?.name || opportunity.sourceName || 'Manual'}
                           </p>
                         </td>
-                        <td className="px-5 py-4 text-slate-600">
+                        <td className="px-5 py-4 align-top text-slate-600">
                           {reasons.length === 0 ? (
                             <span className="text-xs text-slate-400">Manual intake or no match reasons saved yet.</span>
                           ) : (
@@ -349,18 +350,18 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                             </div>
                           )}
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 align-top">
                           <p className={`font-semibold ${getDeadlineTone(daysRemaining)}`}>{formatDate(opportunity.deadline)}</p>
                           <p className={`mt-1 text-xs ${getDeadlineTone(daysRemaining)}`}>{getDeadlineLabel(daysRemaining)}</p>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 align-top">
                           <p className={`font-semibold ${getFitTone(opportunity.fitScore)}`}>{getFitLabel(opportunity.fitScore)}</p>
                           <p className="mt-1 text-xs text-slate-400">{opportunity.practiceArea || 'Not set'}</p>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 align-top">
                           <StatusBadge status={opportunity.status} />
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 align-top">
                           <div className="flex flex-wrap gap-2">
                             {REVIEW_ACTIONS.map(status => (
                               <button
@@ -381,7 +382,8 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                     )
                   })}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </section>
           </>
         )}

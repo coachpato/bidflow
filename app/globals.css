@@ -351,6 +351,13 @@ button:focus-visible,
   outline-offset: 2px;
 }
 
+.app-card-button {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  white-space: normal !important;
+}
+
 /* PRIMARY BUTTON */
 .app-button-primary,
 a.app-button-primary {
