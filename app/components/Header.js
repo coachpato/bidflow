@@ -24,7 +24,7 @@ export default function Header({
               )}
             </div>
 
-            <h1 className="app-display text-[2.3rem] font-semibold leading-none text-slate-950 sm:text-[2.8rem]">
+            <h1 className="app-display app-page-title max-w-full font-semibold text-slate-950">
               {title}
             </h1>
 

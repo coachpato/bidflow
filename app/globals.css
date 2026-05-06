@@ -196,6 +196,7 @@ textarea {
 }
 
 .app-page {
+  box-sizing: border-box;
   margin-inline: auto;
   width: min(100%, 1200px);
   padding-inline: 1rem;
@@ -353,6 +354,7 @@ button:focus-visible,
 
 .app-card-button {
   display: flex !important;
+  flex-direction: column !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
   white-space: normal !important;
@@ -476,6 +478,17 @@ a.app-button-primary {
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
+}
+
+.app-page-title {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .app-page-title {
+    font-size: 2.8rem;
+  }
 }
 
 /* Card Component */
@@ -968,9 +981,12 @@ button:focus-visible,
 }
 
 /* Ensuring sufficient touch targets (44px minimum) */
-a,
 button,
 .app-button,
+.app-button-primary,
+.app-button-secondary,
+.app-button-danger,
+.app-button-ghost,
 input[type="checkbox"],
 input[type="radio"] {
   min-height: 44px;

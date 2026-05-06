@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 
 const TYPE_STYLES = {
@@ -39,6 +40,8 @@ function formatDateTime(value) {
 export default function InboxPage() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [notificationToRemove, setNotificationToRemove] = useState(null)
+  const [removingId, setRemovingId] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -95,8 +98,14 @@ export default function InboxPage() {
   }
 
   async function removeNotification(id) {
-    await fetch(`/api/notifications/${id}`, { method: 'DELETE' })
-    setNotifications(current => current.filter(notification => notification.id !== id))
+    setRemovingId(id)
+    try {
+      await fetch(`/api/notifications/${id}`, { method: 'DELETE' })
+      setNotifications(current => current.filter(notification => notification.id !== id))
+      setNotificationToRemove(null)
+    } finally {
+      setRemovingId(null)
+    }
   }
 
   return (
@@ -170,7 +179,7 @@ export default function InboxPage() {
                         Mark read
                       </button>
                     ) : null}
-                    <button onClick={() => removeNotification(notification.id)} className="app-button-ghost px-0 py-0 text-xs font-semibold text-slate-400 hover:text-slate-700">
+                    <button onClick={() => setNotificationToRemove(notification)} className="app-button-ghost px-0 py-0 text-xs font-semibold text-slate-500 hover:text-slate-700">
                       Remove
                     </button>
                   </div>
@@ -180,6 +189,16 @@ export default function InboxPage() {
           </section>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(notificationToRemove)}
+        title="Remove notification?"
+        description="This removes the notification from your inbox. This cannot be undone."
+        confirmLabel="Remove notification"
+        isLoading={Boolean(removingId)}
+        onClose={() => setNotificationToRemove(null)}
+        onConfirm={() => notificationToRemove && removeNotification(notificationToRemove.id)}
+      />
     </div>
   )
 }

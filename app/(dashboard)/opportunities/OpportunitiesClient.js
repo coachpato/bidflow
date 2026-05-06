@@ -333,13 +333,13 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                             {opportunity.title}
                           </Link>
                           <p className="mt-1 break-words text-xs text-slate-500">{opportunity.entity}</p>
-                          <p className="mt-1 break-words text-xs text-slate-400">
+                          <p className="mt-1 break-words text-xs text-slate-500">
                             {opportunity.reference || 'No ref'} | {opportunity.source?.name || opportunity.sourceName || 'Manual'}
                           </p>
                         </td>
                         <td className="px-5 py-4 align-top text-slate-600">
                           {reasons.length === 0 ? (
-                            <span className="text-xs text-slate-400">Manual intake or no match reasons saved yet.</span>
+                            <span className="text-xs text-slate-500">Manual intake or no match reasons saved yet.</span>
                           ) : (
                             <div className="flex flex-wrap gap-2">
                               {reasons.map(reason => (
@@ -356,7 +356,7 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                         </td>
                         <td className="px-5 py-4 align-top">
                           <p className={`font-semibold ${getFitTone(opportunity.fitScore)}`}>{getFitLabel(opportunity.fitScore)}</p>
-                          <p className="mt-1 text-xs text-slate-400">{opportunity.practiceArea || 'Not set'}</p>
+                          <p className="mt-1 text-xs text-slate-500">{opportunity.practiceArea || 'Not set'}</p>
                         </td>
                         <td className="px-5 py-4 align-top">
                           <StatusBadge status={opportunity.status} />
@@ -375,7 +375,7 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
                             ))}
                           </div>
                           {opportunity.tender ? (
-                            <p className="mt-2 text-xs text-slate-400">Pursuit linked</p>
+                            <p className="mt-2 text-xs text-slate-500">Pursuit linked</p>
                           ) : null}
                         </td>
                       </tr>

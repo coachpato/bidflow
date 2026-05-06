@@ -123,7 +123,7 @@ export default function ContractsPage() {
                   : 'text-slate-900'
 
               return (
-                <Link key={appointment.id} href={`/appointments/${appointment.id}`} className="app-surface rounded-[24px] p-5">
+                <Link key={appointment.id} href={`/appointments/${appointment.id}`} className="app-surface flex min-w-0 flex-col rounded-[24px] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h2 className="truncate text-xl font-semibold text-slate-950">{appointment.title}</h2>
@@ -136,7 +136,7 @@ export default function ContractsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Metric label="Allocated to" value={getAssignedLabel(appointment)} />
                     <Metric label="Value" value={formatMoney(appointment.value)} />
                     <Metric label="Appointment date" value={formatDate(appointment.appointmentDate)} />
@@ -162,9 +162,9 @@ export default function ContractsPage() {
 
 function Metric({ label, value, tone = 'text-slate-900' }) {
   return (
-    <div className="rounded-[18px] bg-slate-50 px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className={`mt-2 text-sm font-semibold ${tone}`}>{value}</p>
+    <div className="flex min-h-[88px] min-w-0 flex-col justify-between rounded-[18px] bg-slate-50 px-4 py-3">
+      <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 sm:text-[11px]">{label}</p>
+      <p className={`mt-2 break-words text-sm font-semibold ${tone}`}>{value}</p>
     </div>
   )
 }

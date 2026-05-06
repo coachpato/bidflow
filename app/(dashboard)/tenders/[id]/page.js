@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
 import {
@@ -63,6 +64,8 @@ export default function TenderDetailPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadCategory, setUploadCategory] = useState(null)
   const [uploadError, setUploadError] = useState('')
+  const [checklistItemToDelete, setChecklistItemToDelete] = useState(null)
+  const [deletingChecklistItemId, setDeletingChecklistItemId] = useState(null)
 
   const fetchTender = useCallback(async () => {
     const res = await fetch(`/api/tenders/${id}`)
@@ -115,8 +118,14 @@ export default function TenderDetailPage() {
   }
 
   async function deleteChecklistItem(itemId) {
-    await fetch(`/api/tenders/${id}/checklist/${itemId}`, { method: 'DELETE' })
-    await fetchTender()
+    setDeletingChecklistItemId(itemId)
+    try {
+      await fetch(`/api/tenders/${id}/checklist/${itemId}`, { method: 'DELETE' })
+      await fetchTender()
+      setChecklistItemToDelete(null)
+    } finally {
+      setDeletingChecklistItemId(null)
+    }
   }
 
   async function handleFileUpload(documentCategory, event) {
@@ -233,7 +242,7 @@ export default function TenderDetailPage() {
             Back to Pursuits
           </Link>
           <div className="flex flex-wrap gap-2">
-            <Link href={`/tenders/${id}/edit`} className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Link href={`/tenders/${id}/edit`} className="app-button-secondary">
               Edit Pursuit
             </Link>
             <button onClick={deleteTender} className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
@@ -440,7 +449,7 @@ export default function TenderDetailPage() {
                 {nextStep.cta ? (
                   <div className="mt-4">
                     {nextStep.href ? (
-                      <Link href={nextStep.href} className="inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#185FA5' }}>
+                      <Link href={nextStep.href} className="app-button-primary w-full">
                         {nextStep.cta}
                       </Link>
                     ) : null}
@@ -518,7 +527,7 @@ export default function TenderDetailPage() {
                             </div>
                           ) : null}
                         </div>
-                        <button onClick={() => deleteChecklistItem(item.id)} className="rounded-lg px-2 py-1 text-xs font-medium text-slate-300 transition-colors group-hover:text-red-500">
+                        <button onClick={() => setChecklistItemToDelete(item)} className="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition-colors group-hover:text-red-600">
                           Remove
                         </button>
                       </div>
@@ -542,6 +551,16 @@ export default function TenderDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(checklistItemToDelete)}
+        title="Delete checklist item?"
+        description="This removes the checklist item from this pursuit. This cannot be undone."
+        confirmLabel="Delete item"
+        isLoading={Boolean(deletingChecklistItemId)}
+        onClose={() => setChecklistItemToDelete(null)}
+        onConfirm={() => checklistItemToDelete && deleteChecklistItem(checklistItemToDelete.id)}
+      />
     </div>
   )
 }
@@ -595,7 +614,7 @@ function DocumentList({ documents, emptyTitle, emptyBody, onDelete }) {
             <p className="mt-1 text-xs text-slate-500">Uploaded {formatDate(doc.uploadedAt)}</p>
           </div>
           <div className="flex gap-2">
-            <a href={doc.filepath.startsWith('http') ? doc.filepath : `/${doc.filepath}`} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            <a href={doc.filepath.startsWith('http') ? doc.filepath : `/${doc.filepath}`} target="_blank" rel="noopener noreferrer" className="app-button-secondary">
               Open
             </a>
             <button onClick={() => onDelete(doc.id)} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100">

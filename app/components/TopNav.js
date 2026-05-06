@@ -67,7 +67,7 @@ export default function TopNav() {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
             <ThemeToggle />
             <Link
               href="/inbox"
@@ -105,32 +105,34 @@ export default function TopNav() {
           </div>
         </div>
 
-        <nav aria-label="Mobile navigation" className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-          {NAV_ITEMS.map(item => {
-            const routeMatches = [item.href, ...(item.aliases || [])]
-            const isActive = routeMatches.some(route => pathname === route || pathname.startsWith(`${route}/`))
+        <div className="mt-4 max-w-full lg:hidden">
+          <nav aria-label="Mobile navigation" className="flex w-full max-w-full min-w-0 flex-wrap gap-2 pb-1">
+            {NAV_ITEMS.map(item => {
+              const routeMatches = [item.href, ...(item.aliases || [])]
+              const isActive = routeMatches.some(route => pathname === route || pathname.startsWith(`${route}/`))
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive ? 'page' : undefined}
-                className={`inline-flex min-w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                  isActive
-                    ? 'border-transparent bg-var(--brand-600) text-white'
-                    : 'border-var(--line) bg-var(--background-muted) text-var(--foreground)'
-                }`}
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: isActive ? 'white' : item.accent }}
-                  aria-hidden="true"
-                />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`inline-flex min-w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'border-transparent bg-var(--brand-600) text-white'
+                      : 'border-var(--line) bg-var(--background-muted) text-var(--foreground)'
+                  }`}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: isActive ? 'white' : item.accent }}
+                    aria-hidden="true"
+                  />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
       </div>
     </header>
   )

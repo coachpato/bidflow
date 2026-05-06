@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import { getServiceSectorWorkspaceCopy } from '@/lib/service-sectors'
 
 function joinList(values) {
@@ -24,6 +25,7 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
   const [status, setStatus] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [personToDelete, setPersonToDelete] = useState(null)
   const workspaceCopy = getServiceSectorWorkspaceCopy(serviceSector)
 
   function updateField(name, value) {
@@ -69,6 +71,7 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
       if (!response.ok) throw new Error(payload.error || 'Could not remove personnel record.')
 
       setPeople(current => current.filter(person => person.id !== personId))
+      setPersonToDelete(null)
     } catch (error) {
       setStatus(error.message || 'Could not remove personnel record.')
     } finally {
@@ -144,7 +147,7 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
               </div>
               <button
                 type="button"
-                onClick={() => handleDelete(person.id)}
+                onClick={() => setPersonToDelete(person)}
                 disabled={deletingId === person.id}
                 className="app-button-danger app-button-sm"
               >
@@ -174,6 +177,16 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(personToDelete)}
+        title="Delete personnel record?"
+        description="This removes the person from your firm profile. This cannot be undone."
+        confirmLabel="Delete person"
+        isLoading={Boolean(deletingId)}
+        onClose={() => setPersonToDelete(null)}
+        onConfirm={() => personToDelete && handleDelete(personToDelete.id)}
+      />
     </section>
   )
 }

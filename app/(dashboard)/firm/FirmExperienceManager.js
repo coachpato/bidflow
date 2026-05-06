@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import { getServiceSectorWorkspaceCopy } from '@/lib/service-sectors'
 
 const EMPTY_FORM = {
@@ -30,6 +31,7 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
   const [status, setStatus] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [experienceToDelete, setExperienceToDelete] = useState(null)
   const workspaceCopy = getServiceSectorWorkspaceCopy(serviceSector)
 
   function updateField(name, value) {
@@ -75,6 +77,7 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
       if (!response.ok) throw new Error(payload.error || 'Could not remove experience record.')
 
       setExperience(current => current.filter(item => item.id !== experienceId))
+      setExperienceToDelete(null)
     } catch (error) {
       setStatus(error.message || 'Could not remove experience record.')
     } finally {
@@ -155,7 +158,7 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
               </div>
               <button
                 type="button"
-                onClick={() => handleDelete(item.id)}
+                onClick={() => setExperienceToDelete(item)}
                 disabled={deletingId === item.id}
                 className="app-button-danger app-button-sm"
               >
@@ -182,6 +185,16 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(experienceToDelete)}
+        title="Delete experience record?"
+        description="This removes the representative experience record from your firm profile. This cannot be undone."
+        confirmLabel="Delete record"
+        isLoading={Boolean(deletingId)}
+        onClose={() => setExperienceToDelete(null)}
+        onConfirm={() => experienceToDelete && handleDelete(experienceToDelete.id)}
+      />
     </section>
   )
 }

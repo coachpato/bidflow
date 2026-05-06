@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import { COMPLIANCE_DOCUMENT_TYPES, getComplianceStatus } from '@/lib/compliance-status'
 
 const EMPTY_UPLOAD_FORM = {
@@ -54,6 +55,7 @@ export default function ComplianceVaultManager({ initialDocuments }) {
   ))
   const [savingId, setSavingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [documentToDelete, setDocumentToDelete] = useState(null)
 
   const summary = useMemo(() => {
     const expiringSoon = documents.filter(document => {
@@ -182,6 +184,7 @@ export default function ComplianceVaultManager({ initialDocuments }) {
 
       setDocuments(current => current.filter(document => document.id !== documentId))
       setEditingId(current => (current === documentId ? null : current))
+      setDocumentToDelete(null)
     } catch (error) {
       setStatus(error.message || 'Could not delete document.')
     } finally {
@@ -291,13 +294,13 @@ export default function ComplianceVaultManager({ initialDocuments }) {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneStyles(statusInfo.tone)}`}>
                       {statusInfo.label}
                     </span>
-                    <a href={document.filepath} target="_blank" rel="noreferrer" className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <a href={document.filepath} target="_blank" rel="noopener noreferrer" className="app-button-secondary">
                       Open
                     </a>
-                    <button type="button" onClick={() => setEditingId(current => current === document.id ? null : document.id)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <button type="button" onClick={() => setEditingId(current => current === document.id ? null : document.id)} className="app-button-secondary">
                       {isEditing ? 'Close' : 'Edit'}
                     </button>
-                    <button type="button" onClick={() => handleDelete(document.id)} disabled={deletingId === document.id} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <button type="button" onClick={() => setDocumentToDelete(document)} disabled={deletingId === document.id} className="app-button-danger">
                       {deletingId === document.id ? 'Removing...' : 'Remove'}
                     </button>
                   </div>
@@ -370,6 +373,16 @@ export default function ComplianceVaultManager({ initialDocuments }) {
           })}
         </div>
       </section>
+
+      <ConfirmDialog
+        isOpen={Boolean(documentToDelete)}
+        title="Delete compliance document?"
+        description="This removes the document from the compliance vault. This cannot be undone."
+        confirmLabel="Delete document"
+        isLoading={Boolean(deletingId)}
+        onClose={() => setDocumentToDelete(null)}
+        onConfirm={() => documentToDelete && handleDelete(documentToDelete.id)}
+      />
     </div>
   )
 }

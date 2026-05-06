@@ -231,15 +231,15 @@ export default async function DashboardPage() {
         {/* Key Metrics */}
         <section aria-labelledby="metrics-heading">
           <h2 id="metrics-heading" className="sr-only">Key Metrics</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {stats.map(stat => (
               <Link
                 key={stat.label}
                 href={stat.href}
-                className="app-card interactive group"
+                className="app-card interactive group flex min-w-0 flex-col"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold uppercase tracking-wider text-var(--muted)">
                       {stat.label}
                     </p>
@@ -257,9 +257,9 @@ export default async function DashboardPage() {
         </section>
 
         {/* Main Dashboard Grid */}
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           {/* Opportunities Section */}
-          <section className="app-card" aria-labelledby="opp-heading">
+          <section className="app-card min-w-0" aria-labelledby="opp-heading">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-var(--line)">
               <h2 id="opp-heading" className="text-xl font-bold text-var(--foreground)">
                 Opportunity Review Queue
@@ -285,7 +285,7 @@ export default async function DashboardPage() {
                   <Link
                     key={opportunity.id}
                     href={`/opportunities/${opportunity.id}`}
-                    className="group block p-4 rounded-xl border border-var(--line) hover:border-var(--brand-500) hover:bg-var(--background-muted) transition"
+                    className="group block min-w-0 p-4 rounded-xl border border-var(--line) hover:border-var(--brand-500) hover:bg-var(--background-muted) transition"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -312,7 +312,7 @@ export default async function DashboardPage() {
           </section>
 
           {/* Pursuits Section */}
-          <section className="app-card" aria-labelledby="pursuits-heading">
+          <section className="app-card min-w-0" aria-labelledby="pursuits-heading">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-var(--line)">
               <h2 id="pursuits-heading" className="text-xl font-bold text-var(--foreground)">
                 Pursuits Due Soon
@@ -338,7 +338,7 @@ export default async function DashboardPage() {
                   <Link
                     key={tender.id}
                     href={`/pursuits/${tender.id}`}
-                    className="group block p-4 rounded-xl border border-var(--line) hover:border-var(--brand-500) hover:bg-var(--background-muted) transition"
+                    className="group block min-w-0 p-4 rounded-xl border border-var(--line) hover:border-var(--brand-500) hover:bg-var(--background-muted) transition"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -366,9 +366,9 @@ export default async function DashboardPage() {
         </div>
 
         {/* Bottom Grid */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
           {/* Appointments Section */}
-          <section className="app-card" aria-labelledby="apt-heading">
+          <section className="app-card min-w-0" aria-labelledby="apt-heading">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-var(--line)">
               <h2 id="apt-heading" className="text-xl font-bold text-var(--foreground)">
                 Appointment Follow-ups
@@ -394,7 +394,7 @@ export default async function DashboardPage() {
                   <Link
                     key={contract.id}
                     href={`/appointments/${contract.id}`}
-                    className="group block p-4 rounded-xl border border-var(--line) hover:border-var(--success-500) hover:bg-var(--background-muted) transition"
+                    className="group block min-w-0 p-4 rounded-xl border border-var(--line) hover:border-var(--success-500) hover:bg-var(--background-muted) transition"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -428,7 +428,7 @@ export default async function DashboardPage() {
           </section>
 
           {/* Challenges Section */}
-          <section className="app-card" aria-labelledby="chal-heading">
+          <section className="app-card min-w-0" aria-labelledby="chal-heading">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-var(--line)">
               <h2 id="chal-heading" className="text-xl font-bold text-var(--foreground)">
                 Challenge Deadlines
@@ -454,7 +454,7 @@ export default async function DashboardPage() {
                   <Link
                     key={challenge.id}
                     href={`/challenges/${challenge.id}`}
-                    className="group block p-4 rounded-xl border border-var(--line) hover:border-var(--warning-500) hover:bg-var(--background-muted) transition"
+                    className="group block min-w-0 p-4 rounded-xl border border-var(--line) hover:border-var(--warning-500) hover:bg-var(--background-muted) transition"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
