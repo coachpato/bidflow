@@ -1,11 +1,13 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
+import { sendPursuitDeadlineAlert } from '@/lib/bid360-notifications'
 import { sendAppointmentFollowUpReminder, sendContractDateReminder } from '@/lib/contract-notifications'
 import { resolveAssignedRecipients } from '@/lib/tender-assignment'
 
 const REMINDER_WINDOW_DAYS = 30
 const MILESTONE_WINDOW_DAYS = 14
+const PURSUIT_REMINDER_WINDOW_HOURS = 48
 
 function startOfDay(value = new Date()) {
   const date = new Date(value)
@@ -35,6 +37,9 @@ export async function GET(request) {
   const today = startOfDay()
   const windowEnd = addDays(today, REMINDER_WINDOW_DAYS)
   const reminderRunAt = new Date()
+  const pursuitWindowEnd = new Date(
+    reminderRunAt.getTime() + PURSUIT_REMINDER_WINDOW_HOURS * 60 * 60 * 1000
+  )
 
   const contracts = await prisma.contract.findMany({
     where: {
@@ -106,39 +111,84 @@ export async function GET(request) {
     orderBy: { dueDate: 'asc' },
   })
 
+  const pursuits = await prisma.tender.findMany({
+    where: {
+      status: {
+        in: ['New', 'Under Review', 'In Progress', 'Submitted'],
+      },
+      deadline: {
+        gte: today,
+        lte: pursuitWindowEnd,
+      },
+      deadlineReminderSentAt: null,
+    },
+    select: {
+      id: true,
+      title: true,
+      entity: true,
+      deadline: true,
+      assignedUserId: true,
+      assignedTo: true,
+      organizationId: true,
+    },
+    orderBy: { deadline: 'asc' },
+  })
+
   let remindersSent = 0
+  let emailsSent = 0
   const touchedOrganizationIds = new Set()
 
   for (const contract of contracts) {
     if (contract.endDate && !contract.endDateReminderSentAt) {
-      await sendContractDateReminder({ contract, dateField: 'endDate' })
+      const result = await sendContractDateReminder({ contract, dateField: 'endDate' })
       await prisma.contract.update({
         where: { id: contract.id },
         data: { endDateReminderSentAt: reminderRunAt },
       })
       remindersSent += 1
+      emailsSent += result?.emailedRecipients || 0
       touchedOrganizationIds.add(contract.organizationId)
     }
 
     if (contract.renewalDate && !contract.renewalDateReminderSentAt) {
-      await sendContractDateReminder({ contract, dateField: 'renewalDate' })
+      const result = await sendContractDateReminder({ contract, dateField: 'renewalDate' })
       await prisma.contract.update({
         where: { id: contract.id },
         data: { renewalDateReminderSentAt: reminderRunAt },
       })
       remindersSent += 1
+      emailsSent += result?.emailedRecipients || 0
       touchedOrganizationIds.add(contract.organizationId)
     }
 
     if (contract.nextFollowUpAt && !contract.nextFollowUpReminderSentAt) {
-      await sendAppointmentFollowUpReminder({ contract })
+      const result = await sendAppointmentFollowUpReminder({ contract })
       await prisma.contract.update({
         where: { id: contract.id },
         data: { nextFollowUpReminderSentAt: reminderRunAt },
       })
       remindersSent += 1
+      emailsSent += result?.emailedRecipients || 0
       touchedOrganizationIds.add(contract.organizationId)
     }
+  }
+
+  for (const pursuit of pursuits) {
+    const result = await sendPursuitDeadlineAlert({
+      organizationId: pursuit.organizationId,
+      pursuit,
+    })
+
+    await prisma.tender.update({
+      where: { id: pursuit.id },
+      data: {
+        deadlineReminderSentAt: reminderRunAt,
+      },
+    })
+
+    remindersSent += 1
+    emailsSent += result?.sent || 0
+    touchedOrganizationIds.add(pursuit.organizationId)
   }
 
   for (const milestone of milestones) {
@@ -176,11 +226,24 @@ export async function GET(request) {
     )
   }
 
+  console.log('Deadline reminder scan complete.', {
+    contractsScanned: contracts.length,
+    milestonesScanned: milestones.length,
+    pursuitsScanned: pursuits.length,
+    remindersSent,
+    emailsSent,
+    windowDays: REMINDER_WINDOW_DAYS,
+    pursuitWindowHours: PURSUIT_REMINDER_WINDOW_HOURS,
+  })
+
   return Response.json({
     success: true,
     contractsScanned: contracts.length,
     milestonesScanned: milestones.length,
+    pursuitsScanned: pursuits.length,
     remindersSent,
+    emailsSent,
     windowDays: REMINDER_WINDOW_DAYS,
+    pursuitWindowHours: PURSUIT_REMINDER_WINDOW_HOURS,
   })
 }
