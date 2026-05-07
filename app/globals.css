@@ -357,7 +357,16 @@ button:focus-visible,
   flex-direction: column !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: break-word !important;
   white-space: normal !important;
+}
+
+.app-card-button > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 /* PRIMARY BUTTON */
