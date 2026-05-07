@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   SERVICE_SECTOR_OPTIONS,
   getServiceSectorDiscoveryConfig,
@@ -12,6 +13,7 @@ function joinList(values) {
 }
 
 export default function FirmProfileForm({ initialProfile }) {
+  const router = useRouter()
   const [form, setForm] = useState({
     displayName: initialProfile.displayName || '',
     serviceSectors: Array.isArray(initialProfile.serviceSectors) && initialProfile.serviceSectors.length > 0
@@ -85,7 +87,12 @@ export default function FirmProfileForm({ initialProfile }) {
         throw new Error(payload.error || 'Could not save the firm profile.')
       }
 
-      setStatus({ type: 'success', message: 'Firm profile updated.' })
+      const refreshSummary = payload.opportunityRefresh
+        ? ` Radar refreshed with ${payload.opportunityRefresh.created} current match${payload.opportunityRefresh.created === 1 ? '' : 'es'}.`
+        : ''
+
+      setStatus({ type: 'success', message: `Firm profile updated.${refreshSummary}` })
+      router.refresh()
     } catch (error) {
       setStatus({ type: 'error', message: error.message || 'Could not save the firm profile.' })
     } finally {
