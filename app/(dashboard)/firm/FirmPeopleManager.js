@@ -91,23 +91,23 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
       <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Full name</span>
-          <input value={form.fullName} onChange={event => updateField('fullName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.fullName} onChange={event => updateField('fullName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Full name" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Role / title</span>
-          <input value={form.title} onChange={event => updateField('title', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.title} onChange={event => updateField('title', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Director, partner, principal, or lead" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Email</span>
-          <input value={form.email} onChange={event => updateField('email', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.email} onChange={event => updateField('email', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="name@firm.co.za" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Phone</span>
-          <input value={form.phone} onChange={event => updateField('phone', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.phone} onChange={event => updateField('phone', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="+27 11 000 0000" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Years of experience</span>
-          <input value={form.yearsExperience} onChange={event => updateField('yearsExperience', event.target.value)} type="number" min="0" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.yearsExperience} onChange={event => updateField('yearsExperience', event.target.value)} type="number" min="0" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="12" />
         </label>
         <div />
         <label className="space-y-2">

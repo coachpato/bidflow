@@ -37,13 +37,13 @@ export default function FirmProfileForm({ initialProfile }) {
   const [isSaving, setIsSaving] = useState(false)
 
   const fields = useMemo(() => ([
-    ['displayName', 'Display name'],
-    ['legalName', 'Legal entity name'],
-    ['registrationNumber', 'Registration number'],
-    ['primaryContactName', 'Primary contact'],
-    ['primaryContactEmail', 'Primary contact email'],
-    ['primaryContactPhone', 'Primary contact phone'],
-    ['website', 'Website'],
+    ['displayName', 'Display name', 'Talita Consulting Services'],
+    ['legalName', 'Legal entity name', 'Talita Consulting Services (Pty) Ltd'],
+    ['registrationNumber', 'Registration number', '2019/623147/07'],
+    ['primaryContactName', 'Primary contact', 'Primary contact name'],
+    ['primaryContactEmail', 'Primary contact email', 'hello@bid360.co.za'],
+    ['primaryContactPhone', 'Primary contact phone', '+27 11 000 0000'],
+    ['website', 'Website', 'https://bid360.co.za'],
   ]), [])
 
   const primarySector = form.serviceSectors[0] || ''
@@ -138,13 +138,14 @@ export default function FirmProfileForm({ initialProfile }) {
           </p>
         </div>
 
-        {fields.map(([name, label]) => (
+        {fields.map(([name, label, placeholder]) => (
           <label key={name} className="space-y-2">
             <span className="text-sm font-semibold text-slate-700">{label}</span>
             <input
               value={form[name]}
               onChange={event => updateField(name, event.target.value)}
               className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(14,110,129,0.12)]"
+              placeholder={placeholder}
             />
           </label>
         ))}

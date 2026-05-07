@@ -4,6 +4,7 @@ import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { sendPursuitDeadlineAlert } from '@/lib/bid360-notifications'
 import { sendAppointmentFollowUpReminder, sendContractDateReminder } from '@/lib/contract-notifications'
 import { resolveAssignedRecipients } from '@/lib/tender-assignment'
+import { isWeeklyDigestDue, sendWeeklyOpportunityDigest } from '@/lib/weekly-digest'
 
 const REMINDER_WINDOW_DAYS = 30
 const MILESTONE_WINDOW_DAYS = 14
@@ -136,6 +137,7 @@ export async function GET(request) {
 
   let remindersSent = 0
   let emailsSent = 0
+  let weeklyDigest = null
   const touchedOrganizationIds = new Set()
 
   for (const contract of contracts) {
@@ -226,6 +228,10 @@ export async function GET(request) {
     )
   }
 
+  if (isWeeklyDigestDue(reminderRunAt)) {
+    weeklyDigest = await sendWeeklyOpportunityDigest({ now: reminderRunAt })
+  }
+
   console.log('Deadline reminder scan complete.', {
     contractsScanned: contracts.length,
     milestonesScanned: milestones.length,
@@ -234,6 +240,7 @@ export async function GET(request) {
     emailsSent,
     windowDays: REMINDER_WINDOW_DAYS,
     pursuitWindowHours: PURSUIT_REMINDER_WINDOW_HOURS,
+    weeklyDigestSent: Boolean(weeklyDigest),
   })
 
   return Response.json({
@@ -245,5 +252,6 @@ export async function GET(request) {
     emailsSent,
     windowDays: REMINDER_WINDOW_DAYS,
     pursuitWindowHours: PURSUIT_REMINDER_WINDOW_HOURS,
+    weeklyDigest,
   })
 }

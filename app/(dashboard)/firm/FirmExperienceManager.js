@@ -97,19 +97,19 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
       <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Matter name</span>
-          <input value={form.matterName} onChange={event => updateField('matterName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.matterName} onChange={event => updateField('matterName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Municipal advisory panel" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Client</span>
-          <input value={form.clientName} onChange={event => updateField('clientName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.clientName} onChange={event => updateField('clientName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Client or department name" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Entity / organ of state</span>
-          <input value={form.entityName} onChange={event => updateField('entityName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.entityName} onChange={event => updateField('entityName', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Municipality, SOE, or department" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Practice area</span>
-          <input value={form.practiceArea} onChange={event => updateField('practiceArea', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.practiceArea} onChange={event => updateField('practiceArea', event.target.value)} className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="Primary discipline or practice area" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Work type</span>
@@ -117,15 +117,15 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Project value (ZAR)</span>
-          <input value={form.projectValue} onChange={event => updateField('projectValue', event.target.value)} type="number" min="0" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.projectValue} onChange={event => updateField('projectValue', event.target.value)} type="number" min="0" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="1500000" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Started year</span>
-          <input value={form.startedYear} onChange={event => updateField('startedYear', event.target.value)} type="number" min="1900" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.startedYear} onChange={event => updateField('startedYear', event.target.value)} type="number" min="1900" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="2024" />
         </label>
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Completed year</span>
-          <input value={form.completedYear} onChange={event => updateField('completedYear', event.target.value)} type="number" min="1900" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+          <input value={form.completedYear} onChange={event => updateField('completedYear', event.target.value)} type="number" min="1900" className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="2026" />
         </label>
         <label className="space-y-2 md:col-span-2">
           <span className="text-sm font-semibold text-slate-700">Summary</span>

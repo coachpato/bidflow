@@ -107,6 +107,7 @@ export default function AccountForm({ user }) {
               onChange={event => setName(event.target.value)}
               className="app-input"
               maxLength={120}
+              placeholder="Your display name"
             />
           </label>
 
@@ -170,6 +171,7 @@ export default function AccountForm({ user }) {
                 onChange={event => updatePasswordField('currentPassword', event.target.value)}
                 className="app-input"
                 autoComplete="current-password"
+                placeholder="Current password"
               />
             </label>
 
@@ -181,6 +183,7 @@ export default function AccountForm({ user }) {
                 onChange={event => updatePasswordField('newPassword', event.target.value)}
                 className="app-input"
                 autoComplete="new-password"
+                placeholder="New password"
               />
             </label>
 
@@ -192,6 +195,7 @@ export default function AccountForm({ user }) {
                 onChange={event => updatePasswordField('confirmPassword', event.target.value)}
                 className="app-input"
                 autoComplete="new-password"
+                placeholder="Confirm new password"
               />
             </label>
 
