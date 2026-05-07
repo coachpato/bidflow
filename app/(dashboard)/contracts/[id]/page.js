@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 import UserSelect from '@/app/components/UserSelect'
 import StatusBadge from '@/app/components/StatusBadge'
+import { useToast } from '@/app/components/Toast'
 
 const DOCUMENT_TYPES = ['Appointment Letter', 'Work Order', 'SLA', 'Rate Card', 'Addendum', 'Other']
 const APPOINTMENT_STATUSES = ['Appointed', 'Dormant', 'Active', 'Completed', 'Closed']
@@ -50,6 +52,7 @@ function seedForm(data) {
 export default function ContractDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { addToast } = useToast()
   const [appointment, setAppointment] = useState(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
@@ -61,6 +64,10 @@ export default function ContractDetailPage() {
   const [milestoneForm, setMilestoneForm] = useState({ title: '', dueDate: '', notes: '' })
   const [addingMilestone, setAddingMilestone] = useState(false)
   const [deletingMilestoneId, setDeletingMilestoneId] = useState(null)
+  const [deleteAppointmentOpen, setDeleteAppointmentOpen] = useState(false)
+  const [deletingAppointment, setDeletingAppointment] = useState(false)
+  const [documentToDelete, setDocumentToDelete] = useState(null)
+  const [milestoneToDelete, setMilestoneToDelete] = useState(null)
 
   async function fetchAppointment() {
     const res = await fetch(`/api/contracts/${id}`)
@@ -89,20 +96,47 @@ export default function ContractDetailPage() {
   async function handleSave(event) {
     event.preventDefault()
     setSaving(true)
-    await fetch(`/api/contracts/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    setSaving(false)
-    setEditing(false)
-    fetchAppointment()
+
+    try {
+      const response = await fetch(`/api/contracts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not save appointment.')
+      }
+
+      setEditing(false)
+      await fetchAppointment()
+      addToast('Appointment saved.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not save appointment.', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this appointment? This cannot be undone.')) return
-    await fetch(`/api/contracts/${id}`, { method: 'DELETE' })
-    router.push('/appointments')
+    setDeletingAppointment(true)
+
+    try {
+      const response = await fetch(`/api/contracts/${id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not delete appointment.')
+      }
+
+      addToast('Appointment deleted.', 'success')
+      router.push('/appointments')
+    } catch (error) {
+      addToast(error.message || 'Could not delete appointment.', 'error')
+    } finally {
+      setDeletingAppointment(false)
+      setDeleteAppointmentOpen(false)
+    }
   }
 
   async function handleFileUpload(event) {
@@ -125,27 +159,40 @@ export default function ContractDetailPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setUploadError(data.error || 'Document upload failed.')
-        setUploading(false)
+        const message = data.error || 'Document upload failed.'
+        setUploadError(message)
+        addToast(message, 'error')
         return
       }
 
       await fetchAppointment()
+      addToast('Document uploaded.', 'success')
     } catch {
-      setUploadError('Document upload failed. Please try again.')
+      const message = 'Document upload failed. Please try again.'
+      setUploadError(message)
+      addToast(message, 'error')
     } finally {
       setUploading(false)
       event.target.value = ''
     }
   }
 
-  async function deleteDocument(docId) {
-    if (!confirm('Remove this document from the appointment?')) return
-    setDeletingDocumentId(docId)
+  async function deleteDocument() {
+    if (!documentToDelete) return
+    setDeletingDocumentId(documentToDelete)
 
     try {
-      await fetch(`/api/contracts/${id}/documents/${docId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/contracts/${id}/documents/${documentToDelete}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not remove document.')
+      }
+
       await fetchAppointment()
+      setDocumentToDelete(null)
+      addToast('Document removed.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not remove document.', 'error')
     } finally {
       setDeletingDocumentId(null)
     }
@@ -156,34 +203,66 @@ export default function ContractDetailPage() {
     if (!milestoneForm.title.trim()) return
 
     setAddingMilestone(true)
-    await fetch(`/api/contracts/${id}/milestones`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(milestoneForm),
-    })
-    setMilestoneForm({ title: '', dueDate: '', notes: '' })
-    setAddingMilestone(false)
-    fetchAppointment()
+    try {
+      const response = await fetch(`/api/contracts/${id}/milestones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(milestoneForm),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not add milestone.')
+      }
+
+      setMilestoneForm({ title: '', dueDate: '', notes: '' })
+      await fetchAppointment()
+      addToast('Milestone added.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not add milestone.', 'error')
+    } finally {
+      setAddingMilestone(false)
+    }
   }
 
   async function toggleMilestone(milestone) {
-    await fetch(`/api/contracts/${id}/milestones/${milestone.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        completedAt: milestone.completedAt ? null : new Date().toISOString(),
-      }),
-    })
-    fetchAppointment()
+    try {
+      const response = await fetch(`/api/contracts/${id}/milestones/${milestone.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          completedAt: milestone.completedAt ? null : new Date().toISOString(),
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not update milestone.')
+      }
+
+      await fetchAppointment()
+      addToast('Milestone updated.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not update milestone.', 'error')
+    }
   }
 
-  async function removeMilestone(milestoneId) {
-    if (!confirm('Remove this milestone?')) return
-    setDeletingMilestoneId(milestoneId)
+  async function removeMilestone() {
+    if (!milestoneToDelete) return
+    setDeletingMilestoneId(milestoneToDelete)
 
     try {
-      await fetch(`/api/contracts/${id}/milestones/${milestoneId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/contracts/${id}/milestones/${milestoneToDelete}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not remove milestone.')
+      }
+
       await fetchAppointment()
+      setMilestoneToDelete(null)
+      addToast('Milestone removed.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not remove milestone.', 'error')
     } finally {
       setDeletingMilestoneId(null)
     }
@@ -217,7 +296,7 @@ export default function ContractDetailPage() {
             <button onClick={() => setEditing(!editing)} className="app-button-secondary">
               {editing ? 'Cancel edit' : 'Edit appointment'}
             </button>
-            <button onClick={handleDelete} className="app-button-danger">
+            <button onClick={() => setDeleteAppointmentOpen(true)} className="app-button-danger">
               Delete
             </button>
           </div>
@@ -461,7 +540,7 @@ export default function ContractDetailPage() {
                           {milestone.completedAt ? 'Mark open' : 'Mark complete'}
                         </button>
                         <button
-                          onClick={() => removeMilestone(milestone.id)}
+                          onClick={() => setMilestoneToDelete(milestone.id)}
                           disabled={deletingMilestoneId === milestone.id}
                           className="app-button-danger disabled:opacity-60"
                         >
@@ -541,7 +620,7 @@ export default function ContractDetailPage() {
                           Open
                         </a>
                         <button
-                          onClick={() => deleteDocument(document.id)}
+                          onClick={() => setDocumentToDelete(document.id)}
                           disabled={deletingDocumentId === document.id}
                           className="app-button-danger disabled:opacity-60"
                         >
@@ -560,6 +639,36 @@ export default function ContractDetailPage() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteAppointmentOpen}
+        title="Delete appointment?"
+        description="This appointment and its saved context will be deleted. This cannot be undone."
+        confirmLabel="Delete"
+        isLoading={deletingAppointment}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteAppointmentOpen(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={documentToDelete !== null}
+        title="Remove document?"
+        description="This document will be removed from the appointment."
+        confirmLabel="Remove"
+        isLoading={deletingDocumentId === documentToDelete}
+        onConfirm={deleteDocument}
+        onClose={() => setDocumentToDelete(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={milestoneToDelete !== null}
+        title="Remove milestone?"
+        description="This milestone will be removed from the appointment."
+        confirmLabel="Remove"
+        isLoading={deletingMilestoneId === milestoneToDelete}
+        onConfirm={removeMilestone}
+        onClose={() => setMilestoneToDelete(null)}
+      />
     </div>
   )
 }

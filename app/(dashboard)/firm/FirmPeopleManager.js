@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import ConfirmDialog from '@/app/components/ConfirmDialog'
+import { useToast } from '@/app/components/Toast'
 import { getServiceSectorWorkspaceCopy } from '@/lib/service-sectors'
 
 function joinList(values) {
@@ -20,6 +21,7 @@ const EMPTY_FORM = {
 }
 
 export default function FirmPeopleManager({ initialPeople, serviceSector }) {
+  const { addToast } = useToast()
   const [people, setPeople] = useState(initialPeople)
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('')
@@ -52,8 +54,11 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
       setPeople(current => [payload, ...current])
       setForm(EMPTY_FORM)
       setStatus('Personnel record added.')
+      addToast('Personnel record added.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Could not save personnel record.')
+      const message = error.message || 'Could not save personnel record.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setIsSaving(false)
     }
@@ -72,8 +77,12 @@ export default function FirmPeopleManager({ initialPeople, serviceSector }) {
 
       setPeople(current => current.filter(person => person.id !== personId))
       setPersonToDelete(null)
+      setStatus('Personnel record removed.')
+      addToast('Personnel record removed.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Could not remove personnel record.')
+      const message = error.message || 'Could not remove personnel record.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setDeletingId(null)
     }

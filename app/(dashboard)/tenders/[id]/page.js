@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
+import { useToast } from '@/app/components/Toast'
 import {
   isSubmissionBackupDocumentCategory,
   SUBMISSION_BACKUP_DOCUMENT_CATEGORY,
@@ -56,6 +57,7 @@ function getAssignedLabel(tender) {
 export default function TenderDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { addToast } = useToast()
   const [tender, setTender] = useState(null)
   const [loading, setLoading] = useState(true)
   const [statusUpdating, setStatusUpdating] = useState(false)
@@ -66,6 +68,10 @@ export default function TenderDetailPage() {
   const [uploadError, setUploadError] = useState('')
   const [checklistItemToDelete, setChecklistItemToDelete] = useState(null)
   const [deletingChecklistItemId, setDeletingChecklistItemId] = useState(null)
+  const [documentToDelete, setDocumentToDelete] = useState(null)
+  const [deletingDocumentId, setDeletingDocumentId] = useState(null)
+  const [deletePursuitOpen, setDeletePursuitOpen] = useState(false)
+  const [deletingPursuit, setDeletingPursuit] = useState(false)
 
   const fetchTender = useCallback(async () => {
     const res = await fetch(`/api/tenders/${id}`)
@@ -84,22 +90,45 @@ export default function TenderDetailPage() {
 
   async function updateStatus(newStatus) {
     setStatusUpdating(true)
-    await fetch(`/api/tenders/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    })
-    await fetchTender()
-    setStatusUpdating(false)
+    try {
+      const response = await fetch(`/api/tenders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not update pursuit status.')
+      }
+
+      await fetchTender()
+      addToast('Pursuit status updated.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not update pursuit status.', 'error')
+    } finally {
+      setStatusUpdating(false)
+    }
   }
 
   async function toggleChecklistItem(itemId, done) {
-    await fetch(`/api/tenders/${id}/checklist/${itemId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done: !done }),
-    })
-    await fetchTender()
+    try {
+      const response = await fetch(`/api/tenders/${id}/checklist/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: !done }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not update checklist item.')
+      }
+
+      await fetchTender()
+      addToast('Checklist item updated.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not update checklist item.', 'error')
+    }
   }
 
   async function addChecklistItem(event) {
@@ -107,22 +136,42 @@ export default function TenderDetailPage() {
     if (!newItem.trim()) return
 
     setAddingItem(true)
-    await fetch(`/api/tenders/${id}/checklist`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: newItem }),
-    })
-    setNewItem('')
-    setAddingItem(false)
-    await fetchTender()
+    try {
+      const response = await fetch(`/api/tenders/${id}/checklist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: newItem }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not add checklist item.')
+      }
+
+      setNewItem('')
+      await fetchTender()
+      addToast('Checklist item added.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not add checklist item.', 'error')
+    } finally {
+      setAddingItem(false)
+    }
   }
 
   async function deleteChecklistItem(itemId) {
     setDeletingChecklistItemId(itemId)
     try {
-      await fetch(`/api/tenders/${id}/checklist/${itemId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/tenders/${id}/checklist/${itemId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not delete checklist item.')
+      }
+
       await fetchTender()
       setChecklistItemToDelete(null)
+      addToast('Checklist item deleted.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not delete checklist item.', 'error')
     } finally {
       setDeletingChecklistItemId(null)
     }
@@ -146,12 +195,17 @@ export default function TenderDetailPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setUploadError(data.error || 'Document upload failed.')
+        const message = data.error || 'Document upload failed.'
+        setUploadError(message)
+        addToast(message, 'error')
       } else {
         await fetchTender()
+        addToast('Document uploaded.', 'success')
       }
     } catch {
-      setUploadError('Document upload failed. Please try again.')
+      const message = 'Document upload failed. Please try again.'
+      setUploadError(message)
+      addToast(message, 'error')
     } finally {
       setUploading(false)
       setUploadCategory(null)
@@ -159,16 +213,45 @@ export default function TenderDetailPage() {
     }
   }
 
-  async function deleteDocument(docId) {
-    if (!confirm('Remove this document from the pursuit?')) return
-    await fetch(`/api/tenders/${id}/documents/${docId}`, { method: 'DELETE' })
-    await fetchTender()
+  async function deleteDocument() {
+    if (!documentToDelete) return
+    setDeletingDocumentId(documentToDelete)
+
+    try {
+      const response = await fetch(`/api/tenders/${id}/documents/${documentToDelete}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not remove document.')
+      }
+
+      await fetchTender()
+      setDocumentToDelete(null)
+      addToast('Document removed.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not remove document.', 'error')
+    } finally {
+      setDeletingDocumentId(null)
+    }
   }
 
   async function deleteTender() {
-    if (!confirm('Are you sure you want to delete this pursuit? This cannot be undone.')) return
-    await fetch(`/api/tenders/${id}`, { method: 'DELETE' })
-    router.push('/pursuits')
+    setDeletingPursuit(true)
+
+    try {
+      const response = await fetch(`/api/tenders/${id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not delete pursuit.')
+      }
+
+      addToast('Pursuit deleted.', 'success')
+      router.push('/pursuits')
+    } catch (error) {
+      addToast(error.message || 'Could not delete pursuit.', 'error')
+    } finally {
+      setDeletingPursuit(false)
+      setDeletePursuitOpen(false)
+    }
   }
 
   function jumpTo(sectionId) {
@@ -245,7 +328,7 @@ export default function TenderDetailPage() {
             <Link href={`/tenders/${id}/edit`} className="app-button-secondary">
               Edit Pursuit
             </Link>
-            <button onClick={deleteTender} className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
+            <button onClick={() => setDeletePursuitOpen(true)} className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
               Delete
             </button>
           </div>
@@ -367,7 +450,7 @@ export default function TenderDetailPage() {
                 documents={sourceDocuments}
                 emptyTitle="No source documents uploaded yet."
                 emptyBody="Add the tender pack and other working files so the pursuit stays complete."
-                onDelete={deleteDocument}
+                onDelete={setDocumentToDelete}
               />
             </section>
 
@@ -397,7 +480,7 @@ export default function TenderDetailPage() {
                 documents={submissionBackupDocuments}
                 emptyTitle="No submitted files backed up yet."
                 emptyBody="Add the final submission set here after the bid goes out."
-                onDelete={deleteDocument}
+                onDelete={setDocumentToDelete}
               />
             </section>
 
@@ -560,6 +643,26 @@ export default function TenderDetailPage() {
         isLoading={Boolean(deletingChecklistItemId)}
         onClose={() => setChecklistItemToDelete(null)}
         onConfirm={() => checklistItemToDelete && deleteChecklistItem(checklistItemToDelete.id)}
+      />
+
+      <ConfirmDialog
+        isOpen={documentToDelete !== null}
+        title="Remove document?"
+        description="This document will be removed from the pursuit."
+        confirmLabel="Remove"
+        isLoading={Boolean(deletingDocumentId)}
+        onClose={() => setDocumentToDelete(null)}
+        onConfirm={deleteDocument}
+      />
+
+      <ConfirmDialog
+        isOpen={deletePursuitOpen}
+        title="Delete pursuit?"
+        description="This pursuit and its saved context will be deleted. This cannot be undone."
+        confirmLabel="Delete pursuit"
+        isLoading={deletingPursuit}
+        onClose={() => setDeletePursuitOpen(false)}
+        onConfirm={deleteTender}
       />
     </div>
   )

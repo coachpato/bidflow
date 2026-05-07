@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
+import { useToast } from '@/app/components/Toast'
 
 const FILTERS = [
   { label: 'All', value: 'All' },
@@ -63,12 +65,14 @@ function getMatchReasons(opportunity) {
 }
 
 export default function OpportunitiesClient({ initialSearch, initialStatus }) {
+  const { addToast } = useToast()
   const [opportunities, setOpportunities] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchInput, setSearchInput] = useState(initialSearch)
   const [submittedSearch, setSubmittedSearch] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState(initialStatus)
   const [updatingId, setUpdatingId] = useState(null)
+  const [opportunityToConvert, setOpportunityToConvert] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -128,29 +132,8 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
 
   async function updateOpportunityStatus(opportunityId, status) {
     if (status === 'Pursue') {
-      const confirmed = confirm('Convert this opportunity to a pursuit? This will move it from Opportunities to your Pursuits list.')
-      if (!confirmed) return
-
-      setUpdatingId(opportunityId)
-      try {
-        const response = await fetch(`/api/opportunities/${opportunityId}/convert`, {
-          method: 'POST',
-        })
-
-        const data = await response.json()
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not convert opportunity.')
-        }
-
-        setOpportunities(current =>
-          current.filter(opportunity => opportunity.id !== opportunityId)
-        )
-      } catch (error) {
-        console.error(error)
-        alert(error.message || 'Could not convert opportunity.')
-      } finally {
-        setUpdatingId(null)
-      }
+      const opportunity = opportunities.find(item => item.id === opportunityId)
+      setOpportunityToConvert(opportunity || { id: opportunityId })
       return
     }
 
@@ -165,7 +148,7 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
 
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.error || 'Could not update status.')
+        throw new Error(data.error || 'Could not update opportunity.')
       }
 
       setOpportunities(current =>
@@ -173,15 +156,45 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
           opportunity.id === opportunityId ? data : opportunity
         )
       )
+      addToast('Opportunity updated.', 'success')
     } catch (error) {
       console.error(error)
+      addToast(error.message || 'Could not update opportunity.', 'error')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  async function convertOpportunity() {
+    if (!opportunityToConvert) return
+
+    setUpdatingId(opportunityToConvert.id)
+    try {
+      const response = await fetch(`/api/opportunities/${opportunityToConvert.id}/convert`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not convert opportunity.')
+      }
+
+      setOpportunities(current =>
+        current.filter(opportunity => opportunity.id !== opportunityToConvert.id)
+      )
+      setOpportunityToConvert(null)
+      addToast('Opportunity converted to pursuit.', 'success')
+    } catch (error) {
+      console.error(error)
+      addToast(error.message || 'Could not convert opportunity.', 'error')
     } finally {
       setUpdatingId(null)
     }
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <Header
         title="Opportunity radar"
         eyebrow="Top of funnel"
@@ -388,7 +401,18 @@ export default function OpportunitiesClient({ initialSearch, initialStatus }) {
           </>
         )}
       </div>
-    </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(opportunityToConvert)}
+        title="Convert opportunity to pursuit?"
+        description="This will move the opportunity from the review queue into your Pursuits list."
+        confirmLabel="Convert"
+        isLoading={updatingId === opportunityToConvert?.id}
+        onConfirm={convertOpportunity}
+        onClose={() => setOpportunityToConvert(null)}
+      />
+    </>
   )
 }
 

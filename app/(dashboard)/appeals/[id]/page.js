@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
+import { useToast } from '@/app/components/Toast'
 
 const CHALLENGE_TYPES = ['Administrative Appeal', 'Bid Protest', 'Review']
 const STATUSES = ['Pending', 'Submitted', 'Won', 'Lost']
@@ -41,6 +43,7 @@ function seedForm(data) {
 export default function AppealDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { addToast } = useToast()
   const [challenge, setChallenge] = useState(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
@@ -49,6 +52,9 @@ export default function AppealDetailPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [deletingDocumentId, setDeletingDocumentId] = useState(null)
+  const [deleteChallengeOpen, setDeleteChallengeOpen] = useState(false)
+  const [deletingChallenge, setDeletingChallenge] = useState(false)
+  const [documentToDelete, setDocumentToDelete] = useState(null)
 
   async function fetchChallenge() {
     const res = await fetch(`/api/appeals/${id}`)
@@ -69,26 +75,53 @@ export default function AppealDetailPage() {
   async function handleSave(event) {
     event.preventDefault()
     setSaving(true)
-    await fetch(`/api/appeals/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        evidenceChecklist: form.evidenceChecklistText
-          .split('\n')
-          .map(item => item.trim())
-          .filter(Boolean),
-      }),
-    })
-    setSaving(false)
-    setEditing(false)
-    fetchChallenge()
+
+    try {
+      const response = await fetch(`/api/appeals/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          evidenceChecklist: form.evidenceChecklistText
+            .split('\n')
+            .map(item => item.trim())
+            .filter(Boolean),
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not save challenge.')
+      }
+
+      setEditing(false)
+      await fetchChallenge()
+      addToast('Challenge saved.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not save challenge.', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this challenge? This cannot be undone.')) return
-    await fetch(`/api/appeals/${id}`, { method: 'DELETE' })
-    router.push('/challenges')
+    setDeletingChallenge(true)
+
+    try {
+      const response = await fetch(`/api/appeals/${id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not delete challenge.')
+      }
+
+      addToast('Challenge deleted.', 'success')
+      router.push('/challenges')
+    } catch (error) {
+      addToast(error.message || 'Could not delete challenge.', 'error')
+    } finally {
+      setDeletingChallenge(false)
+      setDeleteChallengeOpen(false)
+    }
   }
 
   async function handleFileUpload(event) {
@@ -110,27 +143,40 @@ export default function AppealDetailPage() {
 
       const data = await response.json()
       if (!response.ok) {
-        setUploadError(data.error || 'Document upload failed.')
-        setUploading(false)
+        const message = data.error || 'Document upload failed.'
+        setUploadError(message)
+        addToast(message, 'error')
         return
       }
 
       await fetchChallenge()
+      addToast('Document uploaded.', 'success')
     } catch {
-      setUploadError('Document upload failed. Please try again.')
+      const message = 'Document upload failed. Please try again.'
+      setUploadError(message)
+      addToast(message, 'error')
     } finally {
       setUploading(false)
       event.target.value = ''
     }
   }
 
-  async function deleteDocument(docId) {
-    if (!confirm('Remove this challenge document?')) return
-    setDeletingDocumentId(docId)
+  async function deleteDocument() {
+    if (!documentToDelete) return
+    setDeletingDocumentId(documentToDelete)
 
     try {
-      await fetch(`/api/appeals/${id}/documents/${docId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/appeals/${id}/documents/${documentToDelete}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not remove document.')
+      }
+
       await fetchChallenge()
+      setDocumentToDelete(null)
+      addToast('Document removed.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not remove document.', 'error')
     } finally {
       setDeletingDocumentId(null)
     }
@@ -164,7 +210,7 @@ export default function AppealDetailPage() {
             <button onClick={() => setEditing(!editing)} className="app-button-secondary">
               {editing ? 'Cancel edit' : 'Edit challenge'}
             </button>
-            <button onClick={handleDelete} className="app-button-danger">
+            <button onClick={() => setDeleteChallengeOpen(true)} className="app-button-danger">
               Delete
             </button>
           </div>
@@ -412,7 +458,7 @@ export default function AppealDetailPage() {
                           Open
                         </a>
                         <button
-                          onClick={() => deleteDocument(document.id)}
+                          onClick={() => setDocumentToDelete(document.id)}
                           disabled={deletingDocumentId === document.id}
                           className="app-button-danger disabled:opacity-60"
                         >
@@ -431,6 +477,26 @@ export default function AppealDetailPage() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteChallengeOpen}
+        title="Delete challenge?"
+        description="This challenge and its saved context will be deleted. This cannot be undone."
+        confirmLabel="Delete"
+        isLoading={deletingChallenge}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteChallengeOpen(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={documentToDelete !== null}
+        title="Remove document?"
+        description="This document will be removed from the challenge."
+        confirmLabel="Remove"
+        isLoading={deletingDocumentId === documentToDelete}
+        onConfirm={deleteDocument}
+        onClose={() => setDocumentToDelete(null)}
+      />
     </div>
   )
 }

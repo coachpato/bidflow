@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import ConfirmDialog from '@/app/components/ConfirmDialog'
+import { useToast } from '@/app/components/Toast'
 import { getServiceSectorWorkspaceCopy } from '@/lib/service-sectors'
 
 const EMPTY_FORM = {
@@ -26,6 +27,7 @@ function formatCurrency(value) {
 }
 
 export default function FirmExperienceManager({ initialExperience, serviceSector }) {
+  const { addToast } = useToast()
   const [experience, setExperience] = useState(initialExperience)
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('')
@@ -58,8 +60,11 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
       setExperience(current => [payload, ...current])
       setForm(EMPTY_FORM)
       setStatus('Experience record added.')
+      addToast('Experience record added.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Could not save experience record.')
+      const message = error.message || 'Could not save experience record.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setIsSaving(false)
     }
@@ -78,8 +83,12 @@ export default function FirmExperienceManager({ initialExperience, serviceSector
 
       setExperience(current => current.filter(item => item.id !== experienceId))
       setExperienceToDelete(null)
+      setStatus('Experience record removed.')
+      addToast('Experience record removed.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Could not remove experience record.')
+      const message = error.message || 'Could not remove experience record.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setDeletingId(null)
     }

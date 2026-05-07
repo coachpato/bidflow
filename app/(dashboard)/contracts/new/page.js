@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import UserSelect from '@/app/components/UserSelect'
+import { useToast } from '@/app/components/Toast'
 
 const APPOINTMENT_STATUSES = ['Appointed', 'Dormant', 'Active', 'Completed', 'Closed']
 const INSTRUCTION_STATUSES = ['No Instruction', 'Instruction Received']
@@ -12,6 +13,7 @@ const INSTRUCTION_STATUSES = ['No Instruction', 'Instruction Received']
 function NewContractForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { addToast } = useToast()
 
   const [form, setForm] = useState({
     title: searchParams.get('title') || '',
@@ -53,21 +55,31 @@ function NewContractForm() {
     setError('')
     setLoading(true)
 
-    const response = await fetch('/api/contracts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
+    try {
+      const response = await fetch('/api/contracts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
 
-    const data = await response.json()
-    setLoading(false)
+      const data = await response.json()
 
-    if (!response.ok) {
-      setError(data.error || 'Could not create appointment.')
-      return
+      if (!response.ok) {
+        const message = data.error || 'Could not create appointment.'
+        setError(message)
+        addToast(message, 'error')
+        return
+      }
+
+      addToast('Appointment created.', 'success')
+      router.push(`/appointments/${data.id}`)
+    } catch {
+      const message = 'Could not create appointment. Please try again.'
+      setError(message)
+      addToast(message, 'error')
+    } finally {
+      setLoading(false)
     }
-
-    router.push(`/appointments/${data.id}`)
   }
 
   return (

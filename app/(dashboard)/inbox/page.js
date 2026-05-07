@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
+import { useToast } from '@/app/components/Toast'
 
 const TYPE_STYLES = {
   info: {
@@ -38,6 +39,7 @@ function formatDateTime(value) {
 }
 
 export default function InboxPage() {
+  const { addToast } = useToast()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [notificationToRemove, setNotificationToRemove] = useState(null)
@@ -78,31 +80,60 @@ export default function InboxPage() {
   }, [notifications])
 
   async function markRead(id) {
-    await fetch(`/api/notifications/${id}`, { method: 'PATCH' })
-    setNotifications(current =>
-      current.map(notification => (
-        notification.id === id
-          ? { ...notification, read: true }
-          : notification
-      ))
-    )
+    try {
+      const response = await fetch(`/api/notifications/${id}`, { method: 'PATCH' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not mark notification as read.')
+      }
+
+      setNotifications(current =>
+        current.map(notification => (
+          notification.id === id
+            ? { ...notification, read: true }
+            : notification
+        ))
+      )
+      addToast('Notification marked read.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not mark notification as read.', 'error')
+    }
   }
 
   async function markAllRead() {
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'markAllRead' }),
-    })
-    setNotifications(current => current.map(notification => ({ ...notification, read: true })))
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markAllRead' }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not mark notifications as read.')
+      }
+
+      setNotifications(current => current.map(notification => ({ ...notification, read: true })))
+      addToast('All notifications marked read.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not mark notifications as read.', 'error')
+    }
   }
 
   async function removeNotification(id) {
     setRemovingId(id)
     try {
-      await fetch(`/api/notifications/${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/notifications/${id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not remove notification.')
+      }
+
       setNotifications(current => current.filter(notification => notification.id !== id))
       setNotificationToRemove(null)
+      addToast('Notification removed.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not remove notification.', 'error')
     } finally {
       setRemovingId(null)
     }

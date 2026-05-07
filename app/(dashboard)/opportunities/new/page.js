@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
+import { useToast } from '@/app/components/Toast'
 
 const STATUSES = ['New', 'Watch', 'Pursue', 'Ignore']
 
 export default function NewOpportunityPage() {
   const router = useRouter()
+  const { addToast } = useToast()
   const [form, setForm] = useState({
     title: '',
     reference: '',
@@ -39,21 +41,31 @@ export default function NewOpportunityPage() {
     setError('')
     setLoading(true)
 
-    const response = await fetch('/api/opportunities', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
+    try {
+      const response = await fetch('/api/opportunities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
 
-    const data = await response.json()
-    setLoading(false)
+      const data = await response.json()
 
-    if (!response.ok) {
-      setError(data.error || 'Could not create opportunity.')
-      return
+      if (!response.ok) {
+        const message = data.error || 'Could not create opportunity.'
+        setError(message)
+        addToast(message, 'error')
+        return
+      }
+
+      addToast('Opportunity created.', 'success')
+      router.push(`/opportunities/${data.id}`)
+    } catch {
+      const message = 'Could not create opportunity. Please try again.'
+      setError(message)
+      addToast(message, 'error')
+    } finally {
+      setLoading(false)
     }
-
-    router.push(`/opportunities/${data.id}`)
   }
 
   return (

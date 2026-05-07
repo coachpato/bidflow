@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import UserSelect from '@/app/components/UserSelect'
+import { useToast } from '@/app/components/Toast'
 
 const STATUSES = ['New', 'Under Review', 'In Progress', 'Submitted', 'Awarded', 'Lost', 'Cancelled']
 
 export default function NewTenderPage() {
   const router = useRouter()
+  const { addToast } = useToast()
   const [form, setForm] = useState({
     title: '',
     reference: '',
@@ -44,21 +46,31 @@ export default function NewTenderPage() {
     setError('')
     setLoading(true)
 
-    const res = await fetch('/api/tenders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
+    try {
+      const res = await fetch('/api/tenders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
 
-    const data = await res.json()
-    setLoading(false)
+      const data = await res.json()
 
-    if (!res.ok) {
-      setError(data.error)
-      return
+      if (!res.ok) {
+        const message = data.error || 'Could not create pursuit.'
+        setError(message)
+        addToast(message, 'error')
+        return
+      }
+
+      addToast('Pursuit created.', 'success')
+      router.push(`/tenders/${data.id}`)
+    } catch {
+      const message = 'Could not create pursuit. Please try again.'
+      setError(message)
+      addToast(message, 'error')
+    } finally {
+      setLoading(false)
     }
-
-    router.push(`/tenders/${data.id}`)
   }
 
   return (

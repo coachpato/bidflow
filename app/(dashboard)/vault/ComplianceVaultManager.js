@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import ConfirmDialog from '@/app/components/ConfirmDialog'
+import { useToast } from '@/app/components/Toast'
 import { COMPLIANCE_DOCUMENT_TYPES, getComplianceStatus } from '@/lib/compliance-status'
 
 const EMPTY_UPLOAD_FORM = {
@@ -44,6 +45,7 @@ function toEditForm(document) {
 }
 
 export default function ComplianceVaultManager({ initialDocuments }) {
+  const { addToast } = useToast()
   const [documents, setDocuments] = useState(initialDocuments)
   const [form, setForm] = useState(EMPTY_UPLOAD_FORM)
   const [file, setFile] = useState(null)
@@ -113,6 +115,7 @@ export default function ComplianceVaultManager({ initialDocuments }) {
     event.preventDefault()
     if (!file) {
       setStatus('Choose a file before uploading to the vault.')
+      addToast('Choose a file before uploading to the vault.', 'warning')
       return
     }
 
@@ -141,8 +144,11 @@ export default function ComplianceVaultManager({ initialDocuments }) {
       setFile(null)
       setForm(EMPTY_UPLOAD_FORM)
       setStatus('Document added to the vault.')
+      addToast('Document added to the vault.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Upload failed.')
+      const message = error.message || 'Upload failed.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setIsUploading(false)
     }
@@ -164,8 +170,12 @@ export default function ComplianceVaultManager({ initialDocuments }) {
 
       upsertDocument(result, { clearDefaultType: editForms[documentId].isDefault })
       setEditingId(null)
+      setStatus('Document details saved.')
+      addToast('Document details saved.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Could not update document.')
+      const message = error.message || 'Could not update document.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setSavingId(null)
     }
@@ -185,8 +195,12 @@ export default function ComplianceVaultManager({ initialDocuments }) {
       setDocuments(current => current.filter(document => document.id !== documentId))
       setEditingId(current => (current === documentId ? null : current))
       setDocumentToDelete(null)
+      setStatus('Document deleted.')
+      addToast('Document deleted.', 'success')
     } catch (error) {
-      setStatus(error.message || 'Could not delete document.')
+      const message = error.message || 'Could not delete document.'
+      setStatus(message)
+      addToast(message, 'error')
     } finally {
       setDeletingId(null)
     }

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ConfirmDialog from '@/app/components/ConfirmDialog'
 import Header from '@/app/components/Header'
 import StatusBadge from '@/app/components/StatusBadge'
+import { useToast } from '@/app/components/Toast'
 
 const EDITABLE_STATUSES = ['New', 'Watch', 'Pursue', 'Ignore']
 
@@ -657,6 +659,7 @@ function OpportunityDetailLayout({
 export default function OpportunityDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { addToast } = useToast()
   const [opportunity, setOpportunity] = useState(null)
   const [form, setForm] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -665,6 +668,8 @@ export default function OpportunityDetailPage() {
   const [uploadError, setUploadError] = useState('')
   const [converting, setConverting] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [documentToRemove, setDocumentToRemove] = useState(null)
+  const [showConvertDialog, setShowConvertDialog] = useState(false)
 
   const fetchOpportunity = useCallback(async () => {
     const response = await fetch(`/api/opportunities/${id}`)
@@ -684,29 +689,40 @@ export default function OpportunityDetailPage() {
     fetchOpportunity()
   }, [fetchOpportunity])
 
-  async function saveOpportunity() {
+  async function saveOpportunity({ silent = false } = {}) {
     if (!form) return false
 
     setActionError('')
     setSaving(true)
 
-    const response = await fetch(`/api/opportunities/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload(form)),
-    })
+    try {
+      const response = await fetch(`/api/opportunities/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload(form)),
+      })
 
-    const data = await response.json()
-    setSaving(false)
+      const data = await response.json()
 
-    if (!response.ok) {
-      setActionError(data.error || 'Could not save opportunity.')
+      if (!response.ok) {
+        const message = data.error || 'Could not save opportunity.'
+        setActionError(message)
+        addToast(message, 'error')
+        return false
+      }
+
+      setOpportunity(data)
+      setForm(toFormState(data))
+      if (!silent) addToast('Opportunity saved.', 'success')
+      return true
+    } catch {
+      const message = 'Could not save opportunity. Please try again.'
+      setActionError(message)
+      addToast(message, 'error')
       return false
+    } finally {
+      setSaving(false)
     }
-
-    setOpportunity(data)
-    setForm(toFormState(data))
-    return true
   }
 
   async function handleFileUpload(event) {
@@ -728,50 +744,76 @@ export default function OpportunityDetailPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setUploadError(data.error || 'Document upload failed.')
-        setUploading(false)
+        const message = data.error || 'Document upload failed.'
+        setUploadError(message)
+        addToast(message, 'error')
         return
       }
 
       await fetchOpportunity()
+      addToast('Document uploaded.', 'success')
     } catch {
-      setUploadError('Document upload failed. Please try again.')
+      const message = 'Document upload failed. Please try again.'
+      setUploadError(message)
+      addToast(message, 'error')
     } finally {
       setUploading(false)
       event.target.value = ''
     }
   }
 
-  async function removeDocument(docId) {
-    if (!confirm('Remove this document from the opportunity?')) return
+  function requestRemoveDocument(docId) {
+    setDocumentToRemove(docId)
+  }
 
-    await fetch(`/api/opportunities/${id}/documents/${docId}`, { method: 'DELETE' })
-    await fetchOpportunity()
+  async function removeDocument() {
+    if (!documentToRemove) return
+
+    try {
+      const response = await fetch(`/api/opportunities/${id}/documents/${documentToRemove}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not remove document.')
+      }
+
+      await fetchOpportunity()
+      setDocumentToRemove(null)
+      addToast('Document removed.', 'success')
+    } catch (error) {
+      addToast(error.message || 'Could not remove document.', 'error')
+    }
   }
 
   async function convertToTender() {
-    if (!confirm('Convert this opportunity into a pursuit? The pursuit will inherit the current details and source documents.')) {
-      return
-    }
-
-    const saved = await saveOpportunity()
+    const saved = await saveOpportunity({ silent: true })
     if (!saved) return
 
     setConverting(true)
     setActionError('')
 
-    const response = await fetch(`/api/opportunities/${id}/convert`, {
-      method: 'POST',
-    })
-    const data = await response.json()
-    setConverting(false)
+    try {
+      const response = await fetch(`/api/opportunities/${id}/convert`, {
+        method: 'POST',
+      })
+      const data = await response.json()
 
-    if (!response.ok) {
-      setActionError(data.error || 'Could not convert this opportunity.')
-      return
+      if (!response.ok) {
+        const message = data.error || 'Could not convert this opportunity.'
+        setActionError(message)
+        addToast(message, 'error')
+        return
+      }
+
+      setShowConvertDialog(false)
+      addToast('Opportunity converted to pursuit.', 'success')
+      router.push(`/pursuits/${data.tenderId}`)
+    } catch {
+      const message = 'Could not convert this opportunity. Please try again.'
+      setActionError(message)
+      addToast(message, 'error')
+    } finally {
+      setConverting(false)
     }
-
-    router.push(`/pursuits/${data.tenderId}`)
   }
 
   if (loading || !form || !opportunity) {
@@ -817,26 +859,48 @@ export default function OpportunityDetailPage() {
             }
 
   return (
-    <OpportunityDetailLayout
-      actionError={actionError}
-      converting={converting}
-      convertToTender={convertToTender}
-      daysRemaining={daysRemaining}
-      documentsCount={documentsCount}
-      form={form}
-      opportunity={opportunity}
-      removeDocument={removeDocument}
-      saveOpportunity={saveOpportunity}
-      saving={saving}
-      setForm={setForm}
-      uploading={uploading}
-      uploadError={uploadError}
-      handleFileUpload={handleFileUpload}
-      nextStep={nextStep}
-      getCountdownTone={getCountdownTone}
-      getCountdownLabel={getCountdownLabel}
-      formatMoney={formatMoney}
-    />
+    <>
+      <OpportunityDetailLayout
+        actionError={actionError}
+        converting={converting}
+        convertToTender={() => setShowConvertDialog(true)}
+        daysRemaining={daysRemaining}
+        documentsCount={documentsCount}
+        form={form}
+        opportunity={opportunity}
+        removeDocument={requestRemoveDocument}
+        saveOpportunity={saveOpportunity}
+        saving={saving}
+        setForm={setForm}
+        uploading={uploading}
+        uploadError={uploadError}
+        handleFileUpload={handleFileUpload}
+        nextStep={nextStep}
+        getCountdownTone={getCountdownTone}
+        getCountdownLabel={getCountdownLabel}
+        formatMoney={formatMoney}
+      />
+
+      <ConfirmDialog
+        isOpen={showConvertDialog}
+        title="Convert opportunity to pursuit?"
+        description="The pursuit will inherit the current details and source documents."
+        confirmLabel="Convert"
+        isLoading={converting}
+        onConfirm={convertToTender}
+        onClose={() => setShowConvertDialog(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={documentToRemove !== null}
+        title="Remove document?"
+        description="This document will be removed from the opportunity."
+        confirmLabel="Remove"
+        isLoading={false}
+        onConfirm={removeDocument}
+        onClose={() => setDocumentToRemove(null)}
+      />
+    </>
   )
 }
 
