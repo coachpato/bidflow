@@ -153,7 +153,7 @@ export default function LoginPage() {
 
       <div className="mt-8 border-t border-var(--line) pt-6 text-center text-sm text-var(--muted)">
         <p>
-          Don't have a workspace?{' '}
+          Don&apos;t have a workspace?{' '}
           <Link href="/register" className="font-semibold text-var(--brand-500) hover:text-var(--brand-600) transition">
             Create one →
           </Link>

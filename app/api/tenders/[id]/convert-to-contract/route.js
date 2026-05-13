@@ -107,6 +107,7 @@ export async function POST(request, { params }) {
           id: true,
           filename: true,
           filepath: true,
+          storagePath: true,
           documentCategory: true,
         },
       },
@@ -174,6 +175,7 @@ export async function POST(request, { params }) {
           create: tender.documents.map((doc) => ({
             filename: doc.filename,
             filepath: doc.filepath,
+            storagePath: doc.storagePath,
             documentType: 'SOURCE',
           })),
         },

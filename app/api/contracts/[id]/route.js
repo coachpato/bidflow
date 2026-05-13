@@ -16,6 +16,7 @@ import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { notifyContractAssignees } from '@/lib/contract-notifications'
 import { findAssignedUser } from '@/lib/tender-assignment'
 import { getSessionOrganizationId } from '@/lib/organization'
+import { addSignedDocumentUrlsToList } from '@/lib/supabase'
 
 function toDateOrExisting(value, existingValue) {
   if (value === undefined) return existingValue
@@ -94,7 +95,10 @@ export async function GET(request, { params }) {
 
   if (!contract) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  return Response.json(contract)
+  return Response.json({
+    ...contract,
+    documents: await addSignedDocumentUrlsToList(contract.documents),
+  })
 }
 
 // PATCH /api/contracts/:id

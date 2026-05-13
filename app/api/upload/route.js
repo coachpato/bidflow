@@ -2,10 +2,11 @@ import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
 import { expireCacheTags, tenderDetailCacheTag, tenderPackCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
-import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { createSignedDocumentUrls, ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { findTenderForOrganization } from '@/lib/tenders'
 import { refreshSubmissionPack } from '@/lib/submission-pack'
+import { getUploadValidationError, sanitizeUploadFilename } from '@/lib/file-upload'
 import {
   normalizeTenderDocumentCategory,
   SUBMISSION_BACKUP_DOCUMENT_CATEGORY,
@@ -23,12 +24,13 @@ export async function POST(request) {
     const tenderId = parseInt(formData.get('tenderId'), 10)
     const documentCategory = normalizeTenderDocumentCategory(formData.get('documentCategory'))
 
-    if (!file || Number.isNaN(tenderId)) {
+    if (Number.isNaN(tenderId)) {
       return Response.json({ error: 'File and tenderId are required' }, { status: 400 })
     }
 
-    if (typeof file.name !== 'string' || typeof file.arrayBuffer !== 'function') {
-      return Response.json({ error: 'Invalid file upload payload.' }, { status: 400 })
+    const validationError = getUploadValidationError(file)
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 })
     }
 
     const tender = await findTenderForOrganization({
@@ -41,7 +43,7 @@ export async function POST(request) {
     }
 
     // Sanitize filename
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const safeName = sanitizeUploadFilename(file.name)
     const storageFolder = documentCategory === SUBMISSION_BACKUP_DOCUMENT_CATEGORY
       ? 'submission-backups'
       : 'source-documents'
@@ -72,16 +74,14 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
-    // Get the public URL for the file
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(storagePath)
+    const { viewUrl, downloadUrl } = await createSignedDocumentUrls(storagePath)
 
     // Save record in database
     const doc = await prisma.tenderDocument.create({
       data: {
         filename: file.name,
-        filepath: publicUrl,
+        filepath: viewUrl,
+        storagePath,
         documentCategory,
         tenderId,
       },
@@ -103,7 +103,7 @@ export async function POST(request) {
       tenderPackCacheTag(organizationId, tenderId)
     )
 
-    return Response.json(doc, { status: 201 })
+    return Response.json({ ...doc, downloadUrl }, { status: 201 })
   } catch (error) {
     console.error('Upload route error:', error)
     return Response.json({

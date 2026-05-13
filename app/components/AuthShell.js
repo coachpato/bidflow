@@ -24,7 +24,7 @@ export default function AuthShell({
 
               <div className="max-w-md space-y-6">
                 <p className="app-kicker text-white/70">{supportingLabel}</p>
-                <h1 className="app-display text-4xl font-bold leading-tight">{title}</h1>
+                <h2 className="app-display text-4xl font-bold leading-tight">{title}</h2>
                 <p className="text-base leading-7 text-white/80">{supportingDescription}</p>
               </div>
             </div>
@@ -55,9 +55,9 @@ export default function AuthShell({
             <div className="space-y-6">
               <div className="space-y-2">
                 <p className="app-kicker">{description}</p>
-                <h2 className="app-display text-4xl font-bold leading-tight text-var(--foreground)">
+                <h1 className="app-display text-4xl font-bold leading-tight text-var(--foreground)">
                   {title}
-                </h2>
+                </h1>
               </div>
 
               {children}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function Modal({
@@ -16,8 +16,10 @@ export default function Modal({
   'aria-describedby': ariaDescribedBy = null,
 }) {
   const dialogRef = useRef(null)
-  const titleId = useRef(`modal-title-${Math.random().toString(36).substr(2, 9)}`).current
-  const contentId = useRef(`modal-content-${Math.random().toString(36).substr(2, 9)}`).current
+  const generatedTitleId = useId()
+  const generatedContentId = useId()
+  const titleId = `modal-title-${generatedTitleId}`
+  const contentId = `modal-content-${generatedContentId}`
 
   useEffect(() => {
     if (!dialogRef.current) return

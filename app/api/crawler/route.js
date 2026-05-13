@@ -11,7 +11,7 @@ import {
 } from '@/lib/opportunity-radar'
 import prisma from '@/lib/prisma'
 import { getServiceSectorLabel, normalizeServiceSector } from '@/lib/service-sectors'
-import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { createSignedDocumentUrls, ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 
 const SOURCE_KEY = 'etenders-gov-za'
 const SOURCE_NAME = 'eTenders.gov.za'
@@ -30,7 +30,7 @@ function toNullableDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-function isAuthorizedCron(request) {
+export function isAuthorizedCron(request) {
   const secret = process.env.CRON_SECRET
   if (!secret) return false
   return request.headers.get('authorization') === `Bearer ${secret}`
@@ -92,13 +92,12 @@ async function uploadPDFToSupabase(fileName, pdfBuffer, opportunityId) {
       throw new Error(`Supabase upload error: ${error.message}`)
     }
 
-    const { data: publicUrl } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(filePath)
+    const { viewUrl } = await createSignedDocumentUrls(filePath)
 
     return {
       fileName,
-      filePath: publicUrl.publicUrl,
+      filePath: viewUrl,
+      storagePath: filePath,
     }
   } catch (error) {
     console.error('Error uploading PDF:', error)
@@ -327,6 +326,7 @@ async function upsertOpportunityForOrganization({
         data: {
           filename: uploadResult.fileName,
           filepath: uploadResult.filePath,
+          storagePath: uploadResult.storagePath,
           opportunityId: opportunity.id,
         },
       })

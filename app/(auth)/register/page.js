@@ -21,8 +21,8 @@ const HIGHLIGHTS = [
 ]
 
 export default async function RegisterPage() {
-  const userCount = await prisma.user.count()
-  const isBootstrapMode = userCount === 0
+  const firstUser = await prisma.user.findFirst({ select: { id: true } })
+  const isBootstrapMode = !firstUser
   const publicRegistrationEnabled = isPublicRegistrationEnabled()
   const canSelfRegister = isBootstrapMode || publicRegistrationEnabled
 

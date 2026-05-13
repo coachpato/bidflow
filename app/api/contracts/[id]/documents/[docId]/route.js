@@ -1,7 +1,7 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { getStoragePathFromFilepath, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import { ensureOrganizationContext } from '@/lib/organization'
 
 export async function DELETE(request, { params }) {
@@ -38,10 +38,10 @@ export async function DELETE(request, { params }) {
 
   try {
     const supabase = getSupabaseAdmin()
-    const urlParts = document.filepath.split(`/object/public/${STORAGE_BUCKET}/`)
+    const storagePath = document.storagePath || getStoragePathFromFilepath(document.filepath)
 
-    if (urlParts.length === 2) {
-      await supabase.storage.from(STORAGE_BUCKET).remove([urlParts[1]])
+    if (storagePath) {
+      await supabase.storage.from(STORAGE_BUCKET).remove([storagePath])
     }
   } catch (error) {
     console.error('Contract document delete error:', error)

@@ -4,7 +4,8 @@ import { getSession } from '@/lib/session'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { logActivity } from '@/lib/activity'
-import { ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { addSignedDocumentUrlsToList, createSignedDocumentUrls, ensureStorageBucket, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { getUploadValidationError, sanitizeUploadFilename } from '@/lib/file-upload'
 import {
   syncComplianceExpiryNotificationsIfNeededSafely,
   syncComplianceExpiryNotificationsSafely,
@@ -78,7 +79,7 @@ export async function GET(request) {
     ],
   })
 
-  return Response.json(documents)
+  return Response.json(await addSignedDocumentUrlsToList(documents))
 }
 
 export async function POST(request) {
@@ -91,15 +92,16 @@ export async function POST(request) {
   const file = formData.get('file')
   const documentType = normalizeString(formData.get('documentType'))
 
-  if (!file || typeof file.name !== 'string' || typeof file.arrayBuffer !== 'function') {
-    return Response.json({ error: 'A file is required.' }, { status: 400 })
+  const validationError = getUploadValidationError(file)
+  if (validationError) {
+    return Response.json({ error: validationError }, { status: 400 })
   }
 
   if (!documentType) {
     return Response.json({ error: 'Document type is required.' }, { status: 400 })
   }
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const safeName = sanitizeUploadFilename(file.name)
   const storagePath = `compliance/${organizationId}/${Date.now()}_${safeName}`
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
@@ -118,9 +120,7 @@ export async function POST(request) {
     return Response.json({ error: uploadError.message || 'File upload failed.' }, { status: 500 })
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from(STORAGE_BUCKET)
-    .getPublicUrl(storagePath)
+  const { viewUrl, downloadUrl } = await createSignedDocumentUrls(storagePath)
 
   const isDefault = normalizeBoolean(formData.get('isDefault'))
 
@@ -140,7 +140,7 @@ export async function POST(request) {
       data: {
         organizationId,
         filename: file.name,
-        filepath: publicUrl,
+        filepath: viewUrl,
         storagePath,
         documentType,
         description: normalizeString(formData.get('description')),
@@ -173,5 +173,5 @@ export async function POST(request) {
     }
   })
 
-  return Response.json(document, { status: 201 })
+  return Response.json({ ...document, downloadUrl }, { status: 201 })
 }

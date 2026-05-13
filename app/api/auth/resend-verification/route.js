@@ -6,6 +6,7 @@ import {
   sendVerificationEmail,
   wasVerificationTokenIssuedRecently,
 } from '@/lib/email-verification'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request) {
   const body = await request.json().catch(() => ({}))
@@ -14,6 +15,14 @@ export async function POST(request) {
   if (!email) {
     return Response.json({ success: true })
   }
+
+  const rateLimit = enforceRateLimit(request, {
+    scope: 'auth:resend-verification',
+    identifier: email,
+    limit: 1,
+    windowMs: 60 * 1000,
+  })
+  if (rateLimit) return rateLimit
 
   const user = await prisma.user.findUnique({
     where: { email },

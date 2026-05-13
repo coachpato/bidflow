@@ -2,7 +2,7 @@ import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
 import { ensureOrganizationContext } from '@/lib/organization'
-import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { getStoragePathFromFilepath, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 
 export async function DELETE(_request, { params }) {
   const session = await getSession()
@@ -34,10 +34,10 @@ export async function DELETE(_request, { params }) {
 
   try {
     const supabase = getSupabaseAdmin()
-    const urlParts = document.filepath.split(`/object/public/${STORAGE_BUCKET}/`)
+    const storagePath = document.storagePath || getStoragePathFromFilepath(document.filepath)
 
-    if (urlParts.length === 2) {
-      await supabase.storage.from(STORAGE_BUCKET).remove([urlParts[1]])
+    if (storagePath) {
+      await supabase.storage.from(STORAGE_BUCKET).remove([storagePath])
     }
   } catch (error) {
     console.error('Appeal document delete error:', error)

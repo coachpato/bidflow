@@ -6,6 +6,7 @@ import { ensureOrganizationContext } from '@/lib/organization'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { syncComplianceExpiryNotificationsIfNeededSafely } from '@/lib/compliance-documents'
 import { getComplianceStatus } from '@/lib/compliance-status'
+import { addSignedDocumentUrlsToList } from '@/lib/supabase'
 import ComplianceVaultManager from './ComplianceVaultManager'
 
 export default async function VaultPage() {
@@ -42,6 +43,7 @@ export default async function VaultPage() {
     const days = getComplianceStatus(document).daysUntilExpiry
     return days !== null && days <= 30
   }).length
+  const signedDocuments = await addSignedDocumentUrlsToList(documents)
 
   return (
     <div className="space-y-6">
@@ -58,7 +60,7 @@ export default async function VaultPage() {
       />
 
       <div className="app-page">
-        <ComplianceVaultManager initialDocuments={documents} />
+        <ComplianceVaultManager initialDocuments={signedDocuments} />
       </div>
     </div>
   )

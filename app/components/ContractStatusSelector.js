@@ -1,12 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import {
   getContractAppointmentNextStatuses,
   getContractInstructionNextStatuses,
   canUserTransition,
   getTransitionRequiredRoleName,
 } from '@/lib/status-machine'
+
+function getRoleHints(currentStatus, userRole, nextStatuses, transitionType) {
+  const hints = {}
+
+  nextStatuses.forEach(status => {
+    const canTransition = userRole !== undefined
+      ? canUserTransition(currentStatus, status, userRole, transitionType)
+      : false
+
+    if (!canTransition) {
+      hints[status] = getTransitionRequiredRoleName(
+        currentStatus,
+        status,
+        transitionType
+      )
+    }
+  })
+
+  return hints
+}
 
 /**
  * RBAC-aware status selector for contract appointment status
@@ -20,26 +39,7 @@ export function ContractAppointmentStatusSelector({
   showHelperText = true,
 }) {
   const nextStatuses = getContractAppointmentNextStatuses(currentStatus)
-  const [roleHints, setRoleHints] = useState({})
-
-  useEffect(() => {
-    const hints = {}
-    nextStatuses.forEach(status => {
-      const canTransition = userRole !== undefined
-        ? canUserTransition(currentStatus, status, userRole, 'appointment')
-        : false
-
-      if (!canTransition) {
-        const requiredRole = getTransitionRequiredRoleName(
-          currentStatus,
-          status,
-          'appointment'
-        )
-        hints[status] = requiredRole
-      }
-    })
-    setRoleHints(hints)
-  }, [currentStatus, userRole, nextStatuses])
+  const roleHints = getRoleHints(currentStatus, userRole, nextStatuses, 'appointment')
 
   return (
     <div className="space-y-2">
@@ -87,26 +87,7 @@ export function ContractInstructionStatusSelector({
   showHelperText = true,
 }) {
   const nextStatuses = getContractInstructionNextStatuses(currentStatus)
-  const [roleHints, setRoleHints] = useState({})
-
-  useEffect(() => {
-    const hints = {}
-    nextStatuses.forEach(status => {
-      const canTransition = userRole !== undefined
-        ? canUserTransition(currentStatus, status, userRole, 'instruction')
-        : false
-
-      if (!canTransition) {
-        const requiredRole = getTransitionRequiredRoleName(
-          currentStatus,
-          status,
-          'instruction'
-        )
-        hints[status] = requiredRole
-      }
-    })
-    setRoleHints(hints)
-  }, [currentStatus, userRole, nextStatuses])
+  const roleHints = getRoleHints(currentStatus, userRole, nextStatuses, 'instruction')
 
   return (
     <div className="space-y-2">

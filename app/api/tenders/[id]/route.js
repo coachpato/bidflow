@@ -20,6 +20,7 @@ import { findAssignedUser, notifyTenderAssignees } from '@/lib/tender-assignment
 import { getSessionOrganizationId } from '@/lib/organization'
 import { findTenderForOrganization, parseRecordId } from '@/lib/tenders'
 import { getCachedTenderDetail } from '@/lib/tender-read-model'
+import { addSignedDocumentUrlsToList } from '@/lib/supabase'
 
 function parseAssignedUserId(value) {
   if (value === undefined) return undefined
@@ -80,7 +81,10 @@ export async function GET(request, { params }) {
 
   if (!tender) return Response.json({ error: 'Tender not found' }, { status: 404 })
 
-  return Response.json(tender)
+  return Response.json({
+    ...tender,
+    documents: await addSignedDocumentUrlsToList(tender.documents),
+  })
 }
 
 // PATCH /api/tenders/:id — update a tender

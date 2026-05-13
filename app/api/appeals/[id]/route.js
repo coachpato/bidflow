@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
+import { addSignedDocumentUrlsToList } from '@/lib/supabase'
 
 // GET /api/appeals/:id
 export async function GET(request, { params }) {
@@ -35,7 +36,10 @@ export async function GET(request, { params }) {
 
   if (!appeal) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  return Response.json(appeal)
+  return Response.json({
+    ...appeal,
+    documents: await addSignedDocumentUrlsToList(appeal.documents),
+  })
 }
 
 // PATCH /api/appeals/:id

@@ -15,12 +15,31 @@ const PUBLIC_PATHS = [
   '/api/auth/verify-email',
   '/api/auth/resend-verification',
   '/api/crawler',
+  '/api/pilot-leads',
 ]
+
+const CSRF_PROTECTED_METHODS = new Set(['POST', 'PATCH', 'DELETE'])
+
+function isPublicPath(pathname) {
+  return PUBLIC_PATHS.some(path => pathname.startsWith(path))
+}
+
+function hasCsrfHeader(request) {
+  return (
+    request.headers.get('x-requested-with') === 'XMLHttpRequest'
+    || request.headers.get('x-bid360-csrf') === '1'
+  )
+}
 
 export function proxy(request) {
   const { pathname } = request.nextUrl
+  const isApi = pathname.startsWith('/api/')
 
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  if (isApi && CSRF_PROTECTED_METHODS.has(request.method) && !hasCsrfHeader(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const isPublic = isPublicPath(pathname)
   if (isPublic) return NextResponse.next()
   if (pathname === '/') return NextResponse.next()
 
@@ -34,6 +53,10 @@ export function proxy(request) {
 
   const sessionCookie = request.cookies.get('bidflow_session')
   if (!sessionCookie) {
+    if (isApi) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

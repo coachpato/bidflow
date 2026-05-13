@@ -293,6 +293,7 @@ model OpportunityDocument {
   id            Int         @id @default(autoincrement())
   filename      String
   filepath      String
+  storagePath   String?
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   opportunityId Int
   uploadedAt    DateTime    @default(now())
@@ -341,6 +342,7 @@ model TenderDocument {
   id               Int      @id @default(autoincrement())
   filename         String
   filepath         String // Stores full Supabase Storage URL in production
+  storagePath      String?
   documentCategory String   @default("SOURCE")
   tender           Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   tenderId         Int
@@ -427,6 +429,7 @@ model ContractDocument {
   id           Int      @id @default(autoincrement())
   filename     String
   filepath     String
+  storagePath  String?
   documentType String   @default("Other")
   contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
   contractId   Int
@@ -502,6 +505,7 @@ model AppealDocument {
   id           Int      @id @default(autoincrement())
   filename     String
   filepath     String
+  storagePath  String?
   documentType String   @default("Evidence")
   uploadedAt   DateTime @default(now())
   appeal       Appeal   @relation(fields: [appealId], references: [id], onDelete: Cascade)

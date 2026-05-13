@@ -99,6 +99,7 @@ export async function POST(request, { params }) {
   const tenderDocuments = opportunity.documents.map(document => ({
     filename: document.filename,
     filepath: document.filepath,
+    storagePath: document.storagePath,
   }))
 
   const convertedOpportunity = await prisma.opportunity.update({

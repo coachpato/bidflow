@@ -6,6 +6,7 @@ import { isPublicRegistrationEnabled } from '@/lib/env'
 import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
 import { verifyGoogleIdToken, isGoogleAuthEnabled } from '@/lib/google-auth'
 import { normalizeServiceSector } from '@/lib/service-sectors'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null
@@ -79,6 +80,13 @@ function buildResponsePayload(user, organizationContext) {
 
 export async function POST(request) {
   try {
+    const rateLimit = enforceRateLimit(request, {
+      scope: 'auth:google',
+      limit: 10,
+      windowMs: 15 * 60 * 1000,
+    })
+    if (rateLimit) return rateLimit
+
     if (!isGoogleAuthEnabled()) {
       return Response.json({ error: 'Google authentication is not configured yet.' }, { status: 503 })
     }

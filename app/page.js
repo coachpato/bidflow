@@ -47,7 +47,7 @@ export default async function RootPage() {
                 Win more tenders. Spend less time finding them.
               </h1>
               <p className="text-lg leading-relaxed max-w-2xl text-[var(--foreground-secondary)]">
-                Stop managing tenders in spreadsheets. Bid360 is the workspace that turns public tender feeds into your firm's bid pipeline — matched to your sector, tracked through to award.
+                Stop managing tenders in spreadsheets. Bid360 is the workspace that turns public tender feeds into your firm&apos;s bid pipeline — matched to your sector, tracked through to award.
               </p>
             </div>
 
@@ -163,7 +163,7 @@ export default async function RootPage() {
                     Built with the firms using it
                   </h2>
                   <p className="text-lg text-white/90">
-                    Bid360 is in early access. The firms who join during this phase get the workspace free and a direct line to the team. Tell us what makes tender management difficult, and we'll build toward it.
+                    Bid360 is in early access. The firms who join during this phase get the workspace free and a direct line to the team. Tell us what makes tender management difficult, and we&apos;ll build toward it.
                   </p>
                 </div>
                 <Link href="/register" className="app-button-primary">

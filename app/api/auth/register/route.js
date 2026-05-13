@@ -4,9 +4,17 @@ import { isPublicRegistrationEnabled } from '@/lib/env'
 import { ensureOrganizationContextForUser } from '@/lib/organization'
 import { createVerificationExpiry, createVerificationToken, sendVerificationEmail } from '@/lib/email-verification'
 import { normalizeServiceSector } from '@/lib/service-sectors'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request) {
   try {
+    const rateLimit = enforceRateLimit(request, {
+      scope: 'auth:register',
+      limit: 3,
+      windowMs: 60 * 60 * 1000,
+    })
+    if (rateLimit) return rateLimit
+
     const {
       name,
       email,

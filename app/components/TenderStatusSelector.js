@@ -1,12 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import {
   getTenderNextStatuses,
   canUserTransition,
   getTransitionRequiredRoleName,
 } from '@/lib/status-machine'
-import { getUserRoleFromSession } from '@/lib/roles'
+
+function getRoleHints(currentStatus, userRole, nextStatuses) {
+  const hints = {}
+
+  nextStatuses.forEach(status => {
+    const canTransition = userRole !== undefined
+      ? canUserTransition(currentStatus, status, userRole, 'tender')
+      : false
+
+    if (!canTransition) {
+      hints[status] = getTransitionRequiredRoleName(currentStatus, status, 'tender')
+    }
+  })
+
+  return hints
+}
 
 /**
  * RBAC-aware status selector for tenders
@@ -22,23 +36,7 @@ export default function TenderStatusSelector({
   showHelperText = true,
 }) {
   const nextStatuses = getTenderNextStatuses(currentStatus)
-  const [roleHints, setRoleHints] = useState({})
-
-  // Build role requirement hints for each possible transition
-  useEffect(() => {
-    const hints = {}
-    nextStatuses.forEach(status => {
-      const canTransition = userRole !== undefined
-        ? canUserTransition(currentStatus, status, userRole, 'tender')
-        : false
-
-      if (!canTransition) {
-        const requiredRole = getTransitionRequiredRoleName(currentStatus, status, 'tender')
-        hints[status] = requiredRole
-      }
-    })
-    setRoleHints(hints)
-  }, [currentStatus, userRole, nextStatuses])
+  const roleHints = getRoleHints(currentStatus, userRole, nextStatuses)
 
   return (
     <div className="space-y-2">

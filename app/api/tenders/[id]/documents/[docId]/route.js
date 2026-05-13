@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
-import { getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
+import { getStoragePathFromFilepath, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import { expireCacheTags, tenderDetailCacheTag, tenderPackCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { parseRecordId } from '@/lib/tenders'
@@ -32,10 +32,9 @@ export async function DELETE(request, { params }) {
   // The filepath is the full public URL — extract just the storage path
   try {
     const supabase = getSupabaseAdmin()
-    // Extract the path after /object/public/tender-docs/
-    const urlParts = doc.filepath.split(`/object/public/${STORAGE_BUCKET}/`)
-    if (urlParts.length === 2) {
-      await supabase.storage.from(STORAGE_BUCKET).remove([urlParts[1]])
+    const storagePath = doc.storagePath || getStoragePathFromFilepath(doc.filepath)
+    if (storagePath) {
+      await supabase.storage.from(STORAGE_BUCKET).remove([storagePath])
     }
   } catch (err) {
     console.error('Supabase delete error:', err)

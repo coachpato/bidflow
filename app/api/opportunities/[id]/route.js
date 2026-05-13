@@ -8,6 +8,7 @@ import {
 import { getSessionOrganizationId } from '@/lib/organization'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { addSignedDocumentUrlsToList } from '@/lib/supabase'
 
 async function getOrganizationServiceSector(organizationId) {
   const organization = await prisma.organization.findUnique({
@@ -68,11 +69,12 @@ function getOpportunityInclude(organizationId) {
   }
 }
 
-function serializeOpportunity(opportunity) {
+async function serializeOpportunity(opportunity) {
   const [match] = opportunity.matches || []
 
   return {
     ...opportunity,
+    documents: await addSignedDocumentUrlsToList(opportunity.documents),
     match: match || null,
     matches: undefined,
   }
@@ -97,7 +99,7 @@ export async function GET(request, { params }) {
     return Response.json({ error: 'Opportunity not found' }, { status: 404 })
   }
 
-  return Response.json(serializeOpportunity(opportunity))
+  return Response.json(await serializeOpportunity(opportunity))
 }
 
 export async function PATCH(request, { params }) {
@@ -235,7 +237,7 @@ export async function PATCH(request, { params }) {
   })
   await expireCacheTags(dashboardCacheTag(organizationId))
 
-  return Response.json(serializeOpportunity(updated))
+  return Response.json(await serializeOpportunity(updated))
 }
 
 export async function DELETE(request, { params }) {

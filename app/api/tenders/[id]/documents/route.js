@@ -1,7 +1,6 @@
 import { getSession } from '@/lib/session'
 import prisma from '@/lib/prisma'
-import { unlink } from 'fs/promises'
-import path from 'path'
+import { addSignedDocumentUrlsToList, getStoragePathFromFilepath, getSupabaseAdmin, STORAGE_BUCKET } from '@/lib/supabase'
 import { expireCacheTags, tenderDetailCacheTag, tenderPackCacheTag, tendersListCacheTag } from '@/lib/cache-tags'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { parseRecordId } from '@/lib/tenders'
@@ -26,7 +25,7 @@ export async function GET(request, { params }) {
     orderBy: { uploadedAt: 'desc' },
   })
 
-  return Response.json(docs)
+  return Response.json(await addSignedDocumentUrlsToList(docs))
 }
 
 // DELETE /api/tenders/:id/documents/:docId  handled via query param
@@ -56,10 +55,14 @@ export async function DELETE(request, { params }) {
   })
   if (!doc) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  // Delete the physical file
+  // Delete the stored object when the record points at Supabase storage.
   try {
-    await unlink(path.join(process.cwd(), 'public', doc.filepath))
-  } catch {
+    const storagePath = doc.storagePath || getStoragePathFromFilepath(doc.filepath)
+    if (storagePath) {
+      await getSupabaseAdmin().storage.from(STORAGE_BUCKET).remove([storagePath])
+    }
+  } catch (error) {
+    console.error('Tender document delete error:', error)
     // File might already be gone — continue anyway
   }
 

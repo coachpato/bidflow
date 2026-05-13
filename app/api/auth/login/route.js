@@ -2,9 +2,17 @@ import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { applyOrganizationToSession, ensureOrganizationContextForUser } from '@/lib/organization'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request) {
   try {
+    const rateLimit = enforceRateLimit(request, {
+      scope: 'auth:login',
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+    })
+    if (rateLimit) return rateLimit
+
     const { email, password } = await request.json()
     const normalizedEmail = email?.trim().toLowerCase()
     const trimmedPassword = password?.trim()

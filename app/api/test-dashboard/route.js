@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { getSession } from '@/lib/session'
 
 function addDays(date, days) {
   const d = new Date(date)
@@ -12,6 +13,10 @@ export async function GET(request) {
   }
 
   try {
+    const session = await getSession()
+    if (!session.userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 })
+
     const now = new Date()
     const results = {}
 
