@@ -10,6 +10,16 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum RunStatus {
+  pending
+  running
+  completed
+  completed_with_warnings
+  partial_timeout
+  failed
+  stale
+}
+
 model User {
   id                         Int                    @id @default(autoincrement())
   name                       String
@@ -234,15 +244,16 @@ model Opportunity {
 }
 
 model Source {
-  id            Int           @id @default(autoincrement())
-  key           String        @unique
+  id            Int                @id @default(autoincrement())
+  key           String             @unique
   name          String
-  type          String        @default("portal")
+  type          String             @default("portal")
   baseUrl       String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   opportunities Opportunity[]
   runs          SourceRun[]
+  fingerprint   SourceFingerprint?
 
   @@map("source")
 }
@@ -250,6 +261,7 @@ model Source {
 model SourceRun {
   id                     Int           @id @default(autoincrement())
   status                 String        @default("running")
+  runStatus              RunStatus     @default(pending)
   startedAt              DateTime      @default(now())
   completedAt            DateTime?
   totalFound             Int           @default(0)
@@ -261,12 +273,64 @@ model SourceRun {
   completionMode         String?
   errorMessage           String?
   summary                Json?
+  heartbeatAt            DateTime?
+  leaseExpiresAt         DateTime?
+  diagnostics            Json?
+  cursor                 Json?
+  metrics                Json?
+  notificationSentAt     DateTime?
+  notificationError      String?
   source                 Source        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   sourceId               Int
   opportunities          Opportunity[]
+  deadLetters            DeadLetter[]
 
   @@index([sourceId, startedAt])
+  @@index([sourceId, runStatus, startedAt])
+  @@index([runStatus, leaseExpiresAt])
   @@map("sourceRun")
+}
+
+model DeadLetter {
+  id           Int       @id @default(autoincrement())
+  tenderRef    String
+  sourceRunId  Int
+  failureType  String
+  failureCount Int       @default(1)
+  lastError    String
+  rawData      Json
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sourceRun    SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
+
+  @@index([tenderRef])
+  @@index([sourceRunId])
+  @@index([resolvedAt])
+  @@map("deadLetter")
+}
+
+model SourceFingerprint {
+  id          Int      @id @default(autoincrement())
+  sourceId    Int
+  fingerprint Json
+  capturedAt  DateTime @default(now())
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId])
+  @@map("sourceFingerprint")
+}
+
+model IdempotencyRecord {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  result    Json?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("idempotencyRecord")
 }
 
 model OpportunityMatch {
