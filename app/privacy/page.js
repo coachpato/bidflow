@@ -223,7 +223,7 @@ function LegalFooter() {
       <div className="app-page">
         <div className="flex flex-col gap-8 border-b border-[var(--line)] pb-8 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-3">
-            <h4 className="font-bold">Bid360</h4>
+            <AppLogo />
             <p className="max-w-md text-sm text-[var(--foreground-secondary)]">
               Tender and contract management for South African professional services firms.
             </p>

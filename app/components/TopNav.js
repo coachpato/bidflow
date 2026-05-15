@@ -38,7 +38,7 @@ export default function TopNav() {
     <header className="sticky top-0 z-40 border-b border-var(--line) bg-var(--surface) backdrop-blur-md" role="banner">
       <div className="app-page py-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <AppLogo tone="dark" caption="" />
+          <AppLogo href="/dashboard" tone="dark" caption="" />
 
           <nav aria-label="Main navigation" className="hidden items-center gap-2 lg:flex">
             {NAV_ITEMS.map(item => {

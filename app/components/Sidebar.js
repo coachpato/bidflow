@@ -74,7 +74,7 @@ export default function Sidebar() {
     <aside className="app-scroll-shadow hidden h-screen w-[19rem] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/10 bg-[linear-gradient(180deg,#091522_0%,#0d1c2d_58%,#132336_100%)] lg:flex">
       <div>
         <div className="border-b border-white/8 px-6 py-7">
-          <AppLogo caption="Tender discovery, pursuit tracking, and award follow-through" />
+          <AppLogo href="/dashboard" caption="Tender discovery, pursuit tracking, and award follow-through" />
         </div>
 
         <nav className="space-y-2 px-4 py-6">
