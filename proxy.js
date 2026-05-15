@@ -24,6 +24,10 @@ function isPublicPath(pathname) {
   return PUBLIC_PATHS.some(path => pathname.startsWith(path))
 }
 
+function isStaticAssetPath(pathname) {
+  return /\.(png|jpg|jpeg|svg|ico|webp|avif|css|js)$/i.test(pathname)
+}
+
 function hasCsrfHeader(request) {
   return (
     request.headers.get('x-requested-with') === 'XMLHttpRequest'
@@ -34,6 +38,10 @@ function hasCsrfHeader(request) {
 export function proxy(request) {
   const { pathname } = request.nextUrl
   const isApi = pathname.startsWith('/api/')
+
+  if (isStaticAssetPath(pathname)) {
+    return NextResponse.next()
+  }
 
   if (isApi && CSRF_PROTECTED_METHODS.has(request.method) && !hasCsrfHeader(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
