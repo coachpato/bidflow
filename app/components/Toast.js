@@ -81,10 +81,10 @@ function ToastContainer({ toasts, onRemove }) {
 
 function Toast({ id, message, type, onRemove }) {
   const bgColor = {
-    success: 'bg-var(--success-500)',
-    error: 'bg-var(--danger-500)',
-    warning: 'bg-var(--warning-500)',
-    info: 'bg-var(--info-500)',
+    success: 'bg-[var(--success-500)]',
+    error: 'bg-[var(--danger-500)]',
+    warning: 'bg-[var(--warning-500)]',
+    info: 'bg-[var(--info-500)]',
   }[type]
 
   const Icon = {

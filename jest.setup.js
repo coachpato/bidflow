@@ -2,6 +2,7 @@
  * Jest setup file
  * Runs before all tests
  */
+require('@testing-library/jest-dom')
 
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test'
