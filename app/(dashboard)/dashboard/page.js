@@ -28,6 +28,12 @@ export default async function DashboardPage() {
   pursuitCutoff.setDate(pursuitCutoff.getDate() + 14)
   const reminderCutoff = new Date(now)
   reminderCutoff.setDate(reminderCutoff.getDate() + 30)
+  const activeOpportunityDeadlineFilter = {
+    OR: [
+      { deadline: null },
+      { deadline: { gte: now } },
+    ],
+  }
 
   const [
     opportunitiesCount,
@@ -45,6 +51,7 @@ export default async function DashboardPage() {
       where: {
         organizationId,
         status: { in: ['New', 'Watch', 'Pursue'] },
+        ...activeOpportunityDeadlineFilter,
       },
     }),
     prisma.tender.count({
@@ -81,6 +88,7 @@ export default async function DashboardPage() {
       where: {
         organizationId,
         status: { in: ['New', 'Watch', 'Pursue'] },
+        ...activeOpportunityDeadlineFilter,
       },
       orderBy: [
         { deadline: { sort: 'asc', nulls: 'last' } },

@@ -86,9 +86,19 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const search = searchParams.get('search')
+  const now = new Date()
+  const filters = [
+    {
+      OR: [
+        { deadline: null },
+        { deadline: { gte: now } },
+      ],
+    },
+  ]
 
   const where = {
     organizationId,
+    AND: filters,
   }
 
   if (status && status !== 'All') {
@@ -96,14 +106,16 @@ export async function GET(request) {
   }
 
   if (search) {
-    where.OR = [
-      { title: { contains: search } },
-      { reference: { contains: search } },
-      { entity: { contains: search } },
-      { practiceArea: { contains: search } },
-      { sourceName: { contains: search } },
-      { category: { contains: search } },
-    ]
+    filters.push({
+      OR: [
+        { title: { contains: search } },
+        { reference: { contains: search } },
+        { entity: { contains: search } },
+        { practiceArea: { contains: search } },
+        { sourceName: { contains: search } },
+        { category: { contains: search } },
+      ],
+    })
   }
 
   const opportunities = await prisma.opportunity.findMany({

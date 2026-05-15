@@ -19,6 +19,20 @@ export function isAuthorizedCron(request) {
   return request.headers.get('authorization') === `Bearer ${secret}`
 }
 
+export async function processTenderWithCurrentDeadline(input) {
+  const now = new Date()
+  const validOpportunities = [input.tender].filter(opp =>
+    !opp.deadline || new Date(opp.deadline) >= now
+  )
+
+  if (validOpportunities.length === 0) return
+
+  return processTenderForOrganizations({
+    ...input,
+    tender: validOpportunities[0],
+  })
+}
+
 export async function GET(request) {
   if (!isAuthorizedCron(request)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -27,7 +41,7 @@ export async function GET(request) {
   const result = await runCrawlerOrchestration({
     sourceConfig: SOURCE_CONFIG,
     deadlineMs: DEADLINE_MS,
-    processTender: processTenderForOrganizations,
+    processTender: processTenderWithCurrentDeadline,
     deliverDigests: deliverDigestNotifications,
   })
 
