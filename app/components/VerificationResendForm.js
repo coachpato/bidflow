@@ -18,9 +18,10 @@ export default function VerificationResendForm({ initialEmail = '', compact = fa
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
+      const payload = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error('Could not send verification email.')
+        throw new Error(payload.error || 'Could not send verification email.')
       }
 
       setStatus({ type: 'success', message: 'Verification email sent.' })

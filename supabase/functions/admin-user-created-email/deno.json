@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "nodemailer": "npm:nodemailer@6.9.16"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom"]
+  }
+}

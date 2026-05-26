@@ -115,6 +115,11 @@ export async function POST(request) {
       })
     } catch (error) {
       console.error('Verification email failed:', error)
+      return Response.json({
+        error: 'Your account was created, but the verification email could not be sent. Please try resend from the check-email page or contact support.',
+        code: 'EMAIL_DELIVERY_FAILED',
+        email: user.email,
+      }, { status: 502 })
     }
 
     return Response.json({

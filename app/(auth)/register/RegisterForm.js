@@ -139,6 +139,11 @@ export default function RegisterForm({ isBootstrapMode = false }) {
     setLoading(false)
 
     if (!response.ok) {
+      if (data.code === 'EMAIL_DELIVERY_FAILED' && data.email) {
+        router.push(`/check-email?email=${encodeURIComponent(data.email)}&delivery=failed`)
+        return
+      }
+
       setError(data.error)
       return
     }

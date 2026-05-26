@@ -4,7 +4,6 @@ import {
   createVerificationToken,
   normalizeEmail,
   sendVerificationEmail,
-  wasVerificationTokenIssuedRecently,
 } from '@/lib/email-verification'
 import { enforceRateLimit } from '@/lib/rate-limit'
 
@@ -39,10 +38,6 @@ export async function POST(request) {
     return Response.json({ success: true })
   }
 
-  if (wasVerificationTokenIssuedRecently(user.verificationTokenExpiresAt)) {
-    return Response.json({ success: true })
-  }
-
   const verificationToken = createVerificationToken()
   const verificationTokenExpiresAt = createVerificationExpiry()
 
@@ -62,6 +57,10 @@ export async function POST(request) {
     })
   } catch (error) {
     console.error('Verification email resend failed:', error)
+    return Response.json({
+      error: 'Could not send the verification email. Please try again later or contact support.',
+      code: 'EMAIL_DELIVERY_FAILED',
+    }, { status: 502 })
   }
 
   return Response.json({ success: true })
