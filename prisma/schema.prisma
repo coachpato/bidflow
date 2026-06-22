@@ -291,6 +291,25 @@ model SourceRun {
   @@map("sourceRun")
 }
 
+model CrawlRun {
+  id                 Int       @id @default(autoincrement())
+  runId              String    @unique @map("run_id")
+  sourceRunId        Int?      @map("source_run_id")
+  startedAt          DateTime  @default(now()) @map("started_at")
+  finishedAt         DateTime? @map("finished_at")
+  status             String    @default("running")
+  opportunitiesFound Int       @default(0) @map("opportunities_found")
+  emailsSent         Int       @default(0) @map("emails_sent")
+  errorMessage       String?   @map("error_message")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([startedAt])
+  @@index([status, startedAt])
+  @@index([sourceRunId])
+  @@map("crawl_runs")
+}
+
 model DeadLetter {
   id           Int       @id @default(autoincrement())
   tenderRef    String

@@ -1,4 +1,5 @@
 import { Inter, Playfair_Display, Inconsolata } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import ApiFetchGuard from '@/app/components/ApiFetchGuard'
 import { ThemeProvider } from '@/app/components/ThemeProvider'
@@ -50,6 +51,7 @@ export default function RootLayout({ children }) {
             </ToastProvider>
           </ThemeProvider>
         </ApiFetchGuard>
+        <Analytics />
       </body>
     </html>
   )
