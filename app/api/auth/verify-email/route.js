@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma'
-import { matchExistingOpportunitiesForOrganization } from '@/lib/existing-opportunity-matcher'
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -48,20 +47,12 @@ export async function GET(request) {
     },
   })
 
-  const organizationId = verifiedUser.memberships[0]?.organizationId
-  let opportunityBackfill = null
-
-  if (organizationId) {
-    try {
-      opportunityBackfill = await matchExistingOpportunitiesForOrganization(organizationId)
-    } catch (error) {
-      console.error('Existing opportunity matching after email verification failed:', error)
-    }
-  }
-
   return Response.json({
     success: true,
     email: verifiedUser.email,
-    opportunityBackfill,
+    opportunityBackfill: {
+      disabled: true,
+      reason: 'organization matching disabled for sector subscriptions',
+    },
   })
 }

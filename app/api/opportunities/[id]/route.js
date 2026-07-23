@@ -2,7 +2,6 @@ import { logActivity } from '@/lib/activity'
 import { dashboardCacheTag, expireCacheTags } from '@/lib/cache-tags'
 import {
   buildManualMatchData,
-  buildOpportunityDedupeKey,
   normalizeOpportunityStatus,
 } from '@/lib/opportunity-radar'
 import { getSessionOrganizationId } from '@/lib/organization'
@@ -53,6 +52,36 @@ function toNullableDate(value, existingValue) {
 
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function normalizeKeyText(value) {
+  return value
+    ?.toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'na'
+}
+
+function makeOpportunityKey({
+  organizationId,
+  sourceKey,
+  externalId,
+  title,
+  entity,
+  deadline,
+}) {
+  const deadlineKey = deadline
+    ? new Date(deadline).toISOString().slice(0, 10)
+    : 'no-deadline'
+
+  return [
+    organizationId,
+    sourceKey || 'manual',
+    externalId || title || 'untitled',
+    entity || 'unknown-entity',
+    deadlineKey,
+  ].map(normalizeKeyText).join(':')
 }
 
 function getOpportunityInclude(organizationId) {
@@ -145,7 +174,7 @@ export async function PATCH(request, { params }) {
     serviceSector,
   })
 
-  const nextDedupeKey = buildOpportunityDedupeKey({
+  const nextDedupeKey = makeOpportunityKey({
     organizationId,
     sourceKey: nextSourceName,
     externalId: nextReference,

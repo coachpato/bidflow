@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = [
-  '/login',
-  '/register',
-  '/check-email',
-  '/verify-email',
   '/privacy',
   '/terms',
+  '/manage',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',
@@ -16,6 +13,9 @@ const PUBLIC_PATHS = [
   '/api/auth/resend-verification',
   '/api/crawler',
   '/api/pilot-leads',
+  '/api/subscribe',
+  '/api/unsubscribe',
+  '/api/subscriptions',
 ]
 
 const CSRF_PROTECTED_METHODS = new Set(['POST', 'PATCH', 'DELETE'])
@@ -65,7 +65,7 @@ export function proxy(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return NextResponse.next()

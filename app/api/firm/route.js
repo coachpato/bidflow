@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { dashboardCacheTag, expireCacheTags, organizationCacheTag } from '@/lib/cache-tags'
-import { matchExistingOpportunitiesForOrganization } from '@/lib/existing-opportunity-matcher'
 import { getAppUrl, sendEmail } from '@/lib/email'
 import { getSessionOrganizationId } from '@/lib/organization'
 import { normalizeServiceSector } from '@/lib/service-sectors'
@@ -107,7 +106,7 @@ async function sendSettingsChangedEmail({ user, organizationName, changes }) {
           <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">Hello ${escapeHtml(user.name || user.email)},</p>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">The settings for ${escapeHtml(organizationName)} were updated in Bid360.</p>
           <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;line-height:1.7;color:#334155;">${rows}</ul>
-          ${appUrl ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(`${appUrl}/settings`)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#18314a;color:#ffffff;text-decoration:none;font-weight:700;">Open settings</a></p>` : ''}
+          ${appUrl ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(`${appUrl}/manage`)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#18314a;color:#ffffff;text-decoration:none;font-weight:700;">Manage subscription</a></p>` : ''}
           <p style="margin:24px 0 0;font-size:13px;line-height:1.7;color:#64748b;">If you did not make this change, reply to this email so we can help secure the workspace.</p>
         </div>
       </div>
@@ -123,7 +122,7 @@ async function sendSettingsChangedEmail({ user, organizationName, changes }) {
     '',
     ...changes.map(change => `- ${change.label}: ${change.before} to ${change.after}`),
     '',
-    appUrl ? `Open settings: ${appUrl}/settings` : null,
+    appUrl ? `Manage subscription: ${appUrl}/manage` : null,
     'If you did not make this change, reply to this email so we can help secure the workspace.',
   ].filter(Boolean).join('\n')
 
@@ -252,14 +251,6 @@ export async function PUT(request) {
     return { organization, firmProfile }
   })
 
-  let opportunityRefresh = null
-
-  if (radarSettingsChanged) {
-    opportunityRefresh = await matchExistingOpportunitiesForOrganization(organizationId, {
-      replaceExistingSourceMatches: true,
-    })
-  }
-
   await expireCacheTags(
     dashboardCacheTag(organizationId),
     organizationCacheTag(organizationId)
@@ -287,6 +278,8 @@ export async function PUT(request) {
 
   return Response.json({
     ...updated,
-    opportunityRefresh,
+    opportunityRefresh: radarSettingsChanged
+      ? { disabled: true, reason: 'organization matching disabled for sector subscriptions' }
+      : null,
   })
 }

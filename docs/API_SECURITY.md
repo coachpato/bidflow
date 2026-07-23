@@ -20,4 +20,4 @@ Unauthenticated API requests return JSON:
 { "error": "Unauthorized" }
 ```
 
-Page requests without a valid session continue to redirect to `/login`.
+Page requests without a valid session redirect to `/`, the public subscription landing page.

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AppLogo from '@/app/components/AppLogo'
 
 export const metadata = {
-  title: 'Privacy Policy — Bid360',
+  title: 'Privacy Policy - Bid360',
   description: 'Privacy Policy for Bid360 and Talita Consulting Services (Pty) Ltd.',
 }
 
@@ -18,33 +18,30 @@ const sections = [
   },
   {
     title: '2. What information we collect',
-    body: ['We collect the following categories of personal information:', 'Information you provide when you register:'],
+    body: ['We collect the following categories of personal information:', 'Information you provide when you subscribe:'],
     list: [
-      'Your name',
       'Your email address',
-      'A password (stored in encrypted form — we never see or store your plain password)',
-      "Your firm's name and the sector(s) it operates in",
+      'Your entity or business name',
+      'The sector you subscribe to',
+      'Optional tender keywords and location preferences',
     ],
     afterList: ['Information about your use of the service:'],
     secondList: [
-      'Tenders you save, pursue, or mark as awarded',
-      'Documents you upload to your workspace',
-      'Notes and status changes you record against opportunities',
-      'Logins, page views, and basic usage data needed to operate the service',
+      'Subscription updates you make',
+      'Digest delivery, unsubscribe, and basic usage data needed to operate the service',
     ],
     footer: [
       'Information from third-party sign-in:',
-      'If you sign in using Google, we receive your name, email address, and a unique Google account identifier. We do not receive your Google password.',
+      'Bid360 does not use password or Google sign-in accounts for the subscription MVP.',
     ],
   },
   {
     title: '3. How we use your information',
     body: ['We use your personal information to:'],
     list: [
-      'Provide the Bid360 service to you and your firm',
-      "Match public tender opportunities to your firm's sector and profile",
-      'Send you tender digest emails and account-related notifications',
-      'Verify your email address and authenticate you when you sign in',
+      'Provide the Bid360 subscription service to you and your entity',
+      'Match public tender opportunities to your selected sector and preferences',
+      'Send you tender digest emails and subscription-related notifications',
       'Maintain the security of the service and prevent abuse',
       'Respond to your enquiries and support requests',
       'Comply with our legal obligations',
@@ -55,12 +52,12 @@ const sections = [
     title: '4. The lawful basis for processing',
     body: ['Under POPIA, we process your personal information on the following bases:'],
     list: [
-      'Your consent, given when you register and use the service',
+      'Your consent, given when you subscribe and use the service',
       'Performance of our agreement with you (the Terms of Use)',
       'Our legitimate interests in operating, securing, and improving the service',
       'Compliance with the law',
     ],
-    footer: ['You may withdraw your consent at any time by closing your account, although this may mean we can no longer provide the service to you.'],
+    footer: ['You may withdraw your consent at any time by unsubscribing or contacting us, although this may mean we can no longer provide the service to you.'],
   },
   {
     title: '5. Who we share your information with',
@@ -68,7 +65,7 @@ const sections = [
     list: [
       'Cloud hosting and database providers that store your data securely',
       'Email service providers that deliver our verification and digest emails',
-      'Authentication providers (such as Google) when you choose to use them',
+      'Operational providers we use to secure and monitor the service',
     ],
     footer: [
       'We require these providers to handle your information responsibly and only on our instructions. We do not share your personal information with marketers, data brokers, or other third parties for their own purposes.',
@@ -81,14 +78,14 @@ const sections = [
   },
   {
     title: '7. How long we keep your information',
-    body: ['We keep your personal information for as long as your account is active. If you close your account, we will delete or anonymise your personal information within a reasonable period, except where we are required by law to retain it for longer.'],
+    body: ['We keep your personal information for as long as your subscription is active. If you unsubscribe or ask us to delete your details, we will delete or anonymise your personal information within a reasonable period, except where we are required by law to retain it for longer.'],
   },
   {
     title: '8. How we protect your information',
     body: ['We use industry-standard technical and organisational measures to protect your information, including:'],
     list: [
       'Encrypted connections (HTTPS) for all traffic between you and Bid360',
-      'Encrypted storage of passwords',
+      'Restricted access to subscription records',
       'Access controls limiting who can reach the production database',
       'Regular review of our security practices',
     ],
@@ -118,11 +115,11 @@ const sections = [
   },
   {
     title: '11. Cookies and similar technologies',
-    body: ['Bid360 uses a small number of cookies and browser storage items that are strictly necessary to keep you signed in and to operate the service. We do not use cookies for advertising or third-party tracking.'],
+    body: ['Bid360 uses only the cookies and browser storage needed to operate the service and protect public forms. We do not use cookies for advertising or third-party tracking.'],
   },
   {
     title: '12. Changes to this policy',
-    body: ['We may update this policy from time to time. When we do, we will change the "Last updated" date at the top of this page. If the change is significant, we will notify registered users by email.'],
+    body: ['We may update this policy from time to time. When we do, we will change the "Last updated" date at the top of this page. If the change is significant, we will notify subscribers by email.'],
   },
   {
     title: '13. Contact us',
@@ -202,11 +199,11 @@ function LegalPageShell({ children }) {
         <nav className="app-page flex items-center justify-between py-4 sm:py-5">
           <AppLogo href="/" tone="dark" caption="" />
           <div className="flex items-center gap-3">
-            <Link href="/login" className="app-button-secondary">
-              Sign in
+            <Link href="/manage" className="app-button-secondary">
+              Manage
             </Link>
-            <Link href="/register" className="app-button-primary">
-              Get started
+            <Link href="/" className="app-button-primary">
+              Subscribe
             </Link>
           </div>
         </nav>
@@ -225,7 +222,7 @@ function LegalFooter() {
           <div className="space-y-3">
             <AppLogo />
             <p className="max-w-md text-sm text-[var(--foreground-secondary)]">
-              Tender and contract management for South African professional services firms.
+              South African tender digests matched to your sector.
             </p>
           </div>
           <nav className="flex flex-wrap gap-4 text-sm font-semibold text-[var(--foreground-secondary)]">
@@ -241,7 +238,7 @@ function LegalFooter() {
           </nav>
         </div>
         <p className="pt-8 text-sm text-[var(--muted)]">
-          © 2026 Talita Consulting Services (Pty) Ltd, trading as Bid360.
+          (c) 2026 Talita Consulting Services (Pty) Ltd, trading as Bid360.
         </p>
       </div>
     </footer>

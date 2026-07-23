@@ -16,9 +16,9 @@ function normalizeRole(value) {
   return value === 'manager' ? 'manager' : 'member'
 }
 
-function buildInviteUrl(token) {
+function buildInviteUrl() {
   const appUrl = getAppUrl()
-  return appUrl ? `${appUrl}/login?invite=${token}` : null
+  return appUrl ? `${appUrl}/` : null
 }
 
 function renderInviteEmail({ inviterName, organizationName, inviteUrl, recipientName }) {
@@ -132,7 +132,7 @@ export async function POST(request) {
         },
       })
 
-  const inviteUrl = buildInviteUrl(invite.token)
+  const inviteUrl = buildInviteUrl()
 
   if (inviteUrl && organization) {
     try {

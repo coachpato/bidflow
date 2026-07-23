@@ -192,6 +192,24 @@ model PilotLead {
   @@map("pilotLead")
 }
 
+model Subscriber {
+  id               String    @id @default(cuid())
+  email            String
+  entityName       String
+  sector           String
+  keywords         String?
+  location         String?
+  subscribed       Boolean   @default(true)
+  verifiedAt       DateTime?
+  unsubscribeToken String    @unique @default(cuid())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([email, sector])
+  @@index([sector])
+  @@index([subscribed])
+}
+
 model Opportunity {
   id                 Int                   @id @default(autoincrement())
   title              String

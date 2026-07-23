@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AppLogo from '@/app/components/AppLogo'
 
 export const metadata = {
-  title: 'Terms of Use — Bid360',
+  title: 'Terms of Use - Bid360',
   description: 'Terms of Use for Bid360 and Talita Consulting Services (Pty) Ltd.',
 }
 
@@ -10,21 +10,20 @@ const sections = [
   {
     title: '1. The service',
     body: [
-      "Bid360 is a workspace that helps South African professional services firms discover, pursue, and track public tender opportunities. We collect tender information from public sources, match it to your firm's profile, and provide tools for managing the bid pipeline through to award and contract execution.",
+      'Bid360 is a subscription service that helps South African entities discover public tender opportunities. We collect tender information from public sources, match it to your selected sector and preferences, and send digest emails.',
       'Bid360 is currently in pilot. The service is operational, but features may change, be added, or be removed as we develop the product. We will give you reasonable notice of significant changes.',
     ],
   },
   {
-    title: '2. Accounts and eligibility',
+    title: '2. Subscriptions and eligibility',
     body: ['To use Bid360, you must:'],
     list: [
       'Be at least 18 years old',
       'Provide accurate registration information',
-      'Verify your email address',
-      'Keep your password confidential',
-      'Be authorised to act on behalf of any firm whose details you provide',
+      'Provide accurate subscription information',
+      'Be authorised to act on behalf of any entity whose details you provide',
     ],
-    footer: ['You are responsible for everything that happens under your account. If you suspect unauthorised access, contact us immediately at hello@bid360.co.za.'],
+    footer: ['You are responsible for the subscription details you provide. If you suspect unauthorised use of your email address, contact us immediately at hello@bid360.co.za.'],
   },
   {
     title: '3. Acceptable use',
@@ -33,13 +32,13 @@ const sections = [
       'Use the service for any unlawful purpose',
       'Misrepresent your identity or your firm',
       "Upload content that infringes another party's rights",
-      "Attempt to access another user's account or data",
+      "Attempt to access another subscriber's data",
       'Probe, scan, or test the security of the service',
       'Disrupt or interfere with the service',
       'Use automated tools to extract data from Bid360',
       'Resell or commercially exploit the service without our written agreement',
     ],
-    footer: ['We may suspend or close accounts that we believe are being used in breach of these terms.'],
+    footer: ['We may suspend or close subscriptions that we believe are being used in breach of these terms.'],
   },
   {
     title: '4. Tender information',
@@ -93,14 +92,14 @@ const sections = [
   {
     title: '10. Termination',
     body: [
-      'You may close your account at any time by contacting hello@bid360.co.za.',
-      'We may suspend or terminate your account if you breach these terms, if we are required to do so by law, or if we discontinue the service. We will give you reasonable notice where possible.',
-      'When your account ends, your right to use the service ends. We will deal with your personal information in accordance with our Privacy Policy.',
+      'You may unsubscribe at any time using your digest link, the manage page, or by contacting hello@bid360.co.za.',
+      'We may suspend or terminate your subscription if you breach these terms, if we are required to do so by law, or if we discontinue the service. We will give you reasonable notice where possible.',
+      'When your subscription ends, your right to receive the service ends. We will deal with your personal information in accordance with our Privacy Policy.',
     ],
   },
   {
     title: '11. Changes to these terms',
-    body: ['We may update these terms from time to time. When we do, we will change the "Last updated" date at the top of this page. If the change is significant, we will notify registered users by email. Your continued use of the service after a change means you accept the updated terms.'],
+    body: ['We may update these terms from time to time. When we do, we will change the "Last updated" date at the top of this page. If the change is significant, we will notify subscribers by email. Your continued use of the service after a change means you accept the updated terms.'],
   },
   {
     title: '12. Governing law and disputes',
@@ -126,7 +125,7 @@ export default function TermsPage() {
           </h1>
           <div className="space-y-4 text-base leading-7 text-[var(--foreground-secondary)]">
             <p>These Terms of Use govern your access to and use of Bid360. Bid360 is provided by Talita Consulting Services (Pty) Ltd (registration number 2019/623147/07), trading as Bid360.</p>
-            <p>By creating an account or using the service, you agree to these terms. Please read them carefully.</p>
+            <p>By subscribing or using the service, you agree to these terms. Please read them carefully.</p>
             <p>Last updated: 4 May 2026</p>
           </div>
         </div>
@@ -177,11 +176,11 @@ function LegalPageShell({ children }) {
         <nav className="app-page flex items-center justify-between py-4 sm:py-5">
           <AppLogo href="/" tone="dark" caption="" />
           <div className="flex items-center gap-3">
-            <Link href="/login" className="app-button-secondary">
-              Sign in
+            <Link href="/manage" className="app-button-secondary">
+              Manage
             </Link>
-            <Link href="/register" className="app-button-primary">
-              Get started
+            <Link href="/" className="app-button-primary">
+              Subscribe
             </Link>
           </div>
         </nav>
@@ -200,7 +199,7 @@ function LegalFooter() {
           <div className="space-y-3">
             <AppLogo />
             <p className="max-w-md text-sm text-[var(--foreground-secondary)]">
-              Tender and contract management for South African professional services firms.
+              South African tender digests matched to your sector.
             </p>
           </div>
           <nav className="flex flex-wrap gap-4 text-sm font-semibold text-[var(--foreground-secondary)]">
@@ -216,7 +215,7 @@ function LegalFooter() {
           </nav>
         </div>
         <p className="pt-8 text-sm text-[var(--muted)]">
-          © 2026 Talita Consulting Services (Pty) Ltd, trading as Bid360.
+          (c) 2026 Talita Consulting Services (Pty) Ltd, trading as Bid360.
         </p>
       </div>
     </footer>

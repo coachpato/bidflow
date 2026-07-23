@@ -28,7 +28,7 @@ async function sendAccountChangedEmail({ user, previousName }) {
           <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;line-height:1.7;color:#334155;">
             <li><strong>Display name:</strong> ${escapeHtml(previousName)} to ${escapeHtml(user.name)}</li>
           </ul>
-          ${appUrl ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(`${appUrl}/settings/account`)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#18314a;color:#ffffff;text-decoration:none;font-weight:700;">Open account settings</a></p>` : ''}
+          ${appUrl ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(`${appUrl}/manage`)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#18314a;color:#ffffff;text-decoration:none;font-weight:700;">Manage subscription</a></p>` : ''}
           <p style="margin:24px 0 0;font-size:13px;line-height:1.7;color:#64748b;">If you did not make this change, reply to this email so we can help secure your account.</p>
         </div>
       </div>
@@ -43,7 +43,7 @@ async function sendAccountChangedEmail({ user, previousName }) {
     'Your Bid360 display name was updated.',
     `Display name: ${previousName} to ${user.name}`,
     '',
-    appUrl ? `Open account settings: ${appUrl}/settings/account` : null,
+    appUrl ? `Manage subscription: ${appUrl}/manage` : null,
     'If you did not make this change, reply to this email so we can help secure your account.',
   ].filter(Boolean).join('\n')
 
