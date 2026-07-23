@@ -4,8 +4,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import RootPage from '../page'
+import { SECTORS } from '@/lib/sectors'
 
 jest.mock('next/image', () => ({
   __esModule: true,
@@ -49,6 +50,12 @@ describe('RootPage', () => {
     expect(screen.getByLabelText(/Sector/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Subscribe' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Unsubscribe/Manage' })).toHaveAttribute('href', '/manage')
+
+    const sectorList = screen.getByRole('list', { name: 'All sectors we track' })
+    expect(within(sectorList).getAllByRole('listitem')).toHaveLength(16)
+    SECTORS.forEach(sector => {
+      expect(within(sectorList).getByText(sector.label)).toBeInTheDocument()
+    })
   })
 
   it('renders the subscription landing page at mobile size', () => {

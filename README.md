@@ -19,6 +19,11 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Environment
+
+- `ADMIN_EMAIL`: receives a notification when a brand-new sector subscription is created.
+- `RESEND_API_KEY` and `EMAIL_FROM`: used by the shared email delivery utility.
+
 ## Verification
 
 ```bash

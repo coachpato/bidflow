@@ -20,12 +20,26 @@ export default function RootPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2" aria-label="Available sectors">
-            {SECTORS.slice(0, 8).map(sector => (
-              <span key={sector.value} className="app-badge app-badge-primary">
-                {sector.label}
-              </span>
-            ))}
+          <div className="space-y-4">
+            <div>
+              <p className="app-kicker">Coverage</p>
+              <h2 className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
+                All sectors we track
+              </h2>
+            </div>
+            <ul
+              aria-label="All sectors we track"
+              className="grid max-w-3xl grid-cols-1 gap-2 text-sm font-semibold text-[var(--foreground-secondary)] sm:grid-cols-2"
+            >
+              {SECTORS.map(sector => (
+                <li
+                  key={sector.value}
+                  className="rounded-lg border border-[var(--line)] bg-white/70 px-3 py-2 shadow-sm"
+                >
+                  {sector.label}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
