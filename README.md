@@ -22,6 +22,8 @@ Open `http://localhost:3000`.
 ## Environment
 
 - `ADMIN_EMAIL`: receives a notification when a brand-new sector subscription is created.
+- `CRAWLER_HEARTBEAT_URL`: Healthchecks.io success URL for crawler monitoring. Failed crawler runs are sent to the same URL with `/fail` appended unless `CRAWLER_HEARTBEAT_FAILURE_URL` is set.
+- `CRAWLER_ADMIN_EMAILS`: optional comma-separated crawler summary recipients.
 - `RESEND_API_KEY` and `EMAIL_FROM`: used by the shared email delivery utility.
 
 ## Verification

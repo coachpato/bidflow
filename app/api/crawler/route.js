@@ -111,6 +111,7 @@ export async function GET(request) {
     startedAt,
     finishedAt,
     logger,
+    db: prisma,
   })
 
   await sendCrawlerAdminSummary({
@@ -122,6 +123,7 @@ export async function GET(request) {
     heartbeatResult,
     dryRun,
     logger,
+    db: prisma,
   })
 
   return Response.json(result.body, { status: result.status })
