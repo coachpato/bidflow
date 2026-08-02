@@ -204,10 +204,29 @@ model Subscriber {
   unsubscribeToken String    @unique @default(cuid())
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  tenderDeliveries SubscriberTenderDelivery[]
 
   @@unique([email, sector])
   @@index([sector])
   @@index([subscribed])
+}
+
+model SubscriberTenderDelivery {
+  id            String      @id @default(cuid())
+  subscriber    Subscriber  @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  subscriberId  String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId Int
+  sourceRun     SourceRun?   @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRunId   Int?
+  deliveredAt   DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+
+  @@unique([subscriberId, opportunityId])
+  @@index([subscriberId, deliveredAt])
+  @@index([opportunityId])
+  @@index([sourceRunId])
+  @@map("subscriberTenderDelivery")
 }
 
 model Opportunity {
@@ -252,6 +271,7 @@ model Opportunity {
   documents          OpportunityDocument[]
   matches            OpportunityMatch[]
   tender             Tender?
+  subscriberDeliveries SubscriberTenderDelivery[]
 
   @@unique([organizationId, dedupeKey])
   @@index([organizationId, status, deadline])
@@ -302,6 +322,7 @@ model SourceRun {
   sourceId               Int
   opportunities          Opportunity[]
   deadLetters            DeadLetter[]
+  subscriberDeliveries   SubscriberTenderDelivery[]
 
   @@index([sourceId, startedAt])
   @@index([sourceId, runStatus, startedAt])
