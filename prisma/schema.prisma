@@ -236,8 +236,14 @@ model Opportunity {
   entity             String
   externalId         String?
   dedupeKey          String?
+  sourceTenderId     String?
+  sourceIdentityKey  String?               @unique
+  sourceContentHash  String?
+  sourceStatus       String?
   sourceName         String                @default("eTenders.gov.za")
   sourceUrl          String?
+  sourceDetailUrl    String?
+  sourceFallbackUrl  String?
   category           String?
   practiceArea       String?
   summary            String?
@@ -245,12 +251,20 @@ model Opportunity {
   publishedAt        DateTime?
   deadline           DateTime?
   briefingDate       DateTime?
+  briefingDetails    String?
   siteVisitDate      DateTime?
+  location           String?
   contactPerson      String?
   contactEmail       String?
+  matchedSectors     String[]              @default([])
   fitScore           Int?
   status             String                @default("New")
   notes              String?
+  firstSeenAt        DateTime              @default(now())
+  lastSeenAt         DateTime?
+  lastVerifiedAt     DateTime?
+  archivedAt         DateTime?
+  sourceMissingAt    DateTime?
   likedAt            DateTime?
   dislikedAt         DateTime?
   pursuedAt          DateTime?
@@ -278,6 +292,10 @@ model Opportunity {
   @@index([organizationId, status, fitScore, deadline])
   @@index([organizationId, dislikedAt, updatedAt])
   @@index([sourceId, publishedAt])
+  @@index([sourceId, sourceTenderId])
+  @@index([sourceStatus, deadline])
+  @@index([archivedAt, deadline])
+  @@index([lastSeenAt])
   @@map("opportunity")
 }
 
@@ -412,14 +430,26 @@ model OpportunityMatch {
 }
 
 model OpportunityDocument {
-  id            Int         @id @default(autoincrement())
-  filename      String
-  filepath      String
-  storagePath   String?
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  opportunityId Int
-  uploadedAt    DateTime    @default(now())
+  id               Int         @id @default(autoincrement())
+  filename         String
+  filepath         String
+  storagePath      String?
+  sourceUrl        String?
+  sourceDocumentId String?
+  documentType     String      @default("SOURCE")
+  extension        String?
+  fileSize         Int?
+  checksum         String?
+  sourceMetadata   Json?
+  firstSeenAt      DateTime    @default(now())
+  lastVerifiedAt   DateTime?
+  opportunity      Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId    Int
+  uploadedAt       DateTime    @default(now())
 
+  @@unique([opportunityId, sourceDocumentId])
+  @@index([opportunityId, uploadedAt])
+  @@index([sourceDocumentId])
   @@map("opportunityDocument")
 }
 
