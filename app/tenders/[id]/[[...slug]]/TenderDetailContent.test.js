@@ -10,7 +10,7 @@ describe('shared tender detail page', () => {
           title: '<script>alert("x")</script>',
           entity: '<img src=x onerror=alert(1)>',
           reference: 'LEGAL/42',
-          summary: 'Legal services <strong>scope</strong>',
+          summary: 'Imported by the Bid360 crawler for sector subscription matching. Issuing entity: South African Broadcasting Corporation Limited Category: Administrative and support activities',
           category: 'Legal services',
           matchedSectors: ['legal'],
           sourceName: 'eTenders.gov.za',
@@ -34,6 +34,8 @@ describe('shared tender detail page', () => {
     expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;')
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
     expect(html).not.toContain('<script>alert')
+    expect(html).not.toContain('Imported by the Bid360 crawler')
+    expect(html).not.toContain('Description</dt>')
     expect(html).not.toContain('subscriber')
     expect(html).not.toContain('unsubscribeToken')
     expect(html).toContain('View opportunities on eTenders')

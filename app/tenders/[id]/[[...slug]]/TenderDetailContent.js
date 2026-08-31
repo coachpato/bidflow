@@ -101,7 +101,6 @@ export default function TenderDetailContent({ tender }) {
             <section aria-labelledby="tender-details-heading">
               <h2 id="tender-details-heading" className="text-xl font-bold text-[var(--foreground)]">Tender details</h2>
               <dl className="mt-3 border-y border-[var(--line)]">
-                <DetailRow label="Description" value={tender.summary} />
                 <DetailRow label="Reference number" value={tender.reference} />
                 <DetailRow label="Category" value={tender.category} />
                 <DetailRow label="Bid360 classification" value={tender.matchedSectors?.length ? tender.matchedSectors.join(', ') : tender.practiceArea} />
